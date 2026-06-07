@@ -1,9 +1,9 @@
-package com.github.seijind.stringsmith.services
+package com.seijind.stringsmith.services
 
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
-import com.github.seijind.stringsmith.MyBundle
+import com.seijind.stringsmith.MyBundle
 
 @Service(Service.Level.PROJECT)
 class MyProjectService(project: Project) {

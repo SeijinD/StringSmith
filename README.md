@@ -1,45 +1,65 @@
-# stringsmith
+# StringSmith – Android String Extractor
 
 ![Build](https://github.com/SeijinD/stringsmith/workflows/Build/badge.svg)
-[![Version](https://img.shields.io/jetbrains/plugin/v/MARKETPLACE_ID.svg)](https://plugins.jetbrains.com/plugin/MARKETPLACE_ID)
-[![Downloads](https://img.shields.io/jetbrains/plugin/d/MARKETPLACE_ID.svg)](https://plugins.jetbrains.com/plugin/MARKETPLACE_ID)
 
-## Template ToDo list
-- [x] Create a new [IntelliJ Platform Plugin Template][template] project.
-- [ ] Get familiar with the [template documentation][template].
-- [ ] Adjust the [group](./gradle.properties), as well as the [id](./src/main/resources/META-INF/plugin.xml), [name](./src/main/resources/META-INF/plugin.xml), and [sources package](./src/main/kotlin).
-- [ ] Adjust the plugin [description](./src/main/resources/META-INF/plugin.xml) (see [Tips][docs:plugin-description]) and this README to describe what your plugin does.
-- [ ] Review the [Legal Agreements](https://plugins.jetbrains.com/docs/marketplace/legal-agreements.html?from=IJPluginTemplate).
-- [ ] [Publish a plugin manually](https://plugins.jetbrains.com/docs/intellij/publishing-plugin.html?from=IJPluginTemplate) for the first time.
-- [ ] Set the `MARKETPLACE_ID` in the above README badges. You can obtain it once the plugin is published to JetBrains Marketplace.
-- [ ] Set the [Plugin Signing](https://plugins.jetbrains.com/docs/intellij/plugin-signing.html?from=IJPluginTemplate) related [secrets](https://github.com/JetBrains/intellij-platform-plugin-template#environment-variables).
-- [ ] Set the [Deployment Token](https://plugins.jetbrains.com/docs/marketplace/plugin-upload.html?from=IJPluginTemplate).
-- [ ] Click the <kbd>Watch</kbd> button on the top of the [IntelliJ Platform Plugin Template][template] to be notified about releases containing new features and fixes.
+IntelliJ / Android Studio plugin that extracts hardcoded strings into Android `strings.xml` resources.
 
-This Fancy IntelliJ Platform Plugin is going to be your implementation of the brilliant ideas that you have.
+## Features
 
-## Installation
+- Context-aware replacement
+  - Inside `@Composable` → `stringResource(R.string.key)`
+  - Inside `Activity` / `Fragment` / `View` → `getString(R.string.key)`
+  - Other Kotlin code → `R.string.key`
+  - XML layout attribute → `@string/key`
+- Auto-import for Compose `stringResource`
+- Duplicate key detection and value reuse
+- Multi-locale placeholder generation across `values-*` folders
+- Quick-fix intention bulb on hardcoded literals
+- Settings panel for default key prefix, target module, locale handling
 
-- Using the IDE built-in plugin system:
+## Install
 
-  <kbd>Settings/Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>Marketplace</kbd> > <kbd>Search for "stringsmith"</kbd> >
-  <kbd>Install</kbd>
+### From source
 
-- Using JetBrains Marketplace:
+```
+git clone https://github.com/SeijinD/stringsmith.git
+cd stringsmith
+./gradlew buildPlugin
+```
 
-  Go to [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/MARKETPLACE_ID) and install it by clicking the <kbd>Install to ...</kbd> button in case your IDE is running.
+Output: `build/distributions/stringsmith-<version>.zip`
 
-  You can also download the [latest release](https://plugins.jetbrains.com/plugin/MARKETPLACE_ID/versions) from JetBrains Marketplace and install it manually using
-  <kbd>Settings/Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>⚙️</kbd> > <kbd>Install plugin from disk...</kbd>
+Install via **Settings → Plugins → ⚙ → Install Plugin from Disk**.
 
-- Manually:
+### Run sandbox
 
-  Download the [latest release](https://github.com/SeijinD/stringsmith/releases/latest) and install it manually using
-  <kbd>Settings/Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>⚙️</kbd> > <kbd>Install plugin from disk...</kbd>
+```
+./gradlew runIde                 # IntelliJ IDEA Ultimate
+./gradlew runIdeCommunity        # IntelliJ IDEA Community
+./gradlew runIdeAndroidStudio    # Android Studio
+```
 
+## Usage
 
----
-Plugin based on the [IntelliJ Platform Plugin Template][template].
+1. Select hardcoded string in editor.
+2. Right-click → **Extract to strings.xml** (or `Ctrl+Alt+S`).
+3. Enter resource key.
+4. String added to `res/values/strings.xml`, selection replaced with context-appropriate reference.
 
-[template]: https://github.com/JetBrains/intellij-platform-plugin-template
-[docs:plugin-description]: https://plugins.jetbrains.com/docs/intellij/plugin-user-experience.html#plugin-description-and-presentation
+## Compatibility
+
+- IntelliJ IDEA 2024.2+
+- Android Studio Koala 2024.2.1+
+- Kotlin plugin K1 and K2 modes
+
+## Development
+
+```
+./gradlew runIde            # launch sandbox IDE
+./gradlew verifyPlugin      # plugin verifier against recommended IDEs
+./gradlew buildPlugin       # produce distributable zip
+```
+
+## License
+
+MIT — see [LICENSE](LICENSE).

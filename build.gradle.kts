@@ -1,4 +1,5 @@
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
+import org.jetbrains.intellij.platform.gradle.tasks.VerifyPluginTask
 
 plugins {
     id("org.jetbrains.kotlin.jvm")
@@ -6,12 +7,62 @@ plugins {
     id("org.jetbrains.changelog")
 }
 
+group = providers.gradleProperty("pluginGroup").get()
+version = providers.gradleProperty("pluginVersion").get()
+
+kotlin {
+    jvmToolchain(21)
+}
+
 dependencies {
     testImplementation("junit:junit:4.13.2")
 
-    // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
     intellijPlatform {
-        intellijIdea("2025.2.6.2")
+        intellijIdeaCommunity("2025.1")
+        bundledPlugin("com.intellij.java")
+        bundledPlugin("org.jetbrains.kotlin")
         testFramework(TestFrameworkType.Platform)
+        pluginVerifier()
+        zipSigner()
     }
+}
+
+intellijPlatform {
+    pluginConfiguration {
+        version = providers.gradleProperty("pluginVersion").get()
+        ideaVersion {
+            sinceBuild = "251"
+            untilBuild = provider { null }
+        }
+    }
+
+    signing {
+        certificateChain = providers.environmentVariable("CERTIFICATE_CHAIN")
+        privateKey = providers.environmentVariable("PRIVATE_KEY")
+        password = providers.environmentVariable("PRIVATE_KEY_PASSWORD")
+    }
+
+    publishing {
+        token = providers.environmentVariable("PUBLISH_TOKEN")
+    }
+
+    pluginVerification {
+        ides {
+            recommended()
+        }
+        failureLevel = listOf(
+            VerifyPluginTask.FailureLevel.COMPATIBILITY_PROBLEMS,
+            VerifyPluginTask.FailureLevel.MISSING_DEPENDENCIES,
+        )
+    }
+}
+
+val runAndroidStudio by intellijPlatformTesting.runIde.registering {
+    val os = System.getProperty("os.name").lowercase()
+    val default = when {
+        os.contains("win") -> "C:\\Program Files\\Android\\Android Studio"
+        os.contains("mac") -> "/Applications/Android Studio.app"
+        else -> "${System.getProperty("user.home")}/android-studio"
+    }
+    localPath = file(providers.gradleProperty("androidStudioPath").getOrElse(default))
 }

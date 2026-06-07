@@ -1,4 +1,4 @@
-package com.github.seijind.stringsmith
+package com.seijind.stringsmith
 
 import com.intellij.DynamicBundle
 import org.jetbrains.annotations.NonNls

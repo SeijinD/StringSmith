@@ -1,4 +1,4 @@
-package com.github.seijind.stringsmith.toolWindow
+package com.seijind.stringsmith.toolWindow
 
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.thisLogger
@@ -8,8 +8,8 @@ import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBPanel
 import com.intellij.ui.content.ContentFactory
-import com.github.seijind.stringsmith.MyBundle
-import com.github.seijind.stringsmith.services.MyProjectService
+import com.seijind.stringsmith.MyBundle
+import com.seijind.stringsmith.services.MyProjectService
 import javax.swing.JButton
 
 
