@@ -30,15 +30,17 @@ object StringsXmlUtil {
     }
 
     fun findDefaultStringsXml(project: Project, near: VirtualFile? = null): VirtualFile? {
-        val all = findAllStringsXml(project)
+        val all = findAllDefaultStringsXml(project)
         if (all.isEmpty()) return null
         if (near != null) {
-            val nearest = all.filter { it.parent?.name == "values" }
-                .minByOrNull { commonPrefix(it.path, near.path).length * -1 }
+            val nearest = all.minByOrNull { commonPrefix(it.path, near.path).length * -1 }
             if (nearest != null) return nearest
         }
-        return all.firstOrNull { it.parent?.name == "values" } ?: all.firstOrNull()
+        return all.firstOrNull()
     }
+
+    fun findAllDefaultStringsXml(project: Project): List<VirtualFile> =
+        findAllStringsXml(project).filter { it.parent?.name == "values" }
 
     fun findLocaleVariants(defaultFile: VirtualFile): List<VirtualFile> {
         val resDir = defaultFile.parent?.parent ?: return emptyList()

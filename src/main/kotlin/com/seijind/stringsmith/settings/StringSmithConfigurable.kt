@@ -84,6 +84,14 @@ class StringSmithConfigurable : Configurable {
                 }
             }
 
+            group("Target Module") {
+                row {
+                    checkBox("Remember last selected module across extracts")
+                        .bindSelected({ settings.rememberLastModule }, { settings.rememberLastModule = it })
+                        .comment("When the project has multiple <code>values/strings.xml</code> files, preselect the last one used.")
+                }
+            }
+
             group("strings.xml Behavior") {
                 row {
                     checkBox("Sort entries alphabetically after extract")

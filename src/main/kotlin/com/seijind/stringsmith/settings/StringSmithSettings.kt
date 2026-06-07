@@ -52,7 +52,9 @@ class StringSmithSettings : PersistentStateComponent<StringSmithSettings.State> 
         var trimWhitespace: Boolean = true,
         var excludePatterns: String = "^[A-Z_]{2,}$\nhttps?://.*",
         var activityStyle: ActivityReplacementStyle = ActivityReplacementStyle.GET_STRING,
-        var composeStyle: ComposeArgStyle = ComposeArgStyle.POSITIONAL
+        var composeStyle: ComposeArgStyle = ComposeArgStyle.POSITIONAL,
+        var lastTargetModulePath: String = "",
+        var rememberLastModule: Boolean = true
     )
 
     private var state = State()
@@ -114,6 +116,14 @@ class StringSmithSettings : PersistentStateComponent<StringSmithSettings.State> 
     var composeStyle: ComposeArgStyle
         get() = state.composeStyle
         set(value) { state.composeStyle = value }
+
+    var lastTargetModulePath: String
+        get() = if (state.rememberLastModule) state.lastTargetModulePath else ""
+        set(value) { if (state.rememberLastModule) state.lastTargetModulePath = value }
+
+    var rememberLastModule: Boolean
+        get() = state.rememberLastModule
+        set(value) { state.rememberLastModule = value }
 
     fun excludePatternList(): List<Regex> {
         return excludePatterns.lineSequence()

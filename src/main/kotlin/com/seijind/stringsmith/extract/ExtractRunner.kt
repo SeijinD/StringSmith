@@ -33,58 +33,73 @@ object ExtractRunner {
 
         val effectiveTarget = if (rawValue != target.rawValue) target.copy(rawValue = rawValue) else target
 
-        val stringsXml = StringsXmlUtil.findDefaultStringsXml(project, file.virtualFile)
-        if (stringsXml == null) {
+        val allTargets = StringsXmlUtil.findAllDefaultStringsXml(project)
+        if (allTargets.isEmpty()) {
             Messages.showErrorDialog(project, "No strings.xml found under res/values/.", DIALOG_TITLE)
             return
         }
 
-        val existingKey = StringsXmlUtil.findExistingKey(stringsXml, effectiveTarget.rawValue)
-        if (existingKey != null) {
-            val reuse = Messages.showYesNoDialog(
-                project,
-                "String already exists with key \"$existingKey\". Reuse it?",
-                DIALOG_TITLE,
-                Messages.getQuestionIcon()
-            )
-            if (reuse == Messages.YES) {
-                replaceOnly(project, editor, effectiveTarget, existingKey)
-                return
-            }
+        val remembered = settings.lastTargetModulePath
+            .takeIf { it.isNotBlank() }
+            ?.let { rem -> allTargets.firstOrNull { it.path == rem } }
+        val nearest = StringsXmlUtil.findDefaultStringsXml(project, file.virtualFile)
+        val initialTarget = remembered ?: nearest ?: allTargets.first()
+
+        val existingKey = StringsXmlUtil.findExistingKey(initialTarget, effectiveTarget.rawValue)
+        val suggested = suggestKey(effectiveTarget.rawValue)
+
+        val dialog = ExtractDialog(
+            project = project,
+            rawValue = effectiveTarget.rawValue,
+            target = effectiveTarget,
+            suggestedKey = suggested,
+            existingKey = existingKey,
+            initialTarget = initialTarget,
+            allTargets = allTargets
+        )
+
+        if (!dialog.showAndGet()) return
+        val result = dialog.result()
+
+        settings.lastTargetModulePath = result.targetStringsXml.path
+
+        if (result.reuseExisting) {
+            replaceOnly(project, editor, effectiveTarget, result.key)
+            return
         }
 
-        val suggested = suggestKey(effectiveTarget.rawValue)
-        val key = promptForKey(project, suggested, stringsXml) ?: return
+        val finalTarget = if (result.defaultValue != effectiveTarget.rawValue) {
+            effectiveTarget.copy(rawValue = result.defaultValue)
+        } else effectiveTarget
 
-        runExtract(project, editor, effectiveTarget, stringsXml, key)
+        runExtract(project, editor, finalTarget, result)
     }
 
     fun isExtractable(file: PsiFile, editor: Editor): Boolean =
         ExtractContext.detect(file, editor) != null
 
-    private fun runExtract(project: Project, editor: Editor, target: ExtractTarget, stringsXml: VirtualFile, key: String) {
+    private fun runExtract(project: Project, editor: Editor, target: ExtractTarget, result: ExtractDialogResult) {
         val settings = StringSmithSettings.getInstance()
-        val variants = StringsXmlUtil.findLocaleVariants(stringsXml)
-        val propagate = variants.isNotEmpty() && shouldPropagate(project, variants)
         val comment = if (settings.addSourceComment) buildSourceComment(target, editor) else null
+        val applyPropagation = settings.localePropagation != LocalePropagation.NEVER
 
         WriteCommandAction.runWriteCommandAction(project, "Extract String Resource", null, {
-            StringsXmlUtil.appendEntry(stringsXml, key, target.rawValue, comment, settings.sortAfterExtract)
-            if (propagate) {
-                variants.forEach { variant ->
-                    if (!StringsXmlUtil.keyExists(variant, key)) {
-                        StringsXmlUtil.appendEntry(variant, key, target.rawValue, comment, settings.sortAfterExtract)
+            StringsXmlUtil.appendEntry(result.targetStringsXml, result.key, result.defaultValue, comment, settings.sortAfterExtract)
+            if (applyPropagation) {
+                result.localeEntries.filter { it.include }.forEach { entry ->
+                    if (!StringsXmlUtil.keyExists(entry.file, result.key)) {
+                        StringsXmlUtil.appendEntry(entry.file, result.key, entry.value, comment, settings.sortAfterExtract)
                     }
                 }
             }
-            Replacement.apply(editor, target, key)
+            Replacement.apply(editor, target, result.key)
         })
 
         if (settings.openStringsXmlAfterExtract) {
-            val offset = StringsXmlUtil.offsetOfKey(stringsXml, key)
+            val offset = StringsXmlUtil.offsetOfKey(result.targetStringsXml, result.key)
             if (offset >= 0) {
                 FileEditorManager.getInstance(project).openTextEditor(
-                    OpenFileDescriptor(project, stringsXml, offset),
+                    OpenFileDescriptor(project, result.targetStringsXml, offset),
                     true
                 )
             }
@@ -101,47 +116,6 @@ object ExtractRunner {
         WriteCommandAction.runWriteCommandAction(project, "Replace With String Resource", null, {
             Replacement.apply(editor, target, key)
         })
-    }
-
-    private fun shouldPropagate(project: Project, variants: List<VirtualFile>): Boolean {
-        return when (StringSmithSettings.getInstance().localePropagation) {
-            LocalePropagation.ALWAYS -> true
-            LocalePropagation.NEVER -> false
-            LocalePropagation.ASK -> askPropagate(project, variants)
-        }
-    }
-
-    private fun askPropagate(project: Project, variants: List<VirtualFile>): Boolean {
-        val names = variants.mapNotNull { it.parent?.name }.joinToString(", ")
-        val answer = Messages.showYesNoDialog(
-            project,
-            "Also add placeholder entry to ${variants.size} locale file(s)?\n$names",
-            DIALOG_TITLE,
-            Messages.getQuestionIcon()
-        )
-        return answer == Messages.YES
-    }
-
-    private fun promptForKey(project: Project, suggested: String, stringsXml: VirtualFile): String? {
-        while (true) {
-            val key = Messages.showInputDialog(
-                project,
-                "Resource key:",
-                DIALOG_TITLE,
-                Messages.getQuestionIcon(),
-                suggested,
-                null
-            ) ?: return null
-            if (!KeyGenerator.isValidKey(key)) {
-                Messages.showErrorDialog(project, "Invalid key. Use letters, digits, underscore. Must start with a letter.", DIALOG_TITLE)
-                continue
-            }
-            if (StringsXmlUtil.keyExists(stringsXml, key)) {
-                Messages.showErrorDialog(project, "Key \"$key\" already exists with a different value.", DIALOG_TITLE)
-                continue
-            }
-            return key
-        }
     }
 
     private fun suggestKey(value: String): String {
