@@ -32,8 +32,13 @@ object ExtractContext {
 
     fun detect(file: PsiFile, editor: Editor): ExtractTarget? {
         val offset = editor.caretModel.offset
-        val element = file.findElementAt(offset) ?: return null
-        return detectFrom(element, file)
+        val forward = file.findElementAt(offset)?.let { detectFrom(it, file) }
+        if (forward != null) return forward
+        if (offset > 0) {
+            val backward = file.findElementAt(offset - 1)?.let { detectFrom(it, file) }
+            if (backward != null) return backward
+        }
+        return null
     }
 
     private fun detectFrom(element: PsiElement, file: PsiFile): ExtractTarget? {
