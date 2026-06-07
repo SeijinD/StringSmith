@@ -23,6 +23,13 @@
             <className>com.seijind.stringsmith.intentions.ExtractStringResourceIntention</className>
             <category>Android</category>
         </intentionAction>
+        <applicationConfigurable
+            parentId="tools"
+            id="com.seijind.stringsmith.settings"
+            displayName="StringSmith – Android String Extractor"
+            instance="com.seijind.stringsmith.settings.StringSmithConfigurable"/>
+        <applicationService
+            serviceImplementation="com.seijind.stringsmith.settings.StringSmithSettings"/>
     </extensions>
 
     <extensions defaultExtensionNs="org.jetbrains.kotlin">
