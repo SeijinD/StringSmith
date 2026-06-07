@@ -55,11 +55,7 @@ object StringsXmlUtil {
 
     fun readEntries(file: VirtualFile): List<StringsXmlEntry> {
         val doc = FileDocumentManager.getInstance().getDocument(file) ?: return emptyList()
-        val text = doc.text
-        val regex = Regex("""<string\s+name\s*=\s*"([^"]+)"\s*>([\s\S]*?)</string>""")
-        return regex.findAll(text).map { m ->
-            StringsXmlEntry(m.groupValues[1], decodeXml(m.groupValues[2]))
-        }.toList()
+        return StringsXmlText.parseEntries(doc.text)
     }
 
     fun findExistingKey(file: VirtualFile, value: String): String? {
@@ -70,24 +66,16 @@ object StringsXmlUtil {
     fun keyExists(file: VirtualFile, key: String): Boolean =
         readEntries(file).any { it.key == key }
 
-    fun appendEntry(file: VirtualFile, key: String, value: String) {
+    fun appendEntry(file: VirtualFile, key: String, value: String, comment: String? = null, sortAlpha: Boolean = false) {
         val doc = FileDocumentManager.getInstance().getDocument(file) ?: return
-        val text = doc.text
-        val escaped = encodeXml(value)
-        val entry = "    <string name=\"$key\">$escaped</string>\n"
-        val closeIdx = text.lastIndexOf("</resources>")
-        val newText = if (closeIdx >= 0) {
-            text.substring(0, closeIdx) + entry + text.substring(closeIdx)
-        } else {
-            buildString {
-                append(text.trimEnd())
-                append("\n<resources>\n")
-                append(entry)
-                append("</resources>\n")
-            }
-        }
+        val newText = StringsXmlText.appendEntry(doc.text, key, value, comment, sortAlpha)
         doc.setText(newText)
         FileDocumentManager.getInstance().saveDocument(doc)
+    }
+
+    fun offsetOfKey(file: VirtualFile, key: String): Int {
+        val doc = FileDocumentManager.getInstance().getDocument(file) ?: return -1
+        return doc.text.indexOf("name=\"$key\"")
     }
 
     private fun commonPrefix(a: String, b: String): String {
@@ -96,19 +84,4 @@ object StringsXmlUtil {
         while (i < max && a[i] == b[i]) i++
         return a.substring(0, i)
     }
-
-    private fun encodeXml(value: String): String = value
-        .replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace("\"", "\\\"")
-        .replace("'", "\\'")
-
-    private fun decodeXml(value: String): String = value
-        .replace("\\'", "'")
-        .replace("\\\"", "\"")
-        .replace("&gt;", ">")
-        .replace("&lt;", "<")
-        .replace("&amp;", "&")
-        .trim()
 }

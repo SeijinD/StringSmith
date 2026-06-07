@@ -2,17 +2,20 @@ package com.seijind.stringsmith.extract
 
 import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiDocumentManager
+import com.seijind.stringsmith.settings.StringSmithSettings
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtPsiFactory
-import org.jetbrains.kotlin.resolve.ImportPath
 
 object Replacement {
 
-    fun referenceFor(target: ExtractTarget, key: String): String = when (target.kind) {
-        ExtractContextKind.COMPOSABLE -> "stringResource(R.string.$key)"
-        ExtractContextKind.ANDROID_CLASS -> "getString(R.string.$key)"
-        ExtractContextKind.KOTLIN_GENERIC -> "R.string.$key"
-        ExtractContextKind.XML_LAYOUT -> "@string/$key"
+    fun referenceFor(target: ExtractTarget, key: String): String {
+        val settings = StringSmithSettings.getInstance()
+        return when (target.kind) {
+            ExtractContextKind.COMPOSABLE -> settings.composeStyle.template.format(key)
+            ExtractContextKind.ANDROID_CLASS -> settings.activityStyle.template.format(key)
+            ExtractContextKind.KOTLIN_GENERIC -> "R.string.$key"
+            ExtractContextKind.XML_LAYOUT -> "@string/$key"
+        }
     }
 
     fun apply(editor: Editor, target: ExtractTarget, key: String) {
@@ -51,7 +54,8 @@ object Replacement {
         val already = imports.imports.any { it.importedFqName?.asString() == fqName }
         if (already) return
         val factory = KtPsiFactory(file.project)
-        val newImport = factory.createImportDirective(ImportPath.fromString(fqName))
+        val parsed = factory.createFile("import $fqName")
+        val newImport = parsed.importDirectives.firstOrNull() ?: return
         imports.add(newImport)
     }
 
