@@ -41,18 +41,35 @@ object StringsXmlText {
         return xml.substring(0, openEnd) + "\n    " + sorted.replace("\n", "\n    ") + "\n" + xml.substring(closeIdx)
     }
 
-    fun encodeXml(value: String): String = value
-        .replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace("\"", "\\\"")
-        .replace("'", "\\'")
+    fun encodeXml(value: String): String {
+        val sb = StringBuilder(value.length + 8)
+        for ((i, ch) in value.withIndex()) {
+            when (ch) {
+                '"' -> sb.append("\\\"")
+                '\'' -> sb.append("\\'")
+                '&' -> sb.append("&amp;")
+                '<' -> sb.append("&lt;")
+                '>' -> sb.append("&gt;")
+                '@' -> if (i == 0) sb.append("\\@") else sb.append(ch)
+                '?' -> if (i == 0) sb.append("\\?") else sb.append(ch)
+                else -> sb.append(ch)
+            }
+        }
+        return sb.toString()
+    }
 
-    fun decodeXml(value: String): String = value
-        .replace("\\'", "'")
-        .replace("\\\"", "\"")
-        .replace("&gt;", ">")
-        .replace("&lt;", "<")
-        .replace("&amp;", "&")
-        .trim()
+    fun decodeXml(value: String): String {
+        val unescapedLeading = when {
+            value.startsWith("\\@") -> "@" + value.substring(2)
+            value.startsWith("\\?") -> "?" + value.substring(2)
+            else -> value
+        }
+        return unescapedLeading
+            .replace("\\\"", "\"")
+            .replace("\\'", "'")
+            .replace("&gt;", ">")
+            .replace("&lt;", "<")
+            .replace("&amp;", "&")
+            .trim()
+    }
 }

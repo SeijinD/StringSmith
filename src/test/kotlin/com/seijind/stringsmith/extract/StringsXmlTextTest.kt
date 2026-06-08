@@ -130,6 +130,95 @@ class StringsXmlTextTest {
     }
 
     @Test
+    fun encodeXml_passesBackslashSourceFormThrough() {
+        assertEquals("\\n", StringsXmlText.encodeXml("\\n"))
+        assertEquals("path\\\\file", StringsXmlText.encodeXml("path\\\\file"))
+    }
+
+    @Test
+    fun encodeXml_escapesLeadingAtAndQuestion() {
+        assertEquals("\\@type/foo", StringsXmlText.encodeXml("@type/foo"))
+        assertEquals("\\?attr/bar", StringsXmlText.encodeXml("?attr/bar"))
+        assertEquals("email@example.com", StringsXmlText.encodeXml("email@example.com"))
+        assertEquals("why?here?", StringsXmlText.encodeXml("why?here?"))
+    }
+
+    @Test
+    fun encodeDecode_roundTrip_leadingAtAndQuestion() {
+        val cases = listOf(
+            "@user mention",
+            "?themed value",
+            "He said \"hi\" and waved"
+        )
+        for (input in cases) {
+            val encoded = StringsXmlText.encodeXml(input)
+            val decoded = StringsXmlText.decodeXml(encoded)
+            assertEquals(input, decoded)
+        }
+    }
+
+    @Test
+    fun encodeXml_doesNotEscapeAtOrQuestionMidString() {
+        assertEquals("user@host.com", StringsXmlText.encodeXml("user@host.com"))
+        assertEquals("really?now", StringsXmlText.encodeXml("really?now"))
+    }
+
+    @Test
+    fun encodeXml_preservesNewlineAndTabSourceEscapes() {
+        assertEquals("Line1\\nLine2", StringsXmlText.encodeXml("Line1\\nLine2"))
+        assertEquals("col1\\tcol2", StringsXmlText.encodeXml("col1\\tcol2"))
+    }
+
+    @Test
+    fun encodeXml_combinesEscapes() {
+        val input = "Hello, \"world\" & <b>good</b>"
+        val expected = "Hello, \\\"world\\\" &amp; &lt;b&gt;good&lt;/b&gt;"
+        assertEquals(expected, StringsXmlText.encodeXml(input))
+    }
+
+    @Test
+    fun decodeXml_reversesLeadingAt() {
+        assertEquals("@user", StringsXmlText.decodeXml("\\@user"))
+    }
+
+    @Test
+    fun decodeXml_reversesLeadingQuestion() {
+        assertEquals("?attr", StringsXmlText.decodeXml("\\?attr"))
+    }
+
+    @Test
+    fun decodeXml_doesNotTouchMidStringAtOrQuestion() {
+        assertEquals("a@b?c", StringsXmlText.decodeXml("a@b?c"))
+    }
+
+    @Test
+    fun encodeXml_emptyAndSingleChar() {
+        assertEquals("", StringsXmlText.encodeXml(""))
+        assertEquals("\\@", StringsXmlText.encodeXml("@"))
+        assertEquals("\\?", StringsXmlText.encodeXml("?"))
+        assertEquals("\\\"", StringsXmlText.encodeXml("\""))
+    }
+
+    @Test
+    fun encodeDecode_roundTrip_combinedCases() {
+        val cases = listOf(
+            "Hello & <b>world</b>",
+            "It's a \"test\"",
+            "@reference",
+            "?themed",
+            "Line1\\nLine2",
+            "Mixed: @start, mid@, end?",
+            "Empty: ",
+            ""
+        )
+        for (input in cases) {
+            val encoded = StringsXmlText.encodeXml(input)
+            val decoded = StringsXmlText.decodeXml(encoded)
+            assertEquals("Round-trip failed for: '$input'", input.trim(), decoded)
+        }
+    }
+
+    @Test
     fun parseEntries_multilineValue() {
         val xml = """
             <resources>
