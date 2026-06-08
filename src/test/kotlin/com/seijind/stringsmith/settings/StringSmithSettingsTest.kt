@@ -95,9 +95,6 @@ class StringSmithSettingsTest {
     fun enumDisplayStrings_areReadable() {
         assertEquals("snake_case", NamingConvention.SNAKE_CASE.toString())
         assertEquals("camelCase", NamingConvention.CAMEL_CASE.toString())
-        assertEquals("Always propagate", LocalePropagation.ALWAYS.toString())
-        assertEquals("Default file only", LocalePropagation.NEVER.toString())
-        assertEquals("Ask each time", LocalePropagation.ASK.toString())
     }
 
     @Test
@@ -119,7 +116,7 @@ class StringSmithSettingsTest {
         assertEquals(40, s.maxKeyLength)
         assertEquals(2, s.minStringLength)
         assertEquals(NamingConvention.SNAKE_CASE, s.namingConvention)
-        assertEquals(LocalePropagation.ASK, s.localePropagation)
+        assertTrue(s.autoIncludeLocales)
         assertTrue(s.trimWhitespace)
         assertFalse(s.sortAfterExtract)
     }

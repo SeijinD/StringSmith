@@ -12,6 +12,7 @@ import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
 import com.seijind.stringsmith.StringSmithBundle
+import com.seijind.stringsmith.settings.StringSmithSettings
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JCheckBox
 import javax.swing.JComponent
@@ -137,10 +138,11 @@ class ExtractDialog(
 
     private fun rebuildLocaleRows(target: VirtualFile) {
         val variants = StringsXmlUtil.findLocaleVariants(target)
+        val defaultInclude = StringSmithSettings.getInstance().autoIncludeLocales
         localeRows = variants.map { variant ->
             LocaleRow(
                 variant = variant,
-                include = JCheckBox("", true),
+                include = JCheckBox("", defaultInclude),
                 value = JBTextField(valueField.text).apply { columns = 25 }
             )
         }

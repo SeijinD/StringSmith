@@ -80,14 +80,11 @@ class StringSmithConfigurable : Configurable {
             }
 
             group("Locale Files") {
-                row("Locale propagation:") {
-                    comboBox(LocalePropagation.entries.toList())
-                        .bindItem(
-                            { settings.localePropagation },
-                            { v -> if (v != null) settings.localePropagation = v }
-                        )
-                        .comment("How to handle <code>values-*/strings.xml</code> when extracting.")
-                        .applyToComponent { toolTipText = "Always = propagate without asking; Never = default only; Ask = use dialog selection" }
+                row {
+                    checkBox("Auto-include locale variants by default")
+                        .bindSelected({ settings.autoIncludeLocales }, { settings.autoIncludeLocales = it })
+                        .comment("Initial checkbox state for <code>values-*/strings.xml</code> rows in the extract dialog.")
+                        .applyToComponent { toolTipText = "When on, all locale variant rows start checked; when off, they start unchecked" }
                 }
             }
 

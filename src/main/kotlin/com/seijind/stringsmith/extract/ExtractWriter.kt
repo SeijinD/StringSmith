@@ -5,7 +5,6 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.Project
-import com.seijind.stringsmith.settings.LocalePropagation
 import com.seijind.stringsmith.settings.StringSmithSettings
 
 object ExtractWriter {
@@ -18,15 +17,12 @@ object ExtractWriter {
         settings: StringSmithSettings = StringSmithSettings.getInstance()
     ) {
         val comment = if (settings.addSourceComment) buildSourceComment(target, editor) else null
-        val applyPropagation = settings.localePropagation != LocalePropagation.NEVER
 
         WriteCommandAction.runWriteCommandAction(project, "Extract String Resource", null, {
             StringsXmlUtil.appendEntry(result.targetStringsXml, result.key, result.defaultValue, comment, settings.sortAfterExtract)
-            if (applyPropagation) {
-                result.localeEntries.filter { it.include }.forEach { entry ->
-                    if (!StringsXmlUtil.keyExists(entry.file, result.key)) {
-                        StringsXmlUtil.appendEntry(entry.file, result.key, entry.value, comment, settings.sortAfterExtract)
-                    }
+            result.localeEntries.filter { it.include }.forEach { entry ->
+                if (!StringsXmlUtil.keyExists(entry.file, result.key)) {
+                    StringsXmlUtil.appendEntry(entry.file, result.key, entry.value, comment, settings.sortAfterExtract)
                 }
             }
             Replacement.apply(editor, target, result.key)

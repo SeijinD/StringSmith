@@ -7,13 +7,6 @@ import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.util.xmlb.XmlSerializerUtil
 
-enum class LocalePropagation(val display: String) {
-    ALWAYS("Always propagate"),
-    NEVER("Default file only"),
-    ASK("Ask each time");
-    override fun toString(): String = display
-}
-
 enum class NamingConvention(val display: String) {
     SNAKE_CASE("snake_case"),
     CAMEL_CASE("camelCase");
@@ -42,7 +35,7 @@ class StringSmithSettings : PersistentStateComponent<StringSmithSettings.State> 
 
     data class State(
         var keyPrefix: String = "",
-        var localePropagation: LocalePropagation = LocalePropagation.ASK,
+        var autoIncludeLocales: Boolean = true,
         var namingConvention: NamingConvention = NamingConvention.SNAKE_CASE,
         var maxKeyLength: Int = 40,
         var minStringLength: Int = 2,
@@ -73,9 +66,9 @@ class StringSmithSettings : PersistentStateComponent<StringSmithSettings.State> 
         get() = state.keyPrefix
         set(value) { state.keyPrefix = value }
 
-    var localePropagation: LocalePropagation
-        get() = state.localePropagation
-        set(value) { state.localePropagation = value }
+    var autoIncludeLocales: Boolean
+        get() = state.autoIncludeLocales
+        set(value) { state.autoIncludeLocales = value }
 
     var namingConvention: NamingConvention
         get() = state.namingConvention
