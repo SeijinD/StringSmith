@@ -48,5 +48,13 @@
             <add-to-group group-id="RefactoringMenu" anchor="last"/>
             <keyboard-shortcut keymap="$default" first-keystroke="control alt X"/>
         </action>
+        <action id="com.seijind.stringsmith.QuickExtractStringResourceAction"
+                class="com.seijind.stringsmith.actions.QuickExtractStringResourceAction"
+                text="Quick Extract to strings.xml"
+                description="Extract hardcoded string without dialog when unambiguous"
+                icon="AllIcons.Actions.QuickfixBulb">
+            <add-to-group group-id="RefactoringMenu" anchor="last"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="control alt shift X"/>
+        </action>
     </actions>
 </idea-plugin>
