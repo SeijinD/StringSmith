@@ -66,11 +66,22 @@ object ExtractRunner {
         allTargets: List<com.intellij.openapi.vfs.VirtualFile>,
         settings: StringSmithSettings
     ): com.intellij.openapi.vfs.VirtualFile {
+        val nearest = StringsXmlUtil.findDefaultStringsXml(project, file.virtualFile)
+        if (nearest != null && isFileInsideStringsXmlModule(file, nearest)) return nearest
         val remembered = settings.lastTargetModulePath
             .takeIf { it.isNotBlank() }
             ?.let { rem -> allTargets.firstOrNull { it.path == rem } }
-        val nearest = StringsXmlUtil.findDefaultStringsXml(project, file.virtualFile)
         return remembered ?: nearest ?: allTargets.first()
+    }
+
+    private fun isFileInsideStringsXmlModule(
+        file: PsiFile,
+        stringsXml: com.intellij.openapi.vfs.VirtualFile
+    ): Boolean {
+        val moduleRoot = stringsXml.parent?.parent?.parent?.parent?.parent ?: return false
+        val filePath = file.virtualFile?.path?.replace('\\', '/') ?: return false
+        val modulePath = moduleRoot.path.replace('\\', '/').trimEnd('/')
+        return filePath.startsWith("$modulePath/")
     }
 
     private fun showError(project: Project, message: String) {

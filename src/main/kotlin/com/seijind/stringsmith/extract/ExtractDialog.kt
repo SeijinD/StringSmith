@@ -48,11 +48,14 @@ class ExtractDialog(
     }
     private val keyErrorLabel = JBLabel().apply { foreground = JBColor.RED }
     private val valueErrorLabel = JBLabel().apply { foreground = JBColor.RED }
-    private val reuseCheckbox: JCheckBox? = existingKey?.let {
-        JCheckBox(StringSmithBundle.message("checkbox.reuse", it), true).apply {
-            font = font.deriveFont(java.awt.Font.BOLD)
-            foreground = JBColor(java.awt.Color(0x2864B0), java.awt.Color(0x6FA8DC))
-        }
+    private var currentExistingKey: String? = existingKey
+    private val reuseCheckbox: JCheckBox = JCheckBox(
+        existingKey?.let { StringSmithBundle.message("checkbox.reuse", it) } ?: "",
+        false
+    ).apply {
+        font = font.deriveFont(java.awt.Font.BOLD)
+        foreground = JBColor(java.awt.Color(0x2864B0), java.awt.Color(0x6FA8DC))
+        isVisible = existingKey != null
     }
 
     private val moduleModel = DefaultComboBoxModel<VirtualFile>().apply { allTargets.forEach { addElement(it) } }
@@ -84,10 +87,8 @@ class ExtractDialog(
                 cell(moduleCombo).align(AlignX.FILL)
             }
         }
-        if (reuseCheckbox != null) {
-            row {
-                cell(reuseCheckbox).align(AlignX.FILL)
-            }
+        row {
+            cell(reuseCheckbox).align(AlignX.FILL)
         }
         row(StringSmithBundle.message("label.key")) {
             cell(keyField).align(AlignX.FILL)
@@ -161,8 +162,20 @@ class ExtractDialog(
     private fun wireListeners() {
         keyField.document.addDocumentListener(simpleListener { refreshAll() })
         valueField.document.addDocumentListener(simpleListener { refreshAll() })
-        reuseCheckbox?.addActionListener { refreshAll() }
-        moduleCombo.addActionListener { refreshAll() }
+        reuseCheckbox.addActionListener { refreshAll() }
+        moduleCombo.addActionListener { onModuleChanged() }
+    }
+
+    private fun onModuleChanged() {
+        currentExistingKey = StringsXmlUtil.findExistingKey(currentStringsXml(), valueField.text)
+        reuseCheckbox.isSelected = false
+        if (currentExistingKey != null) {
+            reuseCheckbox.text = StringSmithBundle.message("checkbox.reuse", currentExistingKey!!)
+            reuseCheckbox.isVisible = true
+        } else {
+            reuseCheckbox.isVisible = false
+        }
+        refreshAll()
     }
 
     private fun simpleListener(action: () -> Unit) = object : DocumentListener {
@@ -176,7 +189,7 @@ class ExtractDialog(
         keyField.isEnabled = !reuse
         valueField.isEnabled = !reuse
         localeRows.forEach { it.include.isEnabled = !reuse; it.value.isEnabled = !reuse && it.include.isSelected }
-        val effectiveKey = if (reuse) existingKey.orEmpty() else keyField.text
+        val effectiveKey = if (reuse) currentExistingKey.orEmpty() else keyField.text
         previewLabel.text = if (effectiveKey.isBlank()) "—" else Replacement.referenceFor(target, effectiveKey)
         val keyErr = keyError()
         val valueErr = valueError()
@@ -192,7 +205,7 @@ class ExtractDialog(
         val key = keyField.text
         if (key.isBlank()) return StringSmithBundle.message("error.keyRequired")
         if (!KeyGenerator.isValidKey(key)) return StringSmithBundle.message("error.invalidKey")
-        if (StringsXmlUtil.keyExists(currentStringsXml(), key) && key != existingKey) {
+        if (StringsXmlUtil.keyExists(currentStringsXml(), key) && key != currentExistingKey) {
             return StringSmithBundle.message("error.keyExists", key)
         }
         return null
@@ -214,7 +227,7 @@ class ExtractDialog(
 
     fun result(): ExtractDialogResult {
         val reuse = reuseCheckbox?.isSelected == true
-        val key = if (reuse) existingKey!! else keyField.text.trim()
+        val key = if (reuse) currentExistingKey!! else keyField.text.trim()
         return ExtractDialogResult(
             key = key,
             reuseExisting = reuse,
