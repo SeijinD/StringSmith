@@ -1,5 +1,6 @@
 package com.seijind.stringsmith.extract
 
+import com.intellij.lang.LanguageImportStatements
 import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiDocumentManager
 import com.seijind.stringsmith.settings.StringSmithSettings
@@ -39,24 +40,32 @@ object Replacement {
 
     private fun addKotlinImports(target: ExtractTarget) {
         val file = target.containingFile as? KtFile ?: return
+        var added = false
         if (target.kind == ExtractContextKind.COMPOSABLE) {
-            ensureImport(file, COMPOSE_IMPORT)
+            added = ensureImport(file, COMPOSE_IMPORT) || added
         }
         if (target.kind != ExtractContextKind.XML_LAYOUT) {
             val vf = target.containingFile.virtualFile
             val rPkg = vf?.let { AndroidModuleUtil.findRPackage(it, file) }
-            if (rPkg != null) ensureImport(file, "$rPkg.R")
+            if (rPkg != null) added = ensureImport(file, "$rPkg.R") || added
         }
+        if (added) optimizeImports(file)
     }
 
-    private fun ensureImport(file: KtFile, fqName: String) {
-        val imports = file.importList ?: return
+    private fun optimizeImports(file: KtFile) {
+        val optimizer = LanguageImportStatements.INSTANCE.forFile(file).firstOrNull() ?: return
+        optimizer.processFile(file).run()
+    }
+
+    private fun ensureImport(file: KtFile, fqName: String): Boolean {
+        val imports = file.importList ?: return false
         val already = imports.imports.any { it.importedFqName?.asString() == fqName }
-        if (already) return
+        if (already) return false
         val factory = KtPsiFactory(file.project)
         val parsed = factory.createFile("import $fqName")
-        val newImport = parsed.importDirectives.firstOrNull() ?: return
+        val newImport = parsed.importDirectives.firstOrNull() ?: return false
         imports.add(newImport)
+        return true
     }
 
     private const val COMPOSE_IMPORT = "androidx.compose.ui.res.stringResource"
