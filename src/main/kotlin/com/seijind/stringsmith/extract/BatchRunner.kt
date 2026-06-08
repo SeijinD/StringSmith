@@ -59,19 +59,8 @@ object BatchRunner {
         file: PsiFile,
         allTargets: List<com.intellij.openapi.vfs.VirtualFile>,
         settings: StringSmithSettings
-    ): com.intellij.openapi.vfs.VirtualFile {
-        val nearest = StringsXmlUtil.findDefaultStringsXml(project, file.virtualFile)
-        if (nearest != null) {
-            val moduleRoot = nearest.parent?.parent?.parent?.parent?.parent
-            val fp = file.virtualFile?.path?.replace('\\', '/')
-            val mp = moduleRoot?.path?.replace('\\', '/')?.trimEnd('/')
-            if (fp != null && mp != null && fp.startsWith("$mp/")) return nearest
-        }
-        val remembered = settings.lastTargetModulePath
-            .takeIf { it.isNotBlank() }
-            ?.let { rem -> allTargets.firstOrNull { it.path == rem } }
-        return remembered ?: nearest ?: allTargets.first()
-    }
+    ): com.intellij.openapi.vfs.VirtualFile =
+        ModuleResolver.chooseInitialTarget(project, file, allTargets, settings)
 
     private fun showError(project: Project, message: String) {
         Messages.showErrorDialog(project, message, StringSmithBundle.message("batch.dialog.title"))
