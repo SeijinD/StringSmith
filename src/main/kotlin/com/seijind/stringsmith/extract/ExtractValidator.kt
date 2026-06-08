@@ -1,5 +1,6 @@
 package com.seijind.stringsmith.extract
 
+import com.seijind.stringsmith.StringSmithBundle
 import com.seijind.stringsmith.settings.StringSmithSettings
 
 object ExtractValidator {
@@ -12,10 +13,10 @@ object ExtractValidator {
     fun validate(target: ExtractTarget, settings: StringSmithSettings = StringSmithSettings.getInstance()): Result {
         val rawValue = if (settings.trimWhitespace) target.rawValue.trim() else target.rawValue
         if (rawValue.length < settings.minStringLength) {
-            return Result.Rejected("String is shorter than the configured minimum (${settings.minStringLength}).")
+            return Result.Rejected(StringSmithBundle.message("error.tooShort", settings.minStringLength))
         }
         if (settings.matchesExclude(rawValue)) {
-            return Result.Rejected("String matches an exclusion pattern. Edit patterns in Settings → Tools → StringSmith.")
+            return Result.Rejected(StringSmithBundle.message("error.matchesExclusion"))
         }
         val effective = if (rawValue != target.rawValue) target.copy(rawValue = rawValue) else target
         return Result.Ok(effective)

@@ -119,4 +119,17 @@ object ExtractContext {
     )
 
     fun isKotlinFile(file: PsiFile): Boolean = file is KtFile
+
+    fun fromKotlin(expr: KtStringTemplateExpression, file: PsiFile): ExtractTarget? {
+        if (expr.entries.any { it !is KtLiteralStringTemplateEntry }) return null
+        val value = expr.entries.joinToString("") { it.text }
+        val kind = classifyKotlin(expr)
+        return ExtractTarget(kotlin = expr, rawValue = value, kind = kind, containingFile = file)
+    }
+
+    fun fromXml(attr: XmlAttributeValue, file: PsiFile): ExtractTarget? {
+        val value = attr.value
+        if (value.startsWith("@") || value.startsWith("?")) return null
+        return ExtractTarget(xml = attr, rawValue = value, kind = ExtractContextKind.XML_LAYOUT, containingFile = file)
+    }
 }
