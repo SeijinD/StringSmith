@@ -129,6 +129,38 @@ class ExtractContextTest : BasePlatformTestCase() {
         assertEquals(ExtractContextKind.ANDROID_CLASS, target!!.kind)
     }
 
+    fun testIsInsidePreviewComposable_true() {
+        val target = detectAt(
+            """
+            import androidx.compose.runtime.Composable
+            import androidx.compose.ui.tooling.preview.Preview
+            @Preview
+            @Composable
+            fun GreetingPreview() {
+                val x = "Hel<caret>lo"
+            }
+            """.trimIndent(),
+            "GreetingPreview.kt"
+        )
+        assertNotNull(target)
+        assertTrue(ExtractContext.isInsidePreviewComposable(target!!))
+    }
+
+    fun testIsInsidePreviewComposable_false() {
+        val target = detectAt(
+            """
+            import androidx.compose.runtime.Composable
+            @Composable
+            fun Greeting() {
+                val x = "Hel<caret>lo"
+            }
+            """.trimIndent(),
+            "Greeting.kt"
+        )
+        assertNotNull(target)
+        assertFalse(ExtractContext.isInsidePreviewComposable(target!!))
+    }
+
     private fun detectAt(content: String, fileName: String): ExtractTarget? {
         myFixture.configureByText(fileName, content)
         return ExtractContext.detect(myFixture.file, myFixture.editor)

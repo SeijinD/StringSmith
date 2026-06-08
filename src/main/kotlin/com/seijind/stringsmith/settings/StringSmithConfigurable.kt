@@ -88,6 +88,15 @@ class StringSmithConfigurable : Configurable {
                 }
             }
 
+            group("Compose Previews") {
+                row {
+                    checkBox("Exclude strings inside @Preview composables")
+                        .bindSelected({ settings.excludePreviewComposables }, { settings.excludePreviewComposables = it })
+                        .comment("Skip strings inside functions annotated with <code>@Preview</code> (typically dummy data).")
+                        .applyToComponent { toolTipText = "Recommended on; previews usually contain sample text not meant for translation" }
+                }
+            }
+
             group("Target Module") {
                 row {
                     checkBox("Remember last selected module across extracts")

@@ -117,6 +117,7 @@ class StringSmithSettingsTest {
         assertEquals(2, s.minStringLength)
         assertEquals(NamingConvention.SNAKE_CASE, s.namingConvention)
         assertTrue(s.autoIncludeLocales)
+        assertTrue(s.excludePreviewComposables)
         assertTrue(s.trimWhitespace)
         assertFalse(s.sortAfterExtract)
     }

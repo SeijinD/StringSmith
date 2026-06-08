@@ -36,6 +36,7 @@ class StringSmithSettings : PersistentStateComponent<StringSmithSettings.State> 
     data class State(
         var keyPrefix: String = "",
         var autoIncludeLocales: Boolean = true,
+        var excludePreviewComposables: Boolean = true,
         var namingConvention: NamingConvention = NamingConvention.SNAKE_CASE,
         var maxKeyLength: Int = 40,
         var minStringLength: Int = 2,
@@ -69,6 +70,10 @@ class StringSmithSettings : PersistentStateComponent<StringSmithSettings.State> 
     var autoIncludeLocales: Boolean
         get() = state.autoIncludeLocales
         set(value) { state.autoIncludeLocales = value }
+
+    var excludePreviewComposables: Boolean
+        get() = state.excludePreviewComposables
+        set(value) { state.excludePreviewComposables = value }
 
     var namingConvention: NamingConvention
         get() = state.namingConvention

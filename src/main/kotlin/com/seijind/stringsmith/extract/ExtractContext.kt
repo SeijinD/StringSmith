@@ -127,6 +127,12 @@ object ExtractContext {
         return ExtractTarget(kotlin = expr, rawValue = value, kind = kind, containingFile = file)
     }
 
+    fun isInsidePreviewComposable(target: ExtractTarget): Boolean {
+        val expr = target.kotlin ?: return false
+        val fn = PsiTreeUtil.getParentOfType(expr, KtNamedFunction::class.java, true) ?: return false
+        return fn.annotationEntries.any { it.shortName?.asString() == "Preview" }
+    }
+
     fun fromXml(attr: XmlAttributeValue, file: PsiFile): ExtractTarget? {
         val value = attr.value
         if (value.startsWith("@") || value.startsWith("?")) return null

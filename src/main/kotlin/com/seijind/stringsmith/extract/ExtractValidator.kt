@@ -18,6 +18,9 @@ object ExtractValidator {
         if (settings.matchesExclude(rawValue)) {
             return Result.Rejected(StringSmithBundle.message("error.matchesExclusion"))
         }
+        if (settings.excludePreviewComposables && ExtractContext.isInsidePreviewComposable(target)) {
+            return Result.Rejected(StringSmithBundle.message("error.insidePreview"))
+        }
         val effective = if (rawValue != target.rawValue) target.copy(rawValue = rawValue) else target
         return Result.Ok(effective)
     }
