@@ -11,11 +11,14 @@ IntelliJ / Android Studio plugin that extracts hardcoded strings into Android `s
   - Inside `Activity` / `Fragment` / `View` → `getString(R.string.key)`
   - Other Kotlin code → `R.string.key`
   - XML layout attribute → `@string/key`
-- Auto-import for Compose `stringResource`
+- Auto-import for Compose `stringResource` (sorted with existing imports)
 - Duplicate key detection and value reuse
-- Multi-locale placeholder generation across `values-*` folders
-- Quick-fix intention bulb on hardcoded literals
-- Settings panel for default key prefix, target module, locale handling
+- Multi-locale propagation across `values-*` folders
+- Quick-fix intention on hardcoded literals
+- Quick extract: skip dialog when target is unambiguous
+- Batch extract: extract all strings in a file in one pass
+- `@Preview` composables excluded by default (configurable)
+- Settings panel for prefix, naming, replacement style, locale handling, exclusions
 
 ## Install
 
@@ -41,15 +44,37 @@ Install via **Settings → Plugins → ⚙ → Install Plugin from Disk**.
 
 ## Usage
 
-1. Select hardcoded string in editor.
-2. Right-click → **Extract to strings.xml** (or `Ctrl+Alt+S`).
-3. Enter resource key.
-4. String added to `res/values/strings.xml`, selection replaced with context-appropriate reference.
+### Single extract (with dialog)
+
+1. Place caret inside a hardcoded string literal or XML attribute value.
+2. `Ctrl+Alt+X` or right-click → **Extract to strings.xml**.
+3. Pick key, module, locale rows in the dialog.
+4. Entry written to `res/values/strings.xml`; literal replaced with context-appropriate reference.
+
+### Quick extract (no dialog)
+
+`Ctrl+Alt+Shift+X` — extracts immediately when the target is unambiguous (single module, no key collision, no locale variants, no existing key for the value). Falls back to the regular dialog otherwise.
+
+### Batch extract (whole file)
+
+`Ctrl+Alt+Shift+B` or **Refactor → Batch Extract Strings in File** — opens a table of all extractable strings in the current file. Edit per-row keys, toggle inclusion, pick locale propagation, write all in one undoable step.
+
+### `@Preview` exclusion
+
+Strings inside `@Preview` composables are skipped by default (typically dummy data). Toggle in **Settings → Tools → StringSmith → Compose Previews**.
+
+## Shortcuts
+
+| Action | Shortcut |
+|---|---|
+| Extract to strings.xml | `Ctrl+Alt+X` |
+| Quick Extract (skip dialog when unambiguous) | `Ctrl+Alt+Shift+X` |
+| Batch Extract Strings in File | `Ctrl+Alt+Shift+B` |
 
 ## Compatibility
 
-- IntelliJ IDEA 2024.2+
-- Android Studio Koala 2024.2.1+
+- IntelliJ IDEA 2025.1+
+- Android Studio (compatible IntelliJ 251+ platform)
 - Kotlin plugin K1 and K2 modes
 
 ## Development
