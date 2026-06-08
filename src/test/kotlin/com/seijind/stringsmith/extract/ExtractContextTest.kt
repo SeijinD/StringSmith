@@ -195,6 +195,43 @@ class ExtractContextTest : BasePlatformTestCase() {
         assertFalse(ExtractContext.isInsidePreviewComposable(target!!))
     }
 
+    fun testDetectsXmlAttributeValue() {
+        myFixture.configureByText(
+            "layout.xml",
+            """
+            <LinearLayout>
+                <TextView android:text="Wel<caret>come" />
+            </LinearLayout>
+            """.trimIndent()
+        )
+        val target = ExtractContext.detect(myFixture.file, myFixture.editor)
+        assertNotNull(target)
+        assertEquals(ExtractContextKind.XML_LAYOUT, target!!.kind)
+        assertEquals("Welcome", target.rawValue)
+    }
+
+    fun testRejectsXmlStringReference() {
+        myFixture.configureByText(
+            "layout.xml",
+            """
+            <TextView android:text="@string/<caret>welcome" />
+            """.trimIndent()
+        )
+        val target = ExtractContext.detect(myFixture.file, myFixture.editor)
+        assertNull(target)
+    }
+
+    fun testRejectsXmlAttrReference() {
+        myFixture.configureByText(
+            "layout.xml",
+            """
+            <TextView android:textColor="?attr/<caret>textColorPrimary" />
+            """.trimIndent()
+        )
+        val target = ExtractContext.detect(myFixture.file, myFixture.editor)
+        assertNull(target)
+    }
+
     private fun detectAt(content: String, fileName: String): ExtractTarget? {
         myFixture.configureByText(fileName, content)
         return ExtractContext.detect(myFixture.file, myFixture.editor)
