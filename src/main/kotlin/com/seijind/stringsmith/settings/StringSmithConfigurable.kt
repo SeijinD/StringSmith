@@ -97,6 +97,15 @@ class StringSmithConfigurable : Configurable {
                 }
             }
 
+            group("Inspection") {
+                row {
+                    checkBox("Highlight hardcoded strings in editor")
+                        .bindSelected({ settings.inspectionEnabled }, { settings.inspectionEnabled = it })
+                        .comment("Adds a weak warning under each extractable hardcoded literal with an Extract quick-fix.")
+                        .applyToComponent { toolTipText = "Off by default; opt in for passive discovery of unextracted strings" }
+                }
+            }
+
             group("Target Module") {
                 row {
                     checkBox("Remember last selected module across extracts")

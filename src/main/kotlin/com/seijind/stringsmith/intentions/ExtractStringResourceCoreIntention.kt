@@ -8,10 +8,9 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Iconable
 import com.intellij.psi.PsiFile
 import com.seijind.stringsmith.extract.ExtractRunner
-import com.seijind.stringsmith.settings.StringSmithSettings
 import javax.swing.Icon
 
-class ExtractStringResourceIntention : IntentionAction, PriorityAction, Iconable {
+class ExtractStringResourceCoreIntention : IntentionAction, PriorityAction, Iconable {
 
     override fun getText(): String = "Extract to strings.xml"
 
@@ -23,7 +22,6 @@ class ExtractStringResourceIntention : IntentionAction, PriorityAction, Iconable
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean {
         if (editor == null || file == null) return false
-        if (StringSmithSettings.getInstance().inspectionEnabled) return false
         return ExtractRunner.isExtractable(file, editor)
     }
 

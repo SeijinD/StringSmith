@@ -37,6 +37,7 @@ class StringSmithSettings : PersistentStateComponent<StringSmithSettings.State> 
         var keyPrefix: String = "",
         var autoIncludeLocales: Boolean = true,
         var excludePreviewComposables: Boolean = true,
+        var inspectionEnabled: Boolean = false,
         var namingConvention: NamingConvention = NamingConvention.SNAKE_CASE,
         var maxKeyLength: Int = 40,
         var minStringLength: Int = 2,
@@ -74,6 +75,10 @@ class StringSmithSettings : PersistentStateComponent<StringSmithSettings.State> 
     var excludePreviewComposables: Boolean
         get() = state.excludePreviewComposables
         set(value) { state.excludePreviewComposables = value }
+
+    var inspectionEnabled: Boolean
+        get() = state.inspectionEnabled
+        set(value) { state.inspectionEnabled = value }
 
     var namingConvention: NamingConvention
         get() = state.namingConvention

@@ -21,6 +21,14 @@
     <resource-bundle>messages.StringSmithBundle</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
+        <localInspection
+            language=""
+            shortName="StringSmithHardcodedString"
+            displayName="Hardcoded string can be extracted to strings.xml"
+            groupName="StringSmith"
+            enabledByDefault="true"
+            level="WARNING"
+            implementationClass="com.seijind.stringsmith.inspections.HardcodedStringInspection"/>
         <intentionAction>
             <className>com.seijind.stringsmith.intentions.ExtractStringResourceIntention</className>
             <category>StringSmith</category>
