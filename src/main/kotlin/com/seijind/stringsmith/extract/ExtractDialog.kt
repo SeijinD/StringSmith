@@ -10,6 +10,7 @@ import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
+import com.seijind.stringsmith.StringSmithBundle
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JCheckBox
 import javax.swing.JComponent
@@ -28,7 +29,7 @@ data class ExtractDialogResult(
 )
 
 class ExtractDialog(
-    private val project: Project,
+    project: Project,
     rawValue: String,
     private val target: ExtractTarget,
     suggestedKey: String,
@@ -41,7 +42,7 @@ class ExtractDialog(
     private val valueField: JTextField = JBTextField(rawValue).apply { columns = 30 }
     private val previewLabel = JBLabel()
     private val errorLabel = JBLabel().apply { foreground = JBColor.RED }
-    private val reuseCheckbox: JCheckBox? = existingKey?.let { JCheckBox("Reuse existing key \"$it\"", true) }
+    private val reuseCheckbox: JCheckBox? = existingKey?.let { JCheckBox(StringSmithBundle.message("checkbox.reuse", it), true) }
 
     private val moduleModel = DefaultComboBoxModel<VirtualFile>().apply { allTargets.forEach { addElement(it) } }
     private val moduleCombo: ComboBox<VirtualFile> = ComboBox(moduleModel).apply {
@@ -54,10 +55,9 @@ class ExtractDialog(
     private data class LocaleRow(val variant: VirtualFile, val include: JCheckBox, val value: JTextField)
 
     private var localeRows: List<LocaleRow> = emptyList()
-    private var currentVariantsPanelStamp: VirtualFile? = null
 
     init {
-        title = "Extract String Resource"
+        title = StringSmithBundle.message("dialog.title")
         rebuildLocaleRows(initialTarget)
         init()
         wireListeners()
@@ -66,7 +66,7 @@ class ExtractDialog(
 
     override fun createCenterPanel(): JComponent = panel {
         if (allTargets.size > 1) {
-            row("Module:") {
+            row(StringSmithBundle.message("label.module")) {
                 cell(moduleCombo).align(AlignX.FILL)
             }
         }
@@ -75,16 +75,16 @@ class ExtractDialog(
                 cell(reuseCheckbox).align(AlignX.FILL)
             }
         }
-        row("Key:") {
+        row(StringSmithBundle.message("label.key")) {
             cell(keyField).align(AlignX.FILL)
         }
         row("") {
             cell(errorLabel)
         }
-        row("Replacement:") {
+        row(StringSmithBundle.message("label.replacement")) {
             cell(previewLabel).applyToComponent { foreground = JBColor.GRAY }
         }
-        row("Value:") {
+        row(StringSmithBundle.message("label.value")) {
             cell(valueField).align(AlignX.FILL)
         }
         row {
@@ -93,9 +93,9 @@ class ExtractDialog(
     }
 
     private fun buildLocalePanel(): JComponent = panel {
-        group("Locale Files (edit value per locale)") {
-            row("values:") {
-                label("(default — uses Value above)").applyToComponent { foreground = JBColor.GRAY }
+        group(StringSmithBundle.message("label.locales.header")) {
+            row(StringSmithBundle.message("label.locales.default")) {
+                label(StringSmithBundle.message("label.locales.defaultHint")).applyToComponent { foreground = JBColor.GRAY }
             }
             localeRows.forEach { lr ->
                 row {
@@ -106,20 +106,18 @@ class ExtractDialog(
             }
             if (localeRows.isNotEmpty()) {
                 row {
-                    link("Copy default to all") {
+                    link(StringSmithBundle.message("link.copyToAll")) {
                         val v = valueField.text
                         localeRows.forEach { it.value.text = v }
                     }
-                    link("Select all") { localeRows.forEach { it.include.isSelected = true } }
-                    link("Select none") { localeRows.forEach { it.include.isSelected = false } }
+                    link(StringSmithBundle.message("link.selectAll")) { localeRows.forEach { it.include.isSelected = true } }
+                    link(StringSmithBundle.message("link.selectNone")) { localeRows.forEach { it.include.isSelected = false } }
                 }
             }
         }
     }
 
     private fun rebuildLocaleRows(target: VirtualFile) {
-        if (currentVariantsPanelStamp == target) return
-        currentVariantsPanelStamp = target
         val variants = StringsXmlUtil.findLocaleVariants(target)
         localeRows = variants.map { variant ->
             LocaleRow(
@@ -131,14 +129,12 @@ class ExtractDialog(
     }
 
     private fun describeTarget(file: VirtualFile): String {
-        val moduleRoot = findModuleRoot(file)
+        val moduleRoot = inferModuleRootFrom(file)
         return moduleRoot?.let { "${it.name}  (${file.path})" } ?: file.path
     }
 
-    private fun findModuleRoot(stringsXml: VirtualFile): VirtualFile? {
-        var cur: VirtualFile? = stringsXml.parent?.parent?.parent?.parent
-        return cur
-    }
+    private fun inferModuleRootFrom(stringsXml: VirtualFile): VirtualFile? =
+        stringsXml.parent?.parent?.parent?.parent
 
     private fun wireListeners() {
         keyField.document.addDocumentListener(simpleListener { refreshAll() })
@@ -169,10 +165,12 @@ class ExtractDialog(
     private fun validationError(): String? {
         if (reuseCheckbox?.isSelected == true) return null
         val key = keyField.text
-        if (valueField.text.isBlank()) return "Value required"
-        if (key.isBlank()) return "Key required"
-        if (!KeyGenerator.isValidKey(key)) return "Use letters, digits, underscore. Must start with a letter."
-        if (StringsXmlUtil.keyExists(currentStringsXml(), key) && key != existingKey) return "Key \"$key\" already exists in selected module."
+        if (valueField.text.isBlank()) return StringSmithBundle.message("error.valueRequired")
+        if (key.isBlank()) return StringSmithBundle.message("error.keyRequired")
+        if (!KeyGenerator.isValidKey(key)) return StringSmithBundle.message("error.invalidKey")
+        if (StringsXmlUtil.keyExists(currentStringsXml(), key) && key != existingKey) {
+            return StringSmithBundle.message("error.keyExists", key)
+        }
         return null
     }
 

@@ -18,6 +18,8 @@
     <depends>org.jetbrains.kotlin</depends>
     <depends optional="true" config-file="stringsmith-android.xml">org.jetbrains.android</depends>
 
+    <resource-bundle>messages.StringSmithBundle</resource-bundle>
+
     <extensions defaultExtensionNs="com.intellij">
         <intentionAction>
             <className>com.seijind.stringsmith.intentions.ExtractStringResourceIntention</className>

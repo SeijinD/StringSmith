@@ -9,11 +9,9 @@ object AndroidModuleUtil {
     fun findRPackage(file: VirtualFile, ktFile: KtFile? = null): String? {
         val moduleRoot = findModuleRoot(file) ?: return null
         val filePackage = ktFile?.packageFqName?.asString().orEmpty()
-        val gradleText = readGradleText(moduleRoot)
-        val manifestText = readManifestText(moduleRoot)
         return AndroidModuleText.resolveRPackage(
-            gradleText = gradleText,
-            manifestText = manifestText,
+            gradleText = readGradleText(moduleRoot),
+            manifestText = readManifestText(moduleRoot),
             filePath = file.path,
             moduleRootPath = moduleRoot.path,
             filePackage = filePackage
