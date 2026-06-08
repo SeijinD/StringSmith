@@ -1,5 +1,6 @@
 package com.seijind.stringsmith.extract
 
+import com.intellij.icons.AllIcons
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogWrapper
@@ -38,17 +39,30 @@ class ExtractDialog(
     private val allTargets: List<VirtualFile>
 ) : DialogWrapper(project, true) {
 
-    private val keyField: JTextField = JBTextField(suggestedKey).apply { columns = 30 }
-    private val valueField: JTextField = JBTextField(rawValue).apply { columns = 30 }
-    private val previewLabel = JBLabel()
-    private val errorLabel = JBLabel().apply { foreground = JBColor.RED }
-    private val reuseCheckbox: JCheckBox? = existingKey?.let { JCheckBox(StringSmithBundle.message("checkbox.reuse", it), true) }
+    private val projectBasePath: String? = project.basePath?.replace('\\', '/')?.trimEnd('/')
+
+    private val keyField: JTextField = JBTextField(suggestedKey).apply { columns = 50 }
+    private val valueField: JTextField = JBTextField(rawValue).apply { columns = 50 }
+    private val previewLabel = JBLabel(Replacement.referenceFor(target, suggestedKey)).apply {
+        font = java.awt.Font(java.awt.Font.MONOSPACED, java.awt.Font.BOLD, font.size)
+    }
+    private val keyErrorLabel = JBLabel().apply { foreground = JBColor.RED }
+    private val valueErrorLabel = JBLabel().apply { foreground = JBColor.RED }
+    private val reuseCheckbox: JCheckBox? = existingKey?.let {
+        JCheckBox(StringSmithBundle.message("checkbox.reuse", it), true).apply {
+            font = font.deriveFont(java.awt.Font.BOLD)
+            foreground = JBColor(java.awt.Color(0x2864B0), java.awt.Color(0x6FA8DC))
+        }
+    }
 
     private val moduleModel = DefaultComboBoxModel<VirtualFile>().apply { allTargets.forEach { addElement(it) } }
     private val moduleCombo: ComboBox<VirtualFile> = ComboBox(moduleModel).apply {
         selectedItem = initialTarget
         setRenderer { _, value, _, _, _ ->
-            JBLabel(value?.let { describeTarget(it) } ?: "")
+            JBLabel(value?.let { describeTarget(it) } ?: "").apply {
+                icon = AllIcons.Nodes.Module
+                iconTextGap = 6
+            }
         }
     }
 
@@ -79,13 +93,16 @@ class ExtractDialog(
             cell(keyField).align(AlignX.FILL)
         }
         row("") {
-            cell(errorLabel)
+            cell(keyErrorLabel)
         }
         row(StringSmithBundle.message("label.replacement")) {
             cell(previewLabel).applyToComponent { foreground = JBColor.GRAY }
         }
         row(StringSmithBundle.message("label.value")) {
             cell(valueField).align(AlignX.FILL)
+        }
+        row("") {
+            cell(valueErrorLabel)
         }
         row {
             cell(buildLocalePanel()).align(AlignX.FILL)
@@ -130,11 +147,16 @@ class ExtractDialog(
 
     private fun describeTarget(file: VirtualFile): String {
         val moduleRoot = inferModuleRootFrom(file)
-        return moduleRoot?.let { "${it.name}  (${file.path})" } ?: file.path
+        val normalized = file.path.replace('\\', '/')
+        val relative = projectBasePath
+            ?.takeIf { normalized.startsWith("$it/") }
+            ?.let { normalized.removePrefix("$it/") }
+            ?: normalized
+        return moduleRoot?.let { "${it.name}  ($relative)" } ?: relative
     }
 
     private fun inferModuleRootFrom(stringsXml: VirtualFile): VirtualFile? =
-        stringsXml.parent?.parent?.parent?.parent
+        stringsXml.parent?.parent?.parent?.parent?.parent
 
     private fun wireListeners() {
         keyField.document.addDocumentListener(simpleListener { refreshAll() })
@@ -156,16 +178,18 @@ class ExtractDialog(
         localeRows.forEach { it.include.isEnabled = !reuse; it.value.isEnabled = !reuse && it.include.isSelected }
         val effectiveKey = if (reuse) existingKey.orEmpty() else keyField.text
         previewLabel.text = if (effectiveKey.isBlank()) "—" else Replacement.referenceFor(target, effectiveKey)
-        errorLabel.text = validationError() ?: ""
-        isOKActionEnabled = errorLabel.text.isEmpty()
+        val keyErr = keyError()
+        val valueErr = valueError()
+        keyErrorLabel.text = keyErr ?: ""
+        valueErrorLabel.text = valueErr ?: ""
+        isOKActionEnabled = keyErr == null && valueErr == null
     }
 
     private fun currentStringsXml(): VirtualFile = (moduleCombo.selectedItem as? VirtualFile) ?: allTargets.first()
 
-    private fun validationError(): String? {
+    private fun keyError(): String? {
         if (reuseCheckbox?.isSelected == true) return null
         val key = keyField.text
-        if (valueField.text.isBlank()) return StringSmithBundle.message("error.valueRequired")
         if (key.isBlank()) return StringSmithBundle.message("error.keyRequired")
         if (!KeyGenerator.isValidKey(key)) return StringSmithBundle.message("error.invalidKey")
         if (StringsXmlUtil.keyExists(currentStringsXml(), key) && key != existingKey) {
@@ -174,10 +198,19 @@ class ExtractDialog(
         return null
     }
 
-    override fun doValidate(): ValidationInfo? {
-        val err = validationError() ?: return null
-        return ValidationInfo(err, keyField)
+    private fun valueError(): String? {
+        if (reuseCheckbox?.isSelected == true) return null
+        if (valueField.text.isBlank()) return StringSmithBundle.message("error.valueRequired")
+        return null
     }
+
+    override fun doValidate(): ValidationInfo? {
+        keyError()?.let { return ValidationInfo(it, keyField) }
+        valueError()?.let { return ValidationInfo(it, valueField) }
+        return null
+    }
+
+    override fun getPreferredFocusedComponent(): JComponent = keyField
 
     fun result(): ExtractDialogResult {
         val reuse = reuseCheckbox?.isSelected == true

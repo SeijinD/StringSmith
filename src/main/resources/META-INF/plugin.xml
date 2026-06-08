@@ -23,7 +23,7 @@
     <extensions defaultExtensionNs="com.intellij">
         <intentionAction>
             <className>com.seijind.stringsmith.intentions.ExtractStringResourceIntention</className>
-            <category>Android</category>
+            <category>StringSmith</category>
         </intentionAction>
         <applicationConfigurable
             parentId="tools"
@@ -42,7 +42,8 @@
         <action id="com.seijind.stringsmith.ExtractStringResourceAction"
                 class="com.seijind.stringsmith.actions.ExtractStringResourceAction"
                 text="Extract to strings.xml"
-                description="Extract hardcoded string to Android strings.xml">
+                description="Extract hardcoded string to Android strings.xml"
+                icon="AllIcons.Actions.QuickfixBulb">
             <add-to-group group-id="EditorPopupMenu" anchor="first"/>
             <add-to-group group-id="RefactoringMenu" anchor="last"/>
             <keyboard-shortcut keymap="$default" first-keystroke="control alt X"/>

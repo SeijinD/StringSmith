@@ -32,6 +32,7 @@ class StringSmithConfigurable : Configurable {
                         .bindText({ settings.keyPrefix }, { settings.keyPrefix = it; refreshPreview() })
                         .comment("Prepended to every suggested key. Leave empty to disable.")
                         .align(AlignX.FILL)
+                        .applyToComponent { toolTipText = "Example: \"app\" → app_welcome_screen" }
                 }
                 row("Naming:") {
                     comboBox(NamingConvention.entries.toList())
@@ -39,16 +40,19 @@ class StringSmithConfigurable : Configurable {
                             { settings.namingConvention },
                             { v -> if (v != null) { settings.namingConvention = v; refreshPreview() } }
                         )
+                        .applyToComponent { toolTipText = "Case style for generated keys" }
                 }
                 row("Max key length:") {
                     intTextField(1..200)
                         .bindIntText({ settings.maxKeyLength }, { settings.maxKeyLength = it; refreshPreview() })
                         .comment("Truncate suggested keys to this length.")
+                        .applyToComponent { toolTipText = "Hard cap on key length after prefix" }
                 }
                 row("Min string length:") {
                     intTextField(1..50)
                         .bindIntText({ settings.minStringLength }, { settings.minStringLength = it })
                         .comment("Reject strings shorter than this. Avoids extracting \"x\", \"a\".")
+                        .applyToComponent { toolTipText = "Strings shorter than this fail validation" }
                 }
                 row("Preview:") {
                     cell(previewLabel)
@@ -63,6 +67,7 @@ class StringSmithConfigurable : Configurable {
                             { settings.composeStyle },
                             { v -> if (v != null) settings.composeStyle = v }
                         )
+                        .applyToComponent { toolTipText = "How stringResource(...) is called in @Composable" }
                 }
                 row("Activity / Fragment:") {
                     comboBox(ActivityReplacementStyle.entries.toList())
@@ -70,6 +75,7 @@ class StringSmithConfigurable : Configurable {
                             { settings.activityStyle },
                             { v -> if (v != null) settings.activityStyle = v }
                         )
+                        .applyToComponent { toolTipText = "How getString(...) is invoked from Android UI classes" }
                 }
             }
 
@@ -81,6 +87,7 @@ class StringSmithConfigurable : Configurable {
                             { v -> if (v != null) settings.localePropagation = v }
                         )
                         .comment("How to handle <code>values-*/strings.xml</code> when extracting.")
+                        .applyToComponent { toolTipText = "Always = propagate without asking; Never = default only; Ask = use dialog selection" }
                 }
             }
 
@@ -89,6 +96,7 @@ class StringSmithConfigurable : Configurable {
                     checkBox("Remember last selected module across extracts")
                         .bindSelected({ settings.rememberLastModule }, { settings.rememberLastModule = it })
                         .comment("When the project has multiple <code>values/strings.xml</code> files, preselect the last one used.")
+                        .applyToComponent { toolTipText = "Stores the last picked strings.xml path between extracts" }
                 }
             }
 
@@ -96,18 +104,22 @@ class StringSmithConfigurable : Configurable {
                 row {
                     checkBox("Sort entries alphabetically after extract")
                         .bindSelected({ settings.sortAfterExtract }, { settings.sortAfterExtract = it })
+                        .applyToComponent { toolTipText = "Reorders all <string> entries A→Z after each extract" }
                 }
                 row {
                     checkBox("Open strings.xml and jump to the new entry")
                         .bindSelected({ settings.openStringsXmlAfterExtract }, { settings.openStringsXmlAfterExtract = it })
+                        .applyToComponent { toolTipText = "Switches the editor to the freshly added entry" }
                 }
                 row {
                     checkBox("Add XML comment with source file:line")
                         .bindSelected({ settings.addSourceComment }, { settings.addSourceComment = it })
+                        .applyToComponent { toolTipText = "Adds <!-- from File.kt:42 --> above each new entry" }
                 }
                 row {
                     checkBox("Trim leading/trailing whitespace from extracted value")
                         .bindSelected({ settings.trimWhitespace }, { settings.trimWhitespace = it })
+                        .applyToComponent { toolTipText = "Strips surrounding spaces before writing" }
                 }
             }
 
@@ -118,6 +130,7 @@ class StringSmithConfigurable : Configurable {
                         .align(AlignX.FILL)
                         .applyToComponent {
                             rows = 4
+                            toolTipText = "One Kotlin regex per line. Matching strings are skipped."
                             document.addDocumentListener(object : DocumentListener {
                                 override fun insertUpdate(e: DocumentEvent) = refreshRegexError(this@applyToComponent)
                                 override fun removeUpdate(e: DocumentEvent) = refreshRegexError(this@applyToComponent)

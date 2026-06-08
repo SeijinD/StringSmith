@@ -1,0 +1,21 @@
+<html>
+<body>
+<p>Extracts a hardcoded string literal into the Android <code>strings.xml</code> resource file.</p>
+
+<p>Available on:</p>
+<ul>
+    <li>Kotlin <code>String</code> literals inside <code>@Composable</code>, <code>Activity</code>, <code>Fragment</code>, generic Kotlin, etc.</li>
+    <li>XML layout attribute values</li>
+</ul>
+
+<p>The replacement adapts to the context:</p>
+<ul>
+    <li><code>@Composable</code> → <code>stringResource(R.string.key)</code></li>
+    <li><code>Activity</code> / <code>Fragment</code> → <code>getString(R.string.key)</code></li>
+    <li>Other Kotlin → <code>R.string.key</code></li>
+    <li>XML layout → <code>@string/key</code></li>
+</ul>
+
+<p>Imports for <code>stringResource</code> and the project's <code>R</code> class are added automatically.</p>
+</body>
+</html>
