@@ -1,10 +1,12 @@
-# StringSmith – Android String Extractor
+# StringSmith – Android Strings Toolkit
 
 ![Build](https://github.com/SeijinD/stringsmith/workflows/Build/badge.svg)
 
-IntelliJ / Android Studio plugin that extracts hardcoded strings into Android `strings.xml` resources.
+IntelliJ / Android Studio plugin for managing Android `strings.xml` resources: extract hardcoded literals, detect duplicates, find unused entries.
 
 ## Features
+
+### Extract
 
 - Context-aware replacement
   - Inside `@Composable` → `stringResource(R.string.key)`
@@ -12,13 +14,23 @@ IntelliJ / Android Studio plugin that extracts hardcoded strings into Android `s
   - Other Kotlin code → `R.string.key`
   - XML layout attribute → `@string/key`
 - Auto-import for Compose `stringResource` (sorted with existing imports)
-- Duplicate key detection and value reuse
+- Duplicate value detection during extract — reuse existing key
 - Multi-locale propagation across `values-*` folders
-- Quick-fix intention on hardcoded literals
+- Kotlin template expressions extracted as `%1$s` format args (e.g. `"Hello $name"` → `stringResource(R.string.hello_s, name)`)
+- Quick-fix intention on hardcoded literals (Alt+Enter)
 - Quick extract: skip dialog when target is unambiguous
 - Batch extract: extract all strings in a file in one pass
 - `@Preview` composables excluded by default (configurable)
-- Settings panel for prefix, naming, replacement style, locale handling, exclusions
+
+### Inspect
+
+- Hardcoded string highlight in editor (opt-in)
+- Duplicate value in `strings.xml` (same text, different keys)
+- Unused string resource (no `R.string.key` or `@string/key` references)
+
+### Settings
+
+Configurable prefix, naming convention, replacement style per context, locale propagation defaults, format-arg detection, inspection toggles, exclusion patterns.
 
 ## Install
 

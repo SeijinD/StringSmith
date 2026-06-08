@@ -1,15 +1,25 @@
 <idea-plugin>
     <id>com.seijind.stringsmith</id>
-    <name>StringSmith – Android String Extractor</name>
+    <name>StringSmith – Android Strings Toolkit</name>
     <vendor email="seijindemon@protonmail.com" url="https://github.com/SeijinD">SeijinD</vendor>
     <description><![CDATA[
-        <p><b>StringSmith</b> extracts hardcoded strings into Android <code>strings.xml</code> resources.</p>
+        <p><b>StringSmith</b> is a toolkit for managing Android <code>strings.xml</code> resources.</p>
+        <p><b>Extract</b></p>
         <ul>
             <li>Context-aware replacement (<code>stringResource</code>, <code>getString</code>, <code>@string/</code>)</li>
-            <li>Auto-import for Compose <code>stringResource</code></li>
+            <li>Auto-import for Compose <code>stringResource</code> with sorted imports</li>
             <li>Duplicate key detection &amp; value reuse</li>
-            <li>Multi-locale placeholder generation (<code>values-*</code>)</li>
-            <li>Quick-fix intention on hardcoded literals</li>
+            <li>Multi-locale propagation across <code>values-*</code></li>
+            <li>Quick-fix intention on hardcoded literals (Alt+Enter)</li>
+            <li>Quick Extract (skip dialog when unambiguous) and Batch Extract (whole file)</li>
+            <li>Kotlin template expressions extracted as <code>%1$s</code> format args</li>
+            <li><code>@Preview</code> composables excluded by default</li>
+        </ul>
+        <p><b>Inspect</b></p>
+        <ul>
+            <li>Hardcoded string highlight (opt-in)</li>
+            <li>Duplicate value in <code>strings.xml</code></li>
+            <li>Unused string resource</li>
         </ul>
     ]]></description>
 
@@ -24,11 +34,30 @@
         <localInspection
             language=""
             shortName="StringSmithHardcodedString"
-            displayName="Hardcoded string can be extracted to strings.xml"
+            bundle="messages.StringSmithBundle"
+            key="inspection.hardcodedString.displayName"
             groupName="StringSmith"
             enabledByDefault="true"
             level="WARNING"
             implementationClass="com.seijind.stringsmith.inspections.HardcodedStringInspection"/>
+        <localInspection
+            language="XML"
+            shortName="StringSmithDuplicateValue"
+            bundle="messages.StringSmithBundle"
+            key="inspection.duplicateValue.displayName"
+            groupName="StringSmith"
+            enabledByDefault="true"
+            level="WEAK WARNING"
+            implementationClass="com.seijind.stringsmith.inspections.DuplicateStringValueInspection"/>
+        <localInspection
+            language="XML"
+            shortName="StringSmithUnusedString"
+            bundle="messages.StringSmithBundle"
+            key="inspection.unusedString.displayName"
+            groupName="StringSmith"
+            enabledByDefault="true"
+            level="WEAK WARNING"
+            implementationClass="com.seijind.stringsmith.inspections.UnusedStringResourceInspection"/>
         <intentionAction>
             <className>com.seijind.stringsmith.intentions.ExtractStringResourceIntention</className>
             <category>StringSmith</category>
@@ -36,7 +65,7 @@
         <applicationConfigurable
             parentId="tools"
             id="com.seijind.stringsmith.settings"
-            displayName="StringSmith – Android String Extractor"
+            displayName="StringSmith – Android Strings Toolkit"
             instance="com.seijind.stringsmith.settings.StringSmithConfigurable"/>
         <applicationService
             serviceImplementation="com.seijind.stringsmith.settings.StringSmithSettings"/>

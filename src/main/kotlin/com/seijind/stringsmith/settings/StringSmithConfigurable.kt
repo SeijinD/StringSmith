@@ -22,7 +22,7 @@ class StringSmithConfigurable : Configurable {
     private val previewLabel = JBLabel()
     private val regexErrorLabel = JBLabel().apply { foreground = JBColor.RED }
 
-    override fun getDisplayName(): String = "StringSmith – Android String Extractor"
+    override fun getDisplayName(): String = "StringSmith – Android Strings Toolkit"
 
     override fun createComponent(): JComponent {
         val builder = panel {
@@ -110,8 +110,20 @@ class StringSmithConfigurable : Configurable {
                 row {
                     checkBox("Highlight hardcoded strings in editor")
                         .bindSelected({ settings.inspectionEnabled }, { settings.inspectionEnabled = it })
-                        .comment("Adds a weak warning under each extractable hardcoded literal with an Extract quick-fix.")
+                        .comment("Adds a warning under each extractable hardcoded literal with an Extract quick-fix.")
                         .applyToComponent { toolTipText = "Off by default; opt in for passive discovery of unextracted strings" }
+                }
+                row {
+                    checkBox("Flag duplicate values in strings.xml")
+                        .bindSelected({ settings.duplicateValueInspectionEnabled }, { settings.duplicateValueInspectionEnabled = it })
+                        .comment("Reports two or more <code>&lt;string&gt;</code> entries with the same text under different keys.")
+                        .applyToComponent { toolTipText = "Encourages key reuse across modules and locales" }
+                }
+                row {
+                    checkBox("Flag unused string resources")
+                        .bindSelected({ settings.unusedStringInspectionEnabled }, { settings.unusedStringInspectionEnabled = it })
+                        .comment("Reports keys in <code>strings.xml</code> with no <code>R.string.key</code> or <code>@string/key</code> reference in the project.")
+                        .applyToComponent { toolTipText = "Text-based search; dynamic key construction (e.g. \"key_\$type\") may report false positives" }
                 }
             }
 

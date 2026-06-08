@@ -1,0 +1,22 @@
+<html>
+<body>
+<p>
+    Reports <code>&lt;string&gt;</code> entries in <code>strings.xml</code> that are not
+    referenced anywhere in the project as <code>R.string.key</code> (Kotlin / Java) or
+    <code>@string/key</code> (XML).
+</p>
+<p><b>Example</b></p>
+<pre><code>res/values/strings.xml
+    &lt;string name="welcome"&gt;Welcome&lt;/string&gt;       &lt;!-- used --&gt;
+    &lt;string name="legacy_label"&gt;Legacy&lt;/string&gt;   &lt;!-- flagged: no references --&gt;
+</code></pre>
+<p>
+    Uses a text-based search across the project scope. Dynamic key construction such as
+    <code>getString("legacy_${'$'}suffix")</code> may produce false positives — keys built
+    at runtime are reported as unused.
+</p>
+<p>
+    Toggle in <b>Settings | Tools | StringSmith &rarr; Inspection</b>.
+</p>
+</body>
+</html>

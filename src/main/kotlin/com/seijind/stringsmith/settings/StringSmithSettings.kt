@@ -39,6 +39,8 @@ class StringSmithSettings : PersistentStateComponent<StringSmithSettings.State> 
         var excludePreviewComposables: Boolean = true,
         var inspectionEnabled: Boolean = false,
         var detectFormatArgs: Boolean = true,
+        var duplicateValueInspectionEnabled: Boolean = true,
+        var unusedStringInspectionEnabled: Boolean = true,
         var namingConvention: NamingConvention = NamingConvention.SNAKE_CASE,
         var maxKeyLength: Int = 40,
         var minStringLength: Int = 2,
@@ -84,6 +86,14 @@ class StringSmithSettings : PersistentStateComponent<StringSmithSettings.State> 
     var detectFormatArgs: Boolean
         get() = state.detectFormatArgs
         set(value) { state.detectFormatArgs = value }
+
+    var duplicateValueInspectionEnabled: Boolean
+        get() = state.duplicateValueInspectionEnabled
+        set(value) { state.duplicateValueInspectionEnabled = value }
+
+    var unusedStringInspectionEnabled: Boolean
+        get() = state.unusedStringInspectionEnabled
+        set(value) { state.unusedStringInspectionEnabled = value }
 
     var namingConvention: NamingConvention
         get() = state.namingConvention
