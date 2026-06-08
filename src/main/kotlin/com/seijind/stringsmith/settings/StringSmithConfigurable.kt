@@ -97,6 +97,15 @@ class StringSmithConfigurable : Configurable {
                 }
             }
 
+            group("Format Strings") {
+                row {
+                    checkBox("Detect template expressions and extract as %1\$s placeholders")
+                        .bindSelected({ settings.detectFormatArgs }, { settings.detectFormatArgs = it })
+                        .comment("Converts <code>\"Hello \$name\"</code> to <code>\"Hello %1\$s\"</code> in strings.xml and passes the original expression as a format argument.")
+                        .applyToComponent { toolTipText = "When off, strings with template expressions are skipped entirely" }
+                }
+            }
+
             group("Inspection") {
                 row {
                     checkBox("Highlight hardcoded strings in editor")

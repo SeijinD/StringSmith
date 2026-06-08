@@ -63,7 +63,7 @@ class ExtractContextTest : BasePlatformTestCase() {
         assertEquals(ExtractContextKind.KOTLIN_GENERIC, target!!.kind)
     }
 
-    fun testRejectsTemplateWithExpression() {
+    fun testTemplateWithExpression_genericKotlinReturnsNull() {
         val target = detectAt(
             """
             fun foo(name: String) {
@@ -73,6 +73,40 @@ class ExtractContextTest : BasePlatformTestCase() {
             "Foo.kt"
         )
         assertNull(target)
+    }
+
+    fun testTemplateWithExpression_composableExtractsArgs() {
+        val target = detectAt(
+            """
+            import androidx.compose.runtime.Composable
+            @Composable
+            fun Greet(name: String) {
+                val x = "Hello ${'$'}name<caret> world"
+            }
+            """.trimIndent(),
+            "Greet.kt"
+        )
+        assertNotNull(target)
+        assertEquals(ExtractContextKind.COMPOSABLE, target!!.kind)
+        assertEquals("Hello %1\$s world", target.rawValue)
+        assertEquals(listOf("name"), target.formatArgs)
+    }
+
+    fun testTemplateWithBlockExpression_activityExtractsArgs() {
+        val target = detectAt(
+            """
+            class MainActivity : AppCompatActivity() {
+                fun foo(user: User) {
+                    val x = "Welcome, ${'$'}{user.name}<caret>!"
+                }
+            }
+            """.trimIndent(),
+            "MainActivity.kt"
+        )
+        assertNotNull(target)
+        assertEquals(ExtractContextKind.ANDROID_CLASS, target!!.kind)
+        assertEquals("Welcome, %1\$s!", target.rawValue)
+        assertEquals(listOf("user.name"), target.formatArgs)
     }
 
     fun testCaretAfterClosingQuote() {

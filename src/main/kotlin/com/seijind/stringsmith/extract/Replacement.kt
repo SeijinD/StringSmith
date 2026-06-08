@@ -11,12 +11,25 @@ object Replacement {
 
     fun referenceFor(target: ExtractTarget, key: String): String {
         val settings = StringSmithSettings.getInstance()
-        return when (target.kind) {
+        val base = when (target.kind) {
             ExtractContextKind.COMPOSABLE -> settings.composeStyle.template.format(key)
             ExtractContextKind.ANDROID_CLASS -> settings.activityStyle.template.format(key)
             ExtractContextKind.KOTLIN_GENERIC -> "R.string.$key"
             ExtractContextKind.XML_LAYOUT -> "@string/$key"
         }
+        if (target.formatArgs.isEmpty()) return base
+        return when (target.kind) {
+            ExtractContextKind.COMPOSABLE,
+            ExtractContextKind.ANDROID_CLASS -> insertArgsBeforeClose(base, target.formatArgs)
+            else -> base
+        }
+    }
+
+    private fun insertArgsBeforeClose(base: String, args: List<String>): String {
+        val lastClose = base.lastIndexOf(')')
+        if (lastClose < 0) return base
+        val argList = args.joinToString(", ")
+        return base.substring(0, lastClose) + ", " + argList + base.substring(lastClose)
     }
 
     fun apply(editor: Editor, target: ExtractTarget, key: String) {

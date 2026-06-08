@@ -5,11 +5,15 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.xml.XmlAttributeValue
+import com.seijind.stringsmith.settings.StringSmithSettings
 import org.jetbrains.kotlin.psi.KtAnnotationEntry
 import org.jetbrains.kotlin.psi.KtClass
+import org.jetbrains.kotlin.psi.KtEscapeStringTemplateEntry
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtLiteralStringTemplateEntry
 import org.jetbrains.kotlin.psi.KtNamedFunction
+import org.jetbrains.kotlin.psi.KtSimpleNameStringTemplateEntry
+import org.jetbrains.kotlin.psi.KtStringTemplateEntryWithExpression
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression
 import org.jetbrains.kotlin.psi.KtSuperTypeListEntry
 
@@ -25,7 +29,8 @@ data class ExtractTarget(
     val xml: XmlAttributeValue? = null,
     val rawValue: String,
     val kind: ExtractContextKind,
-    val containingFile: PsiFile
+    val containingFile: PsiFile,
+    val formatArgs: List<String> = emptyList()
 )
 
 object ExtractContext {
@@ -43,12 +48,7 @@ object ExtractContext {
 
     private fun detectFrom(element: PsiElement, file: PsiFile): ExtractTarget? {
         val kt = PsiTreeUtil.getParentOfType(element, KtStringTemplateExpression::class.java, false)
-        if (kt != null) {
-            if (kt.entries.any { it !is KtLiteralStringTemplateEntry }) return null
-            val value = kt.entries.joinToString("") { it.text }
-            val kind = classifyKotlin(kt)
-            return ExtractTarget(kotlin = kt, rawValue = value, kind = kind, containingFile = file)
-        }
+        if (kt != null) return buildKotlinTarget(kt, file)
         val xml = PsiTreeUtil.getParentOfType(element, XmlAttributeValue::class.java, false)
         if (xml != null) {
             val value = xml.value
@@ -56,6 +56,40 @@ object ExtractContext {
             return ExtractTarget(xml = xml, rawValue = value, kind = ExtractContextKind.XML_LAYOUT, containingFile = file)
         }
         return null
+    }
+
+    private fun buildKotlinTarget(expr: KtStringTemplateExpression, file: PsiFile): ExtractTarget? {
+        val kind = classifyKotlin(expr)
+        val hasExpressions = expr.entries.any { it is KtStringTemplateEntryWithExpression }
+        if (!hasExpressions) {
+            val value = expr.entries.joinToString("") { it.text }
+            return ExtractTarget(kotlin = expr, rawValue = value, kind = kind, containingFile = file)
+        }
+        if (!StringSmithSettings.getInstance().detectFormatArgs) return null
+        if (kind == ExtractContextKind.KOTLIN_GENERIC) return null
+        val sb = StringBuilder()
+        val args = mutableListOf<String>()
+        for (entry in expr.entries) {
+            when (entry) {
+                is KtLiteralStringTemplateEntry -> sb.append(entry.text.replace("%", "%%"))
+                is KtEscapeStringTemplateEntry -> sb.append(entry.text.replace("%", "%%"))
+                is KtSimpleNameStringTemplateEntry -> {
+                    args.add(entry.expression?.text ?: entry.text.removePrefix("$"))
+                    sb.append("%${args.size}\$s")
+                }
+                is KtStringTemplateEntryWithExpression -> {
+                    args.add(entry.expression?.text ?: "")
+                    sb.append("%${args.size}\$s")
+                }
+            }
+        }
+        return ExtractTarget(
+            kotlin = expr,
+            rawValue = sb.toString(),
+            kind = kind,
+            containingFile = file,
+            formatArgs = args
+        )
     }
 
     private fun classifyKotlin(expr: KtStringTemplateExpression): ExtractContextKind {
@@ -120,12 +154,8 @@ object ExtractContext {
 
     fun isKotlinFile(file: PsiFile): Boolean = file is KtFile
 
-    fun fromKotlin(expr: KtStringTemplateExpression, file: PsiFile): ExtractTarget? {
-        if (expr.entries.any { it !is KtLiteralStringTemplateEntry }) return null
-        val value = expr.entries.joinToString("") { it.text }
-        val kind = classifyKotlin(expr)
-        return ExtractTarget(kotlin = expr, rawValue = value, kind = kind, containingFile = file)
-    }
+    fun fromKotlin(expr: KtStringTemplateExpression, file: PsiFile): ExtractTarget? =
+        buildKotlinTarget(expr, file)
 
     fun isInsidePreviewComposable(target: ExtractTarget): Boolean {
         val expr = target.kotlin ?: return false
