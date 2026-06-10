@@ -7,10 +7,14 @@ import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.xml.XmlAttributeValue
 import com.seijind.stringsmith.settings.StringSmithSettings
 import org.jetbrains.kotlin.psi.KtAnnotationEntry
+import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtEscapeStringTemplateEntry
 import org.jetbrains.kotlin.psi.KtFile
+import org.jetbrains.kotlin.psi.KtLambdaArgument
+import org.jetbrains.kotlin.psi.KtLambdaExpression
 import org.jetbrains.kotlin.psi.KtLiteralStringTemplateEntry
+import org.jetbrains.kotlin.psi.KtNameReferenceExpression
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtSimpleNameStringTemplateEntry
 import org.jetbrains.kotlin.psi.KtStringTemplateEntryWithExpression
@@ -93,6 +97,8 @@ object ExtractContext {
     }
 
     private fun classifyKotlin(expr: KtStringTemplateExpression): ExtractContextKind {
+        if (isInsideComposableLambda(expr)) return ExtractContextKind.COMPOSABLE
+
         val fn = PsiTreeUtil.getParentOfType(expr, KtNamedFunction::class.java, true)
         if (fn != null && hasComposable(fn)) return ExtractContextKind.COMPOSABLE
 
@@ -104,6 +110,28 @@ object ExtractContext {
 
         return ExtractContextKind.KOTLIN_GENERIC
     }
+
+    private fun isInsideComposableLambda(expr: KtStringTemplateExpression): Boolean {
+        val customNames = StringSmithSettings.getInstance().customComposableLambdaFunctionSet()
+        var lambda = PsiTreeUtil.getParentOfType(expr, KtLambdaExpression::class.java, true)
+        while (lambda != null) {
+            val lambdaArg = lambda.parent as? KtLambdaArgument ?: return false
+            val call = lambdaArg.parent as? KtCallExpression ?: return false
+            val callee = (call.calleeExpression as? KtNameReferenceExpression)?.getReferencedName() ?: return false
+            if (callee in COMPOSABLE_ENTRY_CALLS || callee in customNames) return true
+            lambda = PsiTreeUtil.getParentOfType(call, KtLambdaExpression::class.java, true)
+        }
+        return false
+    }
+
+    private val COMPOSABLE_ENTRY_CALLS = setOf(
+        "setContent",
+        "composable",
+        "composed",
+        "bottomSheet",
+        "dialog",
+        "navigation"
+    )
 
     private fun matchesAndroidNameSuffix(name: String): Boolean =
         ANDROID_NAME_SUFFIXES.any { name.endsWith(it) }

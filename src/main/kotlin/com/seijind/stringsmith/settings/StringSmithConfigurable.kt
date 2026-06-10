@@ -88,6 +88,19 @@ class StringSmithConfigurable : Configurable {
                 }
             }
 
+            group("Custom Composable Wrappers") {
+                row {
+                    textArea()
+                        .bindText({ settings.customComposableLambdaFunctions }, { settings.customComposableLambdaFunctions = it })
+                        .align(AlignX.FILL)
+                        .applyToComponent {
+                            rows = 3
+                            toolTipText = "One function name per line. Strings inside their trailing lambda use stringResource."
+                        }
+                        .comment("Function names whose trailing lambda is a <code>@Composable</code> scope (e.g. <code>screenViewComposable</code>). Strings inside them use <code>stringResource</code> instead of <code>getString</code>. One per line or comma-separated.")
+                }
+            }
+
             group("Compose Previews") {
                 row {
                     checkBox("Exclude strings inside @Preview composables")

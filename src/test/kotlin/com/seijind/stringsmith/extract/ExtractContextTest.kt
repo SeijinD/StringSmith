@@ -195,6 +195,191 @@ class ExtractContextTest : BasePlatformTestCase() {
         assertFalse(ExtractContext.isInsidePreviewComposable(target!!))
     }
 
+    fun testDetectsComposableInsideSetContentLambdaInActivity() {
+        val target = detectAt(
+            """
+            class MainActivity : AppCompatActivity() {
+                override fun onCreate(savedInstanceState: Bundle?) {
+                    super.onCreate(savedInstanceState)
+                    setContent {
+                        val title = "Hel<caret>lo"
+                    }
+                }
+            }
+            """.trimIndent(),
+            "MainActivity.kt"
+        )
+        assertNotNull(target)
+        assertEquals(ExtractContextKind.COMPOSABLE, target!!.kind)
+    }
+
+    fun testActivityScopeOutsideSetContent() {
+        val target = detectAt(
+            """
+            class MainActivity : AppCompatActivity() {
+                override fun onCreate(savedInstanceState: Bundle?) {
+                    val title = "Hel<caret>lo"
+                    setContent {
+                        val inner = "World"
+                    }
+                }
+            }
+            """.trimIndent(),
+            "MainActivity.kt"
+        )
+        assertNotNull(target)
+        assertEquals(ExtractContextKind.ANDROID_CLASS, target!!.kind)
+    }
+
+    fun testDetectsComposableInsideNavComposableLambda() {
+        val target = detectAt(
+            """
+            class MainActivity : AppCompatActivity() {
+                fun build(navBuilder: Any) {
+                    composable("home") {
+                        val title = "Wel<caret>come"
+                    }
+                }
+            }
+            """.trimIndent(),
+            "MainActivity.kt"
+        )
+        assertNotNull(target)
+        assertEquals(ExtractContextKind.COMPOSABLE, target!!.kind)
+    }
+
+    fun testOnClickLambdaInsideComposableIsAndroidClass() {
+        val target = detectAt(
+            """
+            class MainActivity : AppCompatActivity() {
+                fun foo() {
+                    setContent {
+                        Button(onClick = {
+                            val msg = "Hel<caret>lo"
+                        }) {}
+                    }
+                }
+            }
+            """.trimIndent(),
+            "MainActivity.kt"
+        )
+        assertNotNull(target)
+        assertEquals(ExtractContextKind.ANDROID_CLASS, target!!.kind)
+    }
+
+    fun testNestedColumnInsideSetContentIsComposable() {
+        val target = detectAt(
+            """
+            class MainActivity : AppCompatActivity() {
+                fun foo() {
+                    setContent {
+                        Column {
+                            val msg = "Hel<caret>lo"
+                        }
+                    }
+                }
+            }
+            """.trimIndent(),
+            "MainActivity.kt"
+        )
+        assertNotNull(target)
+        assertEquals(ExtractContextKind.COMPOSABLE, target!!.kind)
+    }
+
+    fun testButtonContentLambdaInsideSetContentIsComposable() {
+        val target = detectAt(
+            """
+            class MainActivity : AppCompatActivity() {
+                fun foo() {
+                    setContent {
+                        Button(onClick = {}) {
+                            val label = "Cli<caret>ck me"
+                        }
+                    }
+                }
+            }
+            """.trimIndent(),
+            "MainActivity.kt"
+        )
+        assertNotNull(target)
+        assertEquals(ExtractContextKind.COMPOSABLE, target!!.kind)
+    }
+
+    fun testOnClickDeepInsideNestedComposableIsAndroidClass() {
+        val target = detectAt(
+            """
+            class MainActivity : AppCompatActivity() {
+                fun foo() {
+                    setContent {
+                        Column {
+                            Button(onClick = {
+                                val msg = "Hel<caret>lo"
+                            }) {}
+                        }
+                    }
+                }
+            }
+            """.trimIndent(),
+            "MainActivity.kt"
+        )
+        assertNotNull(target)
+        assertEquals(ExtractContextKind.ANDROID_CLASS, target!!.kind)
+    }
+
+    fun testUnknownTrailingLambdaOutsideEntryPointIsAndroidClass() {
+        val target = detectAt(
+            """
+            class MainActivity : AppCompatActivity() {
+                fun foo() {
+                    runOnUiThread {
+                        val msg = "Hel<caret>lo"
+                    }
+                }
+            }
+            """.trimIndent(),
+            "MainActivity.kt"
+        )
+        assertNotNull(target)
+        assertEquals(ExtractContextKind.ANDROID_CLASS, target!!.kind)
+    }
+
+    fun testCustomWrapperWithoutComposeClasspathFallsBack() {
+        val target = detectAt(
+            """
+            fun NavGraphBuilder.kinoHomeScreen() {
+                screenViewComposable<KinoHomeRoute> {
+                    val title = "Hel<caret>lo"
+                }
+            }
+            """.trimIndent(),
+            "KinoHomeScreen.kt"
+        )
+        assertNotNull(target)
+        assertEquals(ExtractContextKind.KOTLIN_GENERIC, target!!.kind)
+    }
+
+    fun testCustomWrapperViaSettingsIsComposable() {
+        val settings = com.seijind.stringsmith.settings.StringSmithSettings.getInstance()
+        val previous = settings.customComposableLambdaFunctions
+        settings.customComposableLambdaFunctions = "screenViewComposable"
+        try {
+            val target = detectAt(
+                """
+                fun NavGraphBuilder.kinoHomeScreen() {
+                    screenViewComposable<KinoHomeRoute> {
+                        val title = "Hel<caret>lo"
+                    }
+                }
+                """.trimIndent(),
+                "KinoHomeScreen.kt"
+            )
+            assertNotNull(target)
+            assertEquals(ExtractContextKind.COMPOSABLE, target!!.kind)
+        } finally {
+            settings.customComposableLambdaFunctions = previous
+        }
+    }
+
     fun testDetectsXmlAttributeValue() {
         myFixture.configureByText(
             "layout.xml",

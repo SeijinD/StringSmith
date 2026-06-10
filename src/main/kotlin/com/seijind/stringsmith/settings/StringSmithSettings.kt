@@ -52,7 +52,8 @@ class StringSmithSettings : PersistentStateComponent<StringSmithSettings.State> 
         var activityStyle: ActivityReplacementStyle = ActivityReplacementStyle.GET_STRING,
         var composeStyle: ComposeArgStyle = ComposeArgStyle.POSITIONAL,
         var lastTargetModulePath: String = "",
-        var rememberLastModule: Boolean = true
+        var rememberLastModule: Boolean = true,
+        var customComposableLambdaFunctions: String = ""
     )
 
     private var state = State()
@@ -142,6 +143,16 @@ class StringSmithSettings : PersistentStateComponent<StringSmithSettings.State> 
     var rememberLastModule: Boolean
         get() = state.rememberLastModule
         set(value) { state.rememberLastModule = value }
+
+    var customComposableLambdaFunctions: String
+        get() = state.customComposableLambdaFunctions
+        set(value) { state.customComposableLambdaFunctions = value }
+
+    fun customComposableLambdaFunctionSet(): Set<String> =
+        customComposableLambdaFunctions.split(',', '\n', ' ')
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .toSet()
 
     fun excludePatternList(): List<Regex> {
         return excludePatterns.lineSequence()
