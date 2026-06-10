@@ -204,10 +204,10 @@ class ExtractDialog(
 
     private fun keyError(): String? {
         if (reuseCheckbox?.isSelected == true) return null
-        val key = keyField.text
+        val key = keyField.text.trim()
         if (key.isBlank()) return StringSmithBundle.message("error.keyRequired")
         if (!KeyGenerator.isValidKey(key)) return StringSmithBundle.message("error.invalidKey")
-        if (StringsXmlUtil.keyExists(currentStringsXml(), key) && key != currentExistingKey) {
+        if (StringsXmlUtil.keyExists(currentStringsXml(), key)) {
             return StringSmithBundle.message("error.keyExists", key)
         }
         return null
