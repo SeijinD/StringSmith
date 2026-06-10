@@ -29,6 +29,7 @@ IntelliJ IDEA / Android Studio plugin for managing Android `strings.xml` resourc
 
 - Context-aware replacement
   - Inside `@Composable` → `stringResource(R.string.key)`
+  - Inside composable entry-point lambdas (`setContent`, `composable`, `navigation`, `dialog`, `bottomSheet`, `composed`) and nested layout lambdas → `stringResource(R.string.key)`
   - Inside `Activity` / `Fragment` / `View` → `getString(R.string.key)`
   - Other Kotlin code → `R.string.key`
   - XML layout attribute → `@string/key`
@@ -49,7 +50,9 @@ IntelliJ IDEA / Android Studio plugin for managing Android `strings.xml` resourc
 
 ### Settings
 
-Configurable prefix, naming convention, replacement style per context, locale propagation defaults, format-arg detection, inspection toggles, exclusion patterns.
+Configurable prefix, naming convention, replacement style per context, locale propagation defaults, format-arg detection, inspection toggles, exclusion patterns, and custom composable wrapper names.
+
+Custom wrappers: if your project wraps content in a helper whose trailing lambda is a `@Composable` scope (e.g. `screenViewComposable { … }`), add its name under **Settings → Tools → StringSmith → Custom Composable Wrappers** so strings inside it use `stringResource`.
 
 ## Screenshots
 

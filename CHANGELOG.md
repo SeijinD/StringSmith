@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-06-11
+
+### Added
+- Composable context detection inside entry-point lambdas: strings inside `setContent`, `composable`, `navigation`, `dialog`, `bottomSheet`, and `composed` trailing lambdas now classify as `COMPOSABLE` (use `stringResource`) even when the enclosing function is not annotated `@Composable`. Walk-up traverses nested composable layout lambdas (e.g. `setContent { Column { … } }`) while named-argument lambdas (`onClick = { … }`) correctly fall through to class-based classification.
+- Settings → Tools → StringSmith → **Custom Composable Wrappers**: project-specific wrapper function names (e.g. `screenViewComposable`) whose trailing lambda is a `@Composable` scope; strings inside them use `stringResource`.
+
+### Fixed
+- Extract dialog allowed saving a key that already existed when the value coincidentally matched an existing entry (the suggested key equalled the reuse key). The duplicate-key check now always blocks an existing key unless `Reuse existing key` is selected.
+- Batch dialog now flags two rows that share the same key but hold different values as `Collision` (blocking) instead of silently writing only the first value and pointing both call sites at it. Row statuses recompute across all rows on key/include edits while preserving manual key edits.
+- Hardened the extract dialog reuse path against a null existing key.
+
 ## [0.1.0] - 2026-06-09
 
 ### Added
@@ -37,5 +48,6 @@
 - `parseEntries` regex tolerates extra `<string>` attributes such as `translatable="false"`.
 - `ensureImport` uses a text-based `KtPsiFactory.createFile("import …")` instead of the deprecated `createImportDirective(ImportPath)`.
 
-[Unreleased]: https://github.com/SeijinD/stringsmith/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/SeijinD/stringsmith/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/SeijinD/stringsmith/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/SeijinD/stringsmith/commits/v0.1.0
