@@ -148,7 +148,7 @@ class BatchDialog(
         val xml = currentStringsXml()
         rows.forEachIndexed { i, r ->
             val existing = StringsXmlUtil.findExistingKey(xml, r.value)
-            val effectiveKey = if (existing != null) existing else r.key
+            val effectiveKey = existing ?: r.key
             rows[i] = r.copy(
                 existingKey = existing,
                 key = effectiveKey,
@@ -157,10 +157,11 @@ class BatchDialog(
         }
     }
 
-    private fun refreshSingleRowStatus(index: Int) {
-        val r = rows[index]
+    private fun recomputeStatusesPreservingKeys() {
         val xml = currentStringsXml()
-        rows[index] = r.copy(status = computeStatus(r.key, r.value, xml, r.existingKey, index))
+        rows.forEachIndexed { i, r ->
+            rows[i] = r.copy(status = computeStatus(r.key, r.value, xml, r.existingKey, i))
+        }
     }
 
     private fun computeStatus(key: String, value: String, xml: VirtualFile, existingKey: String?, selfIndex: Int): BatchRowStatus {
@@ -168,6 +169,10 @@ class BatchDialog(
         if (existingKey != null && key == existingKey) return BatchRowStatus.REUSE
         val keyExistsInXml = StringsXmlUtil.keyExists(xml, key)
         if (keyExistsInXml && existingKey != key) return BatchRowStatus.COLLISION
+        val sameKeyDiffValueInBatch = rows.withIndex().any { (i, other) ->
+            i != selfIndex && other.include && other.key == key && other.value != value
+        }
+        if (sameKeyDiffValueInBatch) return BatchRowStatus.COLLISION
         val dupInBatch = rows.withIndex().any { (i, other) ->
             i != selfIndex && other.value == value
         }
@@ -217,14 +222,17 @@ class BatchDialog(
         override fun setValueAt(value: Any?, r: Int, c: Int) {
             val row = rows[r]
             when (c) {
-                0 -> rows[r] = row.copy(include = value as Boolean)
+                0 -> {
+                    rows[r] = row.copy(include = value as Boolean)
+                    recomputeStatusesPreservingKeys()
+                }
                 3 -> {
                     val newKey = (value as? String)?.trim().orEmpty()
                     rows[r] = row.copy(key = newKey)
-                    refreshSingleRowStatus(r)
+                    recomputeStatusesPreservingKeys()
                 }
             }
-            fireTableRowsUpdated(r, r)
+            fireTableDataChanged()
             refreshSummary()
         }
         private fun displayStatus(s: BatchRowStatus): String = when (s) {

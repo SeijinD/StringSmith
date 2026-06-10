@@ -228,7 +228,7 @@ class ExtractDialog(
     override fun getPreferredFocusedComponent(): JComponent = keyField
 
     fun result(): ExtractDialogResult {
-        val reuse = reuseCheckbox?.isSelected == true
+        val reuse = reuseCheckbox?.isSelected == true && currentExistingKey != null
         val key = if (reuse) currentExistingKey!! else keyField.text.trim()
         return ExtractDialogResult(
             key = key,
