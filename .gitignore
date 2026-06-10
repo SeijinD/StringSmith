@@ -1,0 +1,12 @@
+.DS_Store
+.gradle
+.idea
+.intellijPlatform
+.kotlin
+build
+
+# Plugin signing key material — never commit
+*.pem
+*.crt
+*.key
+*.p12
