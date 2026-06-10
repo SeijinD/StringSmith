@@ -1,0 +1,34 @@
+<html>
+<body>
+
+<p>
+    Moves a hardcoded string into <code>res/values/strings.xml</code> and replaces
+    the literal with a context-appropriate reference. Imports added automatically.
+</p>
+
+<table border="0" cellpadding="3" cellspacing="0">
+    <tr><td><b>Context</b></td><td><b>Replacement</b></td></tr>
+    <tr><td><code>@Composable</code></td><td><code>stringResource(R.string.key)</code></td></tr>
+    <tr><td><code>Activity</code> / <code>Fragment</code></td><td><code>getString(R.string.key)</code></td></tr>
+    <tr><td>Other Kotlin</td><td><code>R.string.key</code></td></tr>
+    <tr><td>XML layout</td><td><code>@string/key</code></td></tr>
+</table>
+
+<p><b>Before</b></p>
+<pre><code>Text("Hello, world!")</code></pre>
+
+<p><b>After</b></p>
+<pre><code>Text(stringResource(R.string.hello_world))</code></pre>
+
+<p>
+    Skips: short literals, exclusion regexes, <code>@Preview</code> composables,
+    templates with <code>${'$'}</code>-expressions, XML refs starting with
+    <code>@</code> / <code>?</code>.
+</p>
+
+<p>
+    Configure in <b>Settings | Tools | StringSmith</b>.
+</p>
+
+</body>
+</html>

@@ -1,0 +1,23 @@
+<html>
+<body>
+<p>
+    Reports two or more <code>&lt;string&gt;</code> entries in the same
+    <code>strings.xml</code> file that share the same text content but use different keys.
+</p>
+<p>
+    Encourages key reuse so translators do not translate the same sentence twice and
+    the app stays consistent.
+</p>
+<p><b>Example</b></p>
+<pre><code>&lt;string name="login_title"&gt;Welcome&lt;/string&gt;
+&lt;string name="onboarding_greeting"&gt;Welcome&lt;/string&gt;  &lt;!-- flagged --&gt;
+</code></pre>
+<p>
+    Comparison is exact-match on the trimmed text. Entries with
+    <code>translatable="false"</code> are still considered.
+</p>
+<p>
+    Toggle in <b>Settings | Tools | StringSmith &rarr; Inspection</b>.
+</p>
+</body>
+</html>
