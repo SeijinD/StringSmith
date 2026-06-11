@@ -4,11 +4,9 @@
 
 [![Build](https://github.com/SeijinD/stringsmith/workflows/Build/badge.svg)](https://github.com/SeijinD/stringsmith/actions)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-<!-- After first Marketplace publish, replace PLUGIN_ID with the numeric id from the listing URL and uncomment:
-[![Version](https://img.shields.io/jetbrains/plugin/v/PLUGIN_ID.svg)](https://plugins.jetbrains.com/plugin/PLUGIN_ID)
-[![Downloads](https://img.shields.io/jetbrains/plugin/d/PLUGIN_ID.svg)](https://plugins.jetbrains.com/plugin/PLUGIN_ID)
-[![Rating](https://img.shields.io/jetbrains/plugin/r/rating/PLUGIN_ID.svg)](https://plugins.jetbrains.com/plugin/PLUGIN_ID)
--->
+[![Version](https://img.shields.io/jetbrains/plugin/v/32198.svg)](https://plugins.jetbrains.com/plugin/32198-stringsmith--android-strings-toolkit)
+[![Downloads](https://img.shields.io/jetbrains/plugin/d/32198.svg)](https://plugins.jetbrains.com/plugin/32198-stringsmith--android-strings-toolkit)
+[![Rating](https://img.shields.io/jetbrains/plugin/r/rating/32198.svg)](https://plugins.jetbrains.com/plugin/32198-stringsmith--android-strings-toolkit)
 
 IntelliJ IDEA / Android Studio plugin for managing Android `strings.xml` resources: extract hardcoded literals with context-aware replacement, detect duplicate values, and flag unused entries — without leaving the editor.
 
@@ -91,8 +89,9 @@ Configure key generation, replacement style, locale defaults, format-arg detecti
 
 ### From JetBrains Marketplace
 
-<!-- Available after first publish -->
-**Settings → Plugins → Marketplace**, search **StringSmith**, install.
+[![Install StringSmith](https://img.shields.io/badge/Install-StringSmith-2EA043?style=for-the-badge&logo=jetbrains&logoColor=white)](https://plugins.jetbrains.com/plugin/32198-stringsmith--android-strings-toolkit)
+
+Or: **Settings → Plugins → Marketplace**, search **StringSmith**, install.
 
 ### From source
 
