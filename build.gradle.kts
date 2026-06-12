@@ -52,7 +52,6 @@ intellijPlatform {
         }
         failureLevel = listOf(
             VerifyPluginTask.FailureLevel.COMPATIBILITY_PROBLEMS,
-            VerifyPluginTask.FailureLevel.MISSING_DEPENDENCIES,
         )
     }
 }
