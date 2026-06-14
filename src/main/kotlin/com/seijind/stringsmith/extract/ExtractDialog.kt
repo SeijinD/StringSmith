@@ -187,7 +187,7 @@ class ExtractDialog(
     }
 
     private fun refreshAll() {
-        val reuse = reuseCheckbox?.isSelected == true
+        val reuse = reuseCheckbox.isSelected
         keyField.isEnabled = !reuse
         valueField.isEnabled = !reuse
         localeRows.forEach { it.include.isEnabled = !reuse; it.value.isEnabled = !reuse && it.include.isSelected }
@@ -203,7 +203,7 @@ class ExtractDialog(
     private fun currentStringsXml(): VirtualFile = (moduleCombo.selectedItem as? VirtualFile) ?: allTargets.first()
 
     private fun keyError(): String? {
-        if (reuseCheckbox?.isSelected == true) return null
+        if (reuseCheckbox.isSelected) return null
         val key = keyField.text.trim()
         if (key.isBlank()) return StringSmithBundle.message("error.keyRequired")
         if (!KeyGenerator.isValidKey(key)) return StringSmithBundle.message("error.invalidKey")
@@ -214,7 +214,7 @@ class ExtractDialog(
     }
 
     private fun valueError(): String? {
-        if (reuseCheckbox?.isSelected == true) return null
+        if (reuseCheckbox.isSelected) return null
         if (valueField.text.isBlank()) return StringSmithBundle.message("error.valueRequired")
         return null
     }
@@ -228,7 +228,7 @@ class ExtractDialog(
     override fun getPreferredFocusedComponent(): JComponent = keyField
 
     fun result(): ExtractDialogResult {
-        val reuse = reuseCheckbox?.isSelected == true && currentExistingKey != null
+        val reuse = reuseCheckbox.isSelected && currentExistingKey != null
         val key = if (reuse) currentExistingKey!! else keyField.text.trim()
         return ExtractDialogResult(
             key = key,

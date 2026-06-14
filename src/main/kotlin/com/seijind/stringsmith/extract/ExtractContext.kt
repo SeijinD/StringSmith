@@ -54,12 +54,23 @@ object ExtractContext {
         val kt = PsiTreeUtil.getParentOfType(element, KtStringTemplateExpression::class.java, false)
         if (kt != null) return buildKotlinTarget(kt, file)
         val xml = PsiTreeUtil.getParentOfType(element, XmlAttributeValue::class.java, false)
-        if (xml != null) {
-            val value = xml.value
-            if (value.startsWith("@") || value.startsWith("?")) return null
-            return ExtractTarget(xml = xml, rawValue = value, kind = ExtractContextKind.XML_LAYOUT, containingFile = file)
-        }
+        if (xml != null) return buildXmlTarget(xml, file)
         return null
+    }
+
+    private fun buildXmlTarget(attr: XmlAttributeValue, file: PsiFile): ExtractTarget? {
+        if (!isAndroidResourceXml(file)) return null
+        val value = attr.value
+        if (value.startsWith("@") || value.startsWith("?")) return null
+        return ExtractTarget(xml = attr, rawValue = value, kind = ExtractContextKind.XML_LAYOUT, containingFile = file)
+    }
+
+    // Restrict to res/<type>/ (layout, menu, …) where @string/ is valid; excludes res/values*, manifest, unrelated XML.
+    private fun isAndroidResourceXml(file: PsiFile): Boolean {
+        val vf = file.virtualFile ?: return false
+        val parentName = vf.parent?.name ?: return false
+        if (parentName == "values" || parentName.startsWith("values-")) return false
+        return vf.parent?.parent?.name == "res"
     }
 
     private fun buildKotlinTarget(expr: KtStringTemplateExpression, file: PsiFile): ExtractTarget? {
@@ -191,9 +202,5 @@ object ExtractContext {
         return fn.annotationEntries.any { it.shortName?.asString() == "Preview" }
     }
 
-    fun fromXml(attr: XmlAttributeValue, file: PsiFile): ExtractTarget? {
-        val value = attr.value
-        if (value.startsWith("@") || value.startsWith("?")) return null
-        return ExtractTarget(xml = attr, rawValue = value, kind = ExtractContextKind.XML_LAYOUT, containingFile = file)
-    }
+    fun fromXml(attr: XmlAttributeValue, file: PsiFile): ExtractTarget? = buildXmlTarget(attr, file)
 }

@@ -42,7 +42,7 @@ IntelliJ IDEA / Android Studio plugin for managing Android `strings.xml` resourc
 
 ### Inspect
 
-- Hardcoded string highlight in editor (opt-in)
+- Hardcoded string highlight in editor (opt-in) — Android resource XML (`res/<type>/`) and Kotlin only
 - Duplicate value in `strings.xml` (same text, different keys)
 - Unused string resource (no `R.string.key` or `@string/key` references)
 

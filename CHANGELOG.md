@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-06-15
+
+### Fixed
+- Key suggestion no longer produces an invalid resource name when the string starts with a digit. Values like `"123 items"` now suggest `key_123_items` (or `app_123_items` with a prefix) instead of `123_items`, which Android rejects and which blocked Quick Extract and disabled the dialog's OK button. `camelCase` gets the same `key`-prefix treatment (`key123Items`).
+- Truncating a suggested key to the max length no longer leaves a trailing underscore (e.g. `this_is_a_` → `this_is_a`).
+- Hardcoded-string inspection and XML extraction are now restricted to Android resource XML under `res/<type>/` (layout, menu, navigation, xml, …). Previously any `XmlAttributeValue` in any XML file was flagged and offered an `@string/` replacement — including `name="…"` attributes inside `strings.xml` itself and unrelated XML (build/run configs), where the replacement would be invalid. `res/values*` is excluded.
+
+### Internal
+- Removed redundant null-safe calls on the non-null reuse checkbox in the extract dialog.
+
 ## [0.1.1] - 2026-06-11
 
 ### Added
@@ -48,6 +58,7 @@
 - `parseEntries` regex tolerates extra `<string>` attributes such as `translatable="false"`.
 - `ensureImport` uses a text-based `KtPsiFactory.createFile("import …")` instead of the deprecated `createImportDirective(ImportPath)`.
 
-[Unreleased]: https://github.com/SeijinD/stringsmith/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/SeijinD/stringsmith/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/SeijinD/stringsmith/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/SeijinD/stringsmith/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/SeijinD/stringsmith/commits/v0.1.0

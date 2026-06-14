@@ -53,8 +53,13 @@ class KeyGeneratorTest {
     @Test
     fun suggest_truncatesToMaxLength() {
         val key = KeyGenerator.suggest("This is a very long sentence", "", NamingConvention.SNAKE_CASE, 10)
-        assertEquals(10, key.length)
-        assertTrue(key.startsWith("this"))
+        assertEquals("this_is_a", key)
+    }
+
+    @Test
+    fun suggest_trimsTrailingUnderscoreAfterTruncation() {
+        val key = KeyGenerator.suggest("foo bar baz", "", NamingConvention.SNAKE_CASE, 8)
+        assertFalse(key.endsWith("_"))
     }
 
     @Test
@@ -122,9 +127,31 @@ class KeyGeneratorTest {
     }
 
     @Test
-    fun suggest_onlyDigitsValueAcceptable() {
+    fun suggest_leadingDigitValueGetsLetterPrefix_snake() {
+        val key = KeyGenerator.suggest("123 items", "", NamingConvention.SNAKE_CASE, 40)
+        assertEquals("key_123_items", key)
+        assertTrue(KeyGenerator.isValidKey(key))
+    }
+
+    @Test
+    fun suggest_leadingDigitValueGetsLetterPrefix_camel() {
+        val key = KeyGenerator.suggest("123 items", "", NamingConvention.CAMEL_CASE, 40)
+        assertEquals("key123Items", key)
+        assertTrue(KeyGenerator.isValidKey(key))
+    }
+
+    @Test
+    fun suggest_onlyDigitsValueGetsLetterPrefix() {
         val key = KeyGenerator.suggest("12345", "", NamingConvention.SNAKE_CASE, 40)
-        assertEquals("12345", key)
+        assertEquals("key_12345", key)
+        assertTrue(KeyGenerator.isValidKey(key))
+    }
+
+    @Test
+    fun suggest_userPrefixAlreadyMakesLeadingDigitValid() {
+        val key = KeyGenerator.suggest("123 items", "app", NamingConvention.SNAKE_CASE, 40)
+        assertEquals("app_123_items", key)
+        assertTrue(KeyGenerator.isValidKey(key))
     }
 
     @Test

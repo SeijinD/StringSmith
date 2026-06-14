@@ -381,40 +381,70 @@ class ExtractContextTest : BasePlatformTestCase() {
     }
 
     fun testDetectsXmlAttributeValue() {
-        myFixture.configureByText(
-            "layout.xml",
+        val target = detectInResXml(
+            "res/layout/layout.xml",
             """
             <LinearLayout>
                 <TextView android:text="Wel<caret>come" />
             </LinearLayout>
             """.trimIndent()
         )
-        val target = ExtractContext.detect(myFixture.file, myFixture.editor)
         assertNotNull(target)
         assertEquals(ExtractContextKind.XML_LAYOUT, target!!.kind)
         assertEquals("Welcome", target.rawValue)
     }
 
     fun testRejectsXmlStringReference() {
-        myFixture.configureByText(
-            "layout.xml",
+        val target = detectInResXml(
+            "res/layout/layout.xml",
             """
             <TextView android:text="@string/<caret>welcome" />
             """.trimIndent()
         )
-        val target = ExtractContext.detect(myFixture.file, myFixture.editor)
         assertNull(target)
     }
 
     fun testRejectsXmlAttrReference() {
-        myFixture.configureByText(
-            "layout.xml",
+        val target = detectInResXml(
+            "res/layout/layout.xml",
             """
             <TextView android:textColor="?attr/<caret>textColorPrimary" />
             """.trimIndent()
         )
-        val target = ExtractContext.detect(myFixture.file, myFixture.editor)
         assertNull(target)
+    }
+
+    fun testRejectsXmlOutsideResDir() {
+        val target = detectInResXml(
+            "config/layout.xml",
+            """
+            <LinearLayout>
+                <TextView android:text="Wel<caret>come" />
+            </LinearLayout>
+            """.trimIndent()
+        )
+        assertNull(target)
+    }
+
+    fun testRejectsValuesXmlAttribute() {
+        val target = detectInResXml(
+            "res/values/strings.xml",
+            """
+            <resources>
+                <string name="wel<caret>come">Welcome</string>
+            </resources>
+            """.trimIndent()
+        )
+        assertNull(target)
+    }
+
+    // Real project-relative path (configureByText cannot set one) so res/<type>/ detection applies.
+    private fun detectInResXml(path: String, content: String): ExtractTarget? {
+        val caret = content.indexOf("<caret>")
+        val vf = myFixture.addFileToProject(path, content.replace("<caret>", "")).virtualFile
+        myFixture.configureFromExistingVirtualFile(vf)
+        myFixture.editor.caretModel.moveToOffset(caret)
+        return ExtractContext.detect(myFixture.file, myFixture.editor)
     }
 
     private fun detectAt(content: String, fileName: String): ExtractTarget? {

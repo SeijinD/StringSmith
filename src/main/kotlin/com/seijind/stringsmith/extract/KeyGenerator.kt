@@ -21,7 +21,17 @@ object KeyGenerator {
                 NamingConvention.CAMEL_CASE -> cleanPrefix + base.replaceFirstChar { it.uppercaseChar() }
             }
         } else base
-        return withPrefix.take(maxLength.coerceAtLeast(1)).ifEmpty { "label" }
+        val valid = ensureLetterStart(withPrefix, naming)
+        return valid.take(maxLength.coerceAtLeast(1)).trimEnd('_').ifEmpty { "label" }
+    }
+
+    // Android resource names must start with a letter; prepend "key" for digit-leading values.
+    private fun ensureLetterStart(candidate: String, naming: NamingConvention): String {
+        if (candidate.isEmpty() || candidate.first().isLetter()) return candidate
+        return when (naming) {
+            NamingConvention.SNAKE_CASE -> "key_$candidate"
+            NamingConvention.CAMEL_CASE -> "key" + candidate.replaceFirstChar { it.uppercaseChar() }
+        }
     }
 
     private fun toCamel(spaced: String): String {
