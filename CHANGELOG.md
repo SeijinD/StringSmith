@@ -12,6 +12,8 @@
 - Hardcoded-string inspection and XML extraction are now restricted to Android resource XML under `res/<type>/` (layout, menu, navigation, xml, …). Previously any `XmlAttributeValue` in any XML file was flagged and offered an `@string/` replacement — including `name="…"` attributes inside `strings.xml` itself and unrelated XML (build/run configs), where the replacement would be invalid. `res/values*` is excluded.
 
 ### Internal
+- Bumped Kotlin JVM `2.1.20` → `2.4.0` and the Gradle wrapper `9.5.0` → `9.5.1`.
+- README: added JetBrains Marketplace badges (plugin ID 32198) and an install button.
 - Removed redundant null-safe calls on the non-null reuse checkbox in the extract dialog.
 
 ## [0.1.1] - 2026-06-11
@@ -58,7 +60,7 @@
 - `parseEntries` regex tolerates extra `<string>` attributes such as `translatable="false"`.
 - `ensureImport` uses a text-based `KtPsiFactory.createFile("import …")` instead of the deprecated `createImportDirective(ImportPath)`.
 
-[Unreleased]: https://github.com/SeijinD/stringsmith/compare/v0.1.2...HEAD
-[0.1.2]: https://github.com/SeijinD/stringsmith/compare/v0.1.1...v0.1.2
-[0.1.1]: https://github.com/SeijinD/stringsmith/compare/v0.1.0...v0.1.1
-[0.1.0]: https://github.com/SeijinD/stringsmith/commits/v0.1.0
+[Unreleased]: https://github.com/SeijinD/stringsmith/compare/0.1.2...HEAD
+[0.1.2]: https://github.com/SeijinD/stringsmith/compare/0.1.1...0.1.2
+[0.1.1]: https://github.com/SeijinD/stringsmith/compare/0.1.0...0.1.1
+[0.1.0]: https://github.com/SeijinD/stringsmith/commits/0.1.0
