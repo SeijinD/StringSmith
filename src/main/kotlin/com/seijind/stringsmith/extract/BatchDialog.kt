@@ -8,14 +8,25 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
+import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.ui.table.JBTable
+import com.intellij.util.ui.JBUI
 import com.seijind.stringsmith.StringSmithBundle
 import com.seijind.stringsmith.settings.StringSmithSettings
+import java.awt.Color
+import java.awt.Component
+import javax.swing.DefaultCellEditor
+import javax.swing.Icon
 import javax.swing.JCheckBox
 import javax.swing.JComponent
+import javax.swing.JLabel
+import javax.swing.JTable
+import javax.swing.event.DocumentEvent
+import javax.swing.event.DocumentListener
 import javax.swing.table.AbstractTableModel
+import javax.swing.table.DefaultTableCellRenderer
 
 enum class BatchRowStatus { NEW, REUSE, DUPLICATE, COLLISION, INVALID }
 
@@ -48,6 +59,7 @@ class BatchDialog(
 
     private val rows: MutableList<BatchRow> = initialRows.toMutableList()
     private val tableModel = RowModel()
+    private val keyEditorField = JBTextField()
     private val table: JBTable = JBTable(tableModel).apply {
         setShowGrid(true)
         rowHeight = 22
@@ -55,7 +67,9 @@ class BatchDialog(
         columnModel.getColumn(1).preferredWidth = 50
         columnModel.getColumn(2).preferredWidth = 280
         columnModel.getColumn(3).preferredWidth = 200
+        columnModel.getColumn(3).cellEditor = DefaultCellEditor(keyEditorField).apply { clickCountToStart = 1 }
         columnModel.getColumn(4).preferredWidth = 110
+        columnModel.getColumn(4).cellRenderer = StatusCellRenderer()
         preferredScrollableViewportSize = java.awt.Dimension(700, rowHeight * 18)
     }
 
@@ -75,8 +89,22 @@ class BatchDialog(
         rebuildLocaleRows(initialTarget)
         refreshAllStatuses()
         init()
-        wireListeners()
         refreshSummary()
+        // Live status/summary while typing a key — the table model only commits on Enter/focus loss.
+        keyEditorField.document.addDocumentListener(object : DocumentListener {
+            override fun insertUpdate(e: DocumentEvent) = onKeyEdited()
+            override fun removeUpdate(e: DocumentEvent) = onKeyEdited()
+            override fun changedUpdate(e: DocumentEvent) = onKeyEdited()
+        })
+    }
+
+    private fun onKeyEdited() {
+        val r = table.editingRow
+        if (r < 0 || r >= rows.size) return
+        rows[r] = rows[r].copy(key = keyEditorField.text.trim())
+        recomputeStatusesPreservingKeys()
+        refreshSummary()
+        table.repaint()
     }
 
     override fun createCenterPanel(): JComponent = panel {
@@ -107,20 +135,29 @@ class BatchDialog(
     }
 
     private fun buildLocalePanel(): JComponent = panel {
-        group(StringSmithBundle.message("label.locales.header")) {
+        group(LocaleUi.header(localeRows.size)) {
             if (localeRows.isEmpty()) {
                 row {
                     label(StringSmithBundle.message("batch.locales.none")).applyToComponent { foreground = JBColor.GRAY }
                 }
             } else {
-                localeRows.forEach { lr ->
-                    row {
-                        cell(lr.include)
-                        label(lr.variant.parent?.name ?: lr.variant.name)
-                    }
+                row {
+                    cell(buildLocaleRowsScroller()).align(AlignX.FILL)
                 }
             }
         }
+    }
+
+    private fun buildLocaleRowsScroller(): JComponent {
+        val rowsPanel = panel {
+            localeRows.forEach { lr ->
+                row {
+                    cell(lr.include)
+                    label(lr.variant.parent?.name ?: lr.variant.name)
+                }
+            }
+        }
+        return LocaleUi.cappedScroller(rowsPanel, width = JBUI.scale(320), cap = JBUI.scale(180))
     }
 
     private fun rebuildLocaleRows(target: VirtualFile) {
@@ -129,13 +166,10 @@ class BatchDialog(
         localeRows = variants.map { LocaleRow(it, JCheckBox("", defaultInclude)) }
     }
 
-    private fun wireListeners() {
-    }
-
     private fun currentStringsXml(): VirtualFile = resolvedTarget
 
     private fun describeTarget(file: VirtualFile): String {
-        val moduleRoot = file.parent?.parent?.parent?.parent?.parent
+        val moduleRoot = ModuleRootUtil.findModuleRoot(file)
         val normalized = file.path.replace('\\', '/')
         val relative = projectBasePath
             ?.takeIf { normalized.startsWith("$it/") }
@@ -197,6 +231,40 @@ class BatchDialog(
         targetStringsXml = currentStringsXml(),
         localeSelections = localeRows.map { BatchLocaleSelection(it.variant, it.include.isSelected) }
     )
+
+    /** Colours and icons the Status column so blocking rows stand out at a glance. */
+    private inner class StatusCellRenderer : DefaultTableCellRenderer() {
+        override fun getTableCellRendererComponent(
+            table: JTable,
+            value: Any?,
+            isSelected: Boolean,
+            hasFocus: Boolean,
+            row: Int,
+            column: Int
+        ): Component {
+            val label = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column) as JLabel
+            val status = rows.getOrNull(row)?.status
+            label.icon = status?.let { statusIcon(it) }
+            label.iconTextGap = 6
+            if (!isSelected) label.foreground = status?.let { statusColor(it) } ?: label.foreground
+            return label
+        }
+    }
+
+    private fun statusIcon(status: BatchRowStatus): Icon = when (status) {
+        BatchRowStatus.NEW -> AllIcons.General.InspectionsOK
+        BatchRowStatus.REUSE -> AllIcons.Actions.Refresh
+        BatchRowStatus.DUPLICATE -> AllIcons.Actions.Copy
+        BatchRowStatus.COLLISION -> AllIcons.General.Warning
+        BatchRowStatus.INVALID -> AllIcons.General.Error
+    }
+
+    private fun statusColor(status: BatchRowStatus): JBColor = when (status) {
+        BatchRowStatus.NEW -> JBColor(Color(0x59A869), Color(0x6CC07A))
+        BatchRowStatus.REUSE -> JBColor(Color(0x2864B0), Color(0x6FA8DC))
+        BatchRowStatus.DUPLICATE -> JBColor(Color(0xB07B28), Color(0xD9A343))
+        BatchRowStatus.COLLISION, BatchRowStatus.INVALID -> JBColor(Color(0xC0392B), Color(0xE06C5A))
+    }
 
     private inner class RowModel : AbstractTableModel() {
         private val columns = arrayOf(

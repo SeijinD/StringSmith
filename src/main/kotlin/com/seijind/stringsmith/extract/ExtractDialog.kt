@@ -11,11 +11,14 @@ import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
+import com.intellij.util.ui.JBUI
 import com.seijind.stringsmith.StringSmithBundle
 import com.seijind.stringsmith.settings.StringSmithSettings
+import java.awt.BorderLayout
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JCheckBox
 import javax.swing.JComponent
+import javax.swing.JPanel
 import javax.swing.JTextField
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
@@ -73,13 +76,16 @@ class ExtractDialog(
     private data class LocaleRow(val variant: VirtualFile, val include: JCheckBox, val value: JTextField)
 
     private var localeRows: List<LocaleRow> = emptyList()
+    private val localePanelHolder = JPanel(BorderLayout())
 
     init {
         title = StringSmithBundle.message("dialog.title")
         rebuildLocaleRows(initialTarget)
         init()
+        refreshLocalePanel()
         wireListeners()
         refreshAll()
+        keyField.selectAll()
     }
 
     override fun createCenterPanel(): JComponent = panel {
@@ -107,23 +113,26 @@ class ExtractDialog(
             cell(valueErrorLabel)
         }
         row {
-            cell(buildLocalePanel()).align(AlignX.FILL)
+            cell(localePanelHolder).align(AlignX.FILL)
         }
     }
 
+    private fun refreshLocalePanel() {
+        localePanelHolder.removeAll()
+        localePanelHolder.add(buildLocalePanel(), BorderLayout.CENTER)
+        localePanelHolder.revalidate()
+        localePanelHolder.repaint()
+    }
+
     private fun buildLocalePanel(): JComponent = panel {
-        group(StringSmithBundle.message("label.locales.header")) {
+        group(LocaleUi.header(localeRows.size)) {
             row(StringSmithBundle.message("label.locales.default")) {
                 label(StringSmithBundle.message("label.locales.defaultHint")).applyToComponent { foreground = JBColor.GRAY }
             }
-            localeRows.forEach { lr ->
-                row {
-                    cell(lr.include)
-                    label("${lr.variant.parent?.name ?: lr.variant.name}:")
-                    cell(lr.value).align(AlignX.FILL)
-                }
-            }
             if (localeRows.isNotEmpty()) {
+                row {
+                    cell(buildLocaleRowsScroller()).align(AlignX.FILL)
+                }
                 row {
                     link(StringSmithBundle.message("link.copyToAll")) {
                         val v = valueField.text
@@ -134,6 +143,19 @@ class ExtractDialog(
                 }
             }
         }
+    }
+
+    private fun buildLocaleRowsScroller(): JComponent {
+        val rowsPanel = panel {
+            localeRows.forEach { lr ->
+                row {
+                    cell(lr.include)
+                    label("${lr.variant.parent?.name ?: lr.variant.name}:")
+                    cell(lr.value).align(AlignX.FILL)
+                }
+            }
+        }
+        return LocaleUi.cappedScroller(rowsPanel, width = JBUI.scale(560), cap = JBUI.scale(220))
     }
 
     private fun rebuildLocaleRows(target: VirtualFile) {
@@ -160,7 +182,7 @@ class ExtractDialog(
     }
 
     private fun inferModuleRootFrom(stringsXml: VirtualFile): VirtualFile? =
-        stringsXml.parent?.parent?.parent?.parent?.parent
+        ModuleRootUtil.findModuleRoot(stringsXml)
 
     private fun wireListeners() {
         keyField.document.addDocumentListener(simpleListener { refreshAll() })
@@ -171,6 +193,8 @@ class ExtractDialog(
 
     private fun onModuleChanged() {
         currentExistingKey = StringsXmlUtil.findExistingKey(currentStringsXml(), valueField.text)
+        rebuildLocaleRows(currentStringsXml())
+        refreshLocalePanel()
         reuseCheckbox.isSelected = false
         if (currentExistingKey != null) {
             reuseCheckbox.text = StringSmithBundle.message("checkbox.reuse", currentExistingKey!!)

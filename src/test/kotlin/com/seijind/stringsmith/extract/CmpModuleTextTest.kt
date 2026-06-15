@@ -59,11 +59,24 @@ class CmpModuleTextTest {
     }
 
     @Test
-    fun resolve_fallsBackToFirstImportWhenNoPrefixMatch() {
+    fun resolve_derivesFromFilePackageRatherThanBorrowingUnrelatedImport() {
+        // No prefix match: prefer deriving from THIS file's package over an arbitrary other module's import.
         val pkg = CmpModuleText.resolveResPackage(
             gradleText = null,
             existingResImportPackages = listOf("com.only.generated.resources"),
             filePackage = "org.unrelated.code",
+            moduleNamespace = null
+        )
+        assertEquals("org.unrelated.code.generated.resources", pkg)
+    }
+
+    @Test
+    fun resolve_fallsBackToFirstImportOnlyWhenNoModuleInfo() {
+        // True last resort: no gradle, no prefix match, no namespace, no file package.
+        val pkg = CmpModuleText.resolveResPackage(
+            gradleText = null,
+            existingResImportPackages = listOf("com.only.generated.resources"),
+            filePackage = "",
             moduleNamespace = null
         )
         assertEquals("com.only.generated.resources", pkg)

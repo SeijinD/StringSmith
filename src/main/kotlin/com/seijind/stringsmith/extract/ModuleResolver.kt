@@ -22,7 +22,7 @@ object ModuleResolver {
     }
 
     fun isFileInsideStringsXmlModule(file: PsiFile, stringsXml: VirtualFile): Boolean {
-        val moduleRoot = stringsXml.parent?.parent?.parent?.parent?.parent ?: return false
+        val moduleRoot = ModuleRootUtil.findModuleRoot(stringsXml) ?: return false
         val filePath = file.virtualFile?.path?.replace('\\', '/') ?: return false
         val modulePath = moduleRoot.path.replace('\\', '/').trimEnd('/')
         return filePath.startsWith("$modulePath/")

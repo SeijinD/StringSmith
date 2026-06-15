@@ -34,11 +34,13 @@ object CmpModuleText {
         gradleText?.let { parsePackageOfResClass(it) }?.let { return it }
 
         pickResImportByFilePackage(existingResImportPackages, filePackage)?.let { return it }
-        existingResImportPackages.firstOrNull()?.let { return it }
 
+        // Derive from THIS module/file before falling back to an arbitrary import, so a fresh file in
+        // a multi-module CMP project doesn't borrow another module's generated Res package.
         val base = moduleNamespace?.takeIf { it.isNotEmpty() }
             ?: filePackage.takeIf { it.isNotEmpty() }
-            ?: return null
-        return "$base$GENERATED_SUFFIX"
+        if (base != null) return "$base$GENERATED_SUFFIX"
+
+        return existingResImportPackages.firstOrNull()
     }
 }

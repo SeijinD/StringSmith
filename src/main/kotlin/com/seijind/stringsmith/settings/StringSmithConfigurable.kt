@@ -2,8 +2,10 @@ package com.seijind.stringsmith.settings
 
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.ui.DialogPanel
+import com.seijind.stringsmith.extract.KeyGenerator
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBLabel
+import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.bindIntText
 import com.intellij.ui.dsl.builder.bindItem
@@ -19,6 +21,7 @@ class StringSmithConfigurable : Configurable {
 
     private var dialogPanel: DialogPanel? = null
     private val settings get() = StringSmithSettings.getInstance()
+    private val sampleField = JBTextField(DEFAULT_SAMPLE)
     private val previewLabel = JBLabel()
     private val regexErrorLabel = JBLabel().apply { foreground = JBColor.RED }
 
@@ -54,9 +57,13 @@ class StringSmithConfigurable : Configurable {
                         .comment("Reject strings shorter than this. Avoids extracting \"x\", \"a\".")
                         .applyToComponent { toolTipText = "Strings shorter than this fail validation" }
                 }
+                row("Sample:") {
+                    cell(sampleField)
+                        .align(AlignX.FILL)
+                        .comment("Type any text to preview the generated key live.")
+                }
                 row("Preview:") {
                     cell(previewLabel)
-                        .comment("Example: key generated for \"Welcome to the app\".")
                 }
             }
 
@@ -152,7 +159,7 @@ class StringSmithConfigurable : Configurable {
                 row {
                     checkBox("Flag unused string resources")
                         .bindSelected({ settings.unusedStringInspectionEnabled }, { settings.unusedStringInspectionEnabled = it })
-                        .comment("Reports keys in <code>strings.xml</code> with no <code>R.string.key</code> or <code>@string/key</code> reference in the project.")
+                        .comment("Reports keys in <code>strings.xml</code> with no <code>R.string.key</code>, <code>Res.string.key</code> (Compose Multiplatform), or <code>@string/key</code> reference in the project.")
                         .applyToComponent { toolTipText = "Text-based search; dynamic key construction (e.g. \"key_\$type\") may report false positives" }
                 }
             }
@@ -220,6 +227,11 @@ class StringSmithConfigurable : Configurable {
             }
         }
         dialogPanel = builder
+        sampleField.document.addDocumentListener(object : DocumentListener {
+            override fun insertUpdate(e: DocumentEvent) = refreshPreview()
+            override fun removeUpdate(e: DocumentEvent) = refreshPreview()
+            override fun changedUpdate(e: DocumentEvent) = refreshPreview()
+        })
         refreshPreview()
         return builder
     }
@@ -228,39 +240,17 @@ class StringSmithConfigurable : Configurable {
         val invalid = area.text.lines()
             .withIndex()
             .filter { it.value.isNotBlank() }
-            .firstOrNull { runCatching { Regex(it.value) }.isFailure }
-        regexErrorLabel.text = if (invalid == null) {
-            ""
-        } else {
-            val msg = runCatching { Regex(invalid.value) }.exceptionOrNull()?.message ?: "invalid regex"
-            "Line ${invalid.index + 1}: $msg"
-        }
+            .firstNotNullOfOrNull { (i, line) ->
+                runCatching { Regex(line) }.exceptionOrNull()?.let { i to it }
+            }
+        regexErrorLabel.text = invalid?.let { (i, e) -> "Line ${i + 1}: ${e.message ?: "invalid regex"}" } ?: ""
     }
 
     private fun refreshPreview() {
-        val sample = "Welcome to the app"
-        val key = previewKey(sample)
+        // Single source of truth: use the real generator so the preview never drifts from extraction.
+        val sample = sampleField.text.ifBlank { DEFAULT_SAMPLE }
+        val key = KeyGenerator.suggest(sample, settings.keyPrefix, settings.namingConvention, settings.maxKeyLength)
         previewLabel.text = "→ $key"
-    }
-
-    private fun previewKey(value: String): String {
-        val cleaned = value.replace(Regex("[^A-Za-z0-9]+"), " ").trim()
-        val base = when (settings.namingConvention) {
-            NamingConvention.SNAKE_CASE -> cleaned.lowercase().replace(' ', '_')
-            NamingConvention.CAMEL_CASE -> {
-                val parts = cleaned.split(' ').filter { it.isNotEmpty() }
-                if (parts.isEmpty()) "" else parts.first().lowercase() +
-                    parts.drop(1).joinToString("") { it.lowercase().replaceFirstChar { c -> c.uppercaseChar() } }
-            }
-        }
-        val withPrefix = if (settings.keyPrefix.isNotBlank()) {
-            val prefix = settings.keyPrefix.trim().trimEnd('_')
-            when (settings.namingConvention) {
-                NamingConvention.SNAKE_CASE -> "${prefix.lowercase()}_$base"
-                NamingConvention.CAMEL_CASE -> prefix + base.replaceFirstChar { it.uppercaseChar() }
-            }
-        } else base
-        return withPrefix.take(settings.maxKeyLength.coerceAtLeast(1)).ifEmpty { "label" }
     }
 
     override fun isModified(): Boolean = dialogPanel?.isModified() == true
@@ -277,5 +267,9 @@ class StringSmithConfigurable : Configurable {
 
     override fun disposeUIResources() {
         dialogPanel = null
+    }
+
+    private companion object {
+        const val DEFAULT_SAMPLE = "Welcome to the app"
     }
 }
