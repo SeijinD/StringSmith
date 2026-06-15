@@ -40,19 +40,19 @@ IntelliJ IDEA / Android Studio plugin for managing Android `strings.xml` resourc
 - Multi-locale propagation across `values-*` folders
 - Kotlin template expressions extracted as `%1$s` format args (e.g. `"Hello $name"` → `stringResource(R.string.hello_s, name)`)
 - Quick-fix intention on hardcoded literals (Alt+Enter)
-- Quick extract: skip dialog when target is unambiguous
-- Batch extract: extract all strings in a file in one pass
+- Quick extract: skip dialog when target is unambiguous (inline hint confirms the chosen key)
+- Batch extract: extract all strings in a file in one pass — colour-coded per-row status, with status/summary updating live while you edit keys
 - `@Preview` composables excluded by default (configurable)
 
 ### Inspect
 
 - Hardcoded string highlight in editor (opt-in) — Android resource XML (`res/<type>/`) and Kotlin only
 - Duplicate value in `strings.xml` (same text, different keys)
-- Unused string resource (no `R.string.key` or `@string/key` references)
+- Unused string resource (no `R.string.key`, `Res.string.key`, or `@string/key` references)
 
 ### Settings
 
-Configurable prefix, naming convention, replacement style per context, locale propagation defaults, format-arg detection, inspection toggles, exclusion patterns, and custom composable wrapper names.
+Configurable prefix, naming convention, replacement style per context, locale propagation defaults, format-arg detection, inspection toggles, exclusion patterns, and custom composable wrapper names. A live key preview reflects your settings as you type a sample string. Compose Multiplatform projects can set a generated `Res` package override under **Kotlin Multiplatform**.
 
 Custom wrappers: if your project wraps content in a helper whose trailing lambda is a `@Composable` scope (e.g. `screenViewComposable { … }`), add its name under **Settings → Tools → StringSmith → Custom Composable Wrappers** so strings inside it use `stringResource`.
 
@@ -72,7 +72,7 @@ Pick key, target module, and per-locale values — with live duplicate-key reuse
 
 ### Batch extract
 
-Extract every string in a file in one pass — per-row keys, inclusion toggles, status badges (`New` / `Reuse existing`), shared locale propagation, single undoable write.
+Extract every string in a file in one pass — per-row keys, inclusion toggles, colour-coded status (`New` / `Reuse existing` / `Duplicate` / `Collision` / `Invalid`) that updates live as you edit keys, shared locale propagation, single undoable write.
 
 ![Batch Extract Strings dialog](docs/batch.png)
 

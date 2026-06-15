@@ -14,9 +14,25 @@
   - Works across single extract, Quick Extract, Batch Extract, and the Alt+Enter intention. Locale variants under `composeResources/values-*/` are detected like Android's.
 - The generated `Res` package is auto-detected (gradle `packageOfResClass` → existing `*.generated.resources.Res` imports → derived from the module package), with a manual override under **Settings → Tools → StringSmith → Kotlin Multiplatform → Res package override**.
 - The extract dialog's module selector tags Compose Multiplatform targets with `[CMP]`.
+- Batch dialog: the **Status** column is now color- and icon-coded per state (New / Reuse / Duplicate / Collision / Invalid) for at-a-glance triage of what blocks the write.
+- Batch dialog: editing a row's key updates its status, the summary, and the OK button **live** on every keystroke (single click to edit), instead of only on commit (Enter / focus loss).
+- Quick Extract shows an inline `Extracted → key` hint, so the no-dialog path is no longer silent about the key it chose.
+- Settings → Key Generation: an editable **Sample** field renders the generated key live as you tune prefix / naming convention / max length.
+- Extract and Batch dialogs show the locale variant count in the section header, e.g. `Locales (3)`.
+
+### Changed
+- Locale variant lists in both the Extract and Batch dialogs are height-capped with a scroll pane, so projects with many locales no longer grow the dialog off-screen. The "values:" hint and the copy/select links stay outside the scroll.
+- The Extract dialog now rebuilds its locale rows when you switch the target module (previously it kept the original module's variants), and selects the suggested key on open for quick retyping.
 
 ### Fixed
 - Unused string resource inspection now recognizes Compose Multiplatform `Res.string.key` references (and widened the reference look-behind to fit the longer `Res.string.` prefix). Previously every entry in a `composeResources` `strings.xml` was reported as unused because only `R.string.`/`@string/` were searched.
+- The Settings key preview reused a stale copy of the key-generation logic and could show a different — even invalid — key than the actual extraction (e.g. digit-leading or trailing-underscore values). It now delegates to the real generator, so preview and extraction can never diverge.
+- Compose Multiplatform `Res` package resolution in multi-module projects: a file whose package matched no existing `*.generated.resources` import previously borrowed an arbitrary module's package. It now derives the package from the file's own module before falling back to any scanned import.
+
+### Internal
+- Refactor: shared `prepare()` in the extract runner (the quick path no longer recomputes detect/validate/resolve through the full flow); `BaseExtractAction` and `BaseExtractIntention` base classes; shared `ModuleRootUtil.findModuleRoot` for the gradle/manifest module-root walk (previously duplicated three times); shared `LocaleUi` for the dialog locale header and capped scroller.
+- Removed dead code and folded a duplicate `Regex` build in settings regex validation.
+- Added `ModuleResolverTest` and `ModuleRootUtilTest`, and expanded the CMP resolver tests; suite is now ~185 tests.
 
 ## [0.1.2] - 2026-06-15
 
