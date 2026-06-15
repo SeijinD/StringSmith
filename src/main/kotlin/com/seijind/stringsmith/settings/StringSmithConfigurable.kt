@@ -101,6 +101,23 @@ class StringSmithConfigurable : Configurable {
                 }
             }
 
+            group("Kotlin Multiplatform") {
+                row("Res package override:") {
+                    textField()
+                        .bindText({ settings.cmpResPackageOverride }, { settings.cmpResPackageOverride = it })
+                        .align(AlignX.FILL)
+                        .applyToComponent {
+                            toolTipText = "e.g. com.example.app.generated.resources — leave blank to auto-detect"
+                        }
+                        .comment(
+                            "Generated <code>Res</code> class package for Compose Multiplatform " +
+                                "(<code>composeResources</code>) targets. Blank = auto-detect: gradle " +
+                                "<code>packageOfResClass</code> → existing <code>*.generated.resources.Res</code> " +
+                                "imports → derived from module package."
+                        )
+                }
+            }
+
             group("Compose Previews") {
                 row {
                     checkBox("Exclude strings inside @Preview composables")

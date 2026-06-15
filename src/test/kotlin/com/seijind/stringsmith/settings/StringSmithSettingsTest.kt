@@ -120,5 +120,6 @@ class StringSmithSettingsTest {
         assertTrue(s.excludePreviewComposables)
         assertTrue(s.trimWhitespace)
         assertFalse(s.sortAfterExtract)
+        assertEquals("", s.cmpResPackageOverride)
     }
 }

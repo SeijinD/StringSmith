@@ -31,6 +31,10 @@ IntelliJ IDEA / Android Studio plugin for managing Android `strings.xml` resourc
   - Inside `Activity` / `Fragment` / `View` → `getString(R.string.key)`
   - Other Kotlin code → `R.string.key`
   - XML layout attribute → `@string/key`
+- **Kotlin Multiplatform / Compose Multiplatform** — targets under `composeResources/values/` produce CMP references with auto-imported generated `Res`:
+  - `@Composable` → `stringResource(Res.string.key)`
+  - Other Kotlin code → `Res.string.key`
+  - `Res` package auto-detected (gradle `packageOfResClass` → existing imports → derived), with a manual override in settings
 - Auto-import for Compose `stringResource` (sorted with existing imports)
 - Duplicate value detection during extract — reuse existing key
 - Multi-locale propagation across `values-*` folders
@@ -150,6 +154,7 @@ Strings inside `@Preview` composables are skipped by default (typically dummy da
 - IntelliJ IDEA 2025.1+
 - Android Studio (compatible IntelliJ 251+ platform)
 - Kotlin plugin K1 and K2 modes
+- Android `res/values/` and Compose Multiplatform `composeResources/values/` resource layouts
 
 ## Development
 

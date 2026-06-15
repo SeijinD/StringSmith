@@ -7,6 +7,7 @@
         <p><b>Extract</b></p>
         <ul>
             <li>Context-aware replacement (<code>stringResource</code>, <code>getString</code>, <code>@string/</code>)</li>
+            <li>Kotlin Multiplatform / Compose Multiplatform: <code>stringResource(Res.string.key)</code> with auto-imported generated <code>Res</code></li>
             <li>Auto-import for Compose <code>stringResource</code> with sorted imports</li>
             <li>Duplicate key detection &amp; value reuse</li>
             <li>Multi-locale propagation across <code>values-*</code></li>

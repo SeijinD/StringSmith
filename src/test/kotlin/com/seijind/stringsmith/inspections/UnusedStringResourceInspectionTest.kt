@@ -45,6 +45,26 @@ class UnusedStringResourceInspectionTest : BasePlatformTestCase() {
         assertTrue(problems == null || problems.isEmpty())
     }
 
+    fun testDoesNotFlagWhenReferencedAsCmpRes() {
+        myFixture.addFileToProject(
+            "src/Greeting.kt",
+            """
+            import com.example.app.generated.resources.Res
+            import com.example.app.generated.resources.welcome
+            fun greet() { val x = Res.string.welcome }
+            """.trimIndent()
+        )
+        val file = stringsXml(
+            """
+            <resources>
+                <string name="welcome">Welcome</string>
+            </resources>
+            """.trimIndent()
+        )
+        val problems = UnusedStringResourceInspection().checkFile(file, InspectionManager.getInstance(project), false)
+        assertTrue(problems == null || problems.isEmpty())
+    }
+
     fun testDoesNotFlagWhenReferencedInLayoutXml() {
         myFixture.addFileToProject(
             "res/layout/main.xml",

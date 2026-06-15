@@ -17,6 +17,7 @@ object ExtractWriter {
         settings: StringSmithSettings = StringSmithSettings.getInstance()
     ) {
         val comment = if (settings.addSourceComment) buildSourceComment(target, editor) else null
+        val system = ResourceSystem.of(result.targetStringsXml)
 
         WriteCommandAction.runWriteCommandAction(project, "Extract String Resource", null, {
             StringsXmlUtil.appendEntry(result.targetStringsXml, result.key, result.defaultValue, comment, settings.sortAfterExtract)
@@ -25,7 +26,7 @@ object ExtractWriter {
                     StringsXmlUtil.appendEntry(entry.file, result.key, entry.value, comment, settings.sortAfterExtract)
                 }
             }
-            Replacement.apply(editor, target, result.key)
+            Replacement.apply(editor, target, result.key, system)
         })
 
         if (settings.openStringsXmlAfterExtract) {
@@ -33,9 +34,9 @@ object ExtractWriter {
         }
     }
 
-    fun writeReplaceOnly(project: Project, editor: Editor, target: ExtractTarget, key: String) {
+    fun writeReplaceOnly(project: Project, editor: Editor, target: ExtractTarget, key: String, system: ResourceSystem) {
         WriteCommandAction.runWriteCommandAction(project, "Replace With String Resource", null, {
-            Replacement.apply(editor, target, key)
+            Replacement.apply(editor, target, key, system)
         })
     }
 

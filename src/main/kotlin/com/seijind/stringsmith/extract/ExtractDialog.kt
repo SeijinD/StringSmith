@@ -44,7 +44,7 @@ class ExtractDialog(
 
     private val keyField: JTextField = JBTextField(suggestedKey).apply { columns = 50 }
     private val valueField: JTextField = JBTextField(rawValue).apply { columns = 50 }
-    private val previewLabel = JBLabel(Replacement.referenceFor(target, suggestedKey)).apply {
+    private val previewLabel = JBLabel(Replacement.referenceFor(target, suggestedKey, ResourceSystem.of(initialTarget))).apply {
         font = java.awt.Font(java.awt.Font.MONOSPACED, java.awt.Font.BOLD, font.size)
     }
     private val keyErrorLabel = JBLabel().apply { foreground = JBColor.RED }
@@ -155,7 +155,8 @@ class ExtractDialog(
             ?.takeIf { normalized.startsWith("$it/") }
             ?.let { normalized.removePrefix("$it/") }
             ?: normalized
-        return moduleRoot?.let { "${it.name}  ($relative)" } ?: relative
+        val tag = if (ResourceSystem.of(file) == ResourceSystem.COMPOSE_MULTIPLATFORM) "  [CMP]" else ""
+        return (moduleRoot?.let { "${it.name}  ($relative)" } ?: relative) + tag
     }
 
     private fun inferModuleRootFrom(stringsXml: VirtualFile): VirtualFile? =
@@ -192,7 +193,7 @@ class ExtractDialog(
         valueField.isEnabled = !reuse
         localeRows.forEach { it.include.isEnabled = !reuse; it.value.isEnabled = !reuse && it.include.isSelected }
         val effectiveKey = if (reuse) currentExistingKey.orEmpty() else keyField.text
-        previewLabel.text = if (effectiveKey.isBlank()) "—" else Replacement.referenceFor(target, effectiveKey)
+        previewLabel.text = if (effectiveKey.isBlank()) "—" else Replacement.referenceFor(target, effectiveKey, ResourceSystem.of(currentStringsXml()))
         val keyErr = keyError()
         val valueErr = valueError()
         keyErrorLabel.text = keyErr ?: ""

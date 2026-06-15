@@ -1,13 +1,11 @@
 package com.seijind.stringsmith.extract
 
-import com.intellij.lang.LanguageImportStatements
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
 import com.seijind.stringsmith.settings.StringSmithSettings
 import org.jetbrains.kotlin.psi.KtFile
-import org.jetbrains.kotlin.psi.KtPsiFactory
 
 object BatchWriter {
 
@@ -24,28 +22,28 @@ object BatchWriter {
             val start: Int,
             val end: Int,
             val replacementText: String,
-            val rPackage: String?,
-            val needsComposeImport: Boolean
+            val key: String,
+            val kind: ExtractContextKind
         )
 
+        val system = ResourceSystem.of(result.targetStringsXml)
         val ktFile = included.firstOrNull()?.target?.containingFile as? KtFile
-        val rPackage = ktFile?.virtualFile?.let { AndroidModuleUtil.findRPackage(it, ktFile) }
+        val androidRPackage = if (system == ResourceSystem.ANDROID) {
+            ktFile?.virtualFile?.let { AndroidModuleUtil.findRPackage(it, ktFile) }
+        } else null
+        val cmpResPackage = if (system == ResourceSystem.COMPOSE_MULTIPLATFORM) {
+            ktFile?.let { it.virtualFile?.let { vf -> CmpModuleUtil.findResPackage(it.project, vf, it) } }
+        } else null
 
         val edits = included.mapNotNull { row ->
             val t = row.target
-            val reference = Replacement.referenceFor(t, row.key)
+            val reference = Replacement.referenceFor(t, row.key, system)
             val (s, e, text) = when {
                 t.kotlin != null -> Triple(t.kotlin.textRange.startOffset, t.kotlin.textRange.endOffset, reference)
                 t.xml != null -> Triple(t.xml.textRange.startOffset, t.xml.textRange.endOffset, "\"$reference\"")
                 else -> return@mapNotNull null
             }
-            Edit(
-                start = s,
-                end = e,
-                replacementText = text,
-                rPackage = rPackage.takeIf { t.kind != ExtractContextKind.XML_LAYOUT },
-                needsComposeImport = t.kind == ExtractContextKind.COMPOSABLE
-            )
+            Edit(start = s, end = e, replacementText = text, key = row.key, kind = t.kind)
         }.sortedByDescending { it.start }
 
         val seenKeysInDefault = mutableSetOf<String>()
@@ -76,30 +74,29 @@ object BatchWriter {
 
             if (ktFile != null) {
                 var added = false
-                if (edits.any { it.needsComposeImport }) {
-                    added = ensureImport(ktFile, "androidx.compose.ui.res.stringResource") || added
+                when (system) {
+                    ResourceSystem.ANDROID -> {
+                        if (edits.any { it.kind == ExtractContextKind.COMPOSABLE }) {
+                            added = KtImportUtil.ensureImport(ktFile, "androidx.compose.ui.res.stringResource") || added
+                        }
+                        if (androidRPackage != null && edits.any { it.kind != ExtractContextKind.XML_LAYOUT }) {
+                            added = KtImportUtil.ensureImport(ktFile, "$androidRPackage.R") || added
+                        }
+                    }
+                    ResourceSystem.COMPOSE_MULTIPLATFORM -> {
+                        if (cmpResPackage != null) {
+                            added = KtImportUtil.ensureImport(ktFile, "$cmpResPackage.Res") || added
+                            edits.map { it.key }.distinct().forEach { key ->
+                                added = KtImportUtil.ensureImport(ktFile, "$cmpResPackage.$key") || added
+                            }
+                            if (edits.any { it.kind == ExtractContextKind.COMPOSABLE }) {
+                                added = KtImportUtil.ensureImport(ktFile, "org.jetbrains.compose.resources.stringResource") || added
+                            }
+                        }
+                    }
                 }
-                edits.mapNotNull { it.rPackage }.distinct().forEach { pkg ->
-                    added = ensureImport(ktFile, "$pkg.R") || added
-                }
-                if (added) optimizeImports(ktFile)
+                if (added) KtImportUtil.optimizeImports(ktFile)
             }
         })
-    }
-
-    private fun ensureImport(file: KtFile, fqName: String): Boolean {
-        val imports = file.importList ?: return false
-        val already = imports.imports.any { it.importedFqName?.asString() == fqName }
-        if (already) return false
-        val factory = KtPsiFactory(file.project)
-        val parsed = factory.createFile("import $fqName")
-        val newImport = parsed.importDirectives.firstOrNull() ?: return false
-        imports.add(newImport)
-        return true
-    }
-
-    private fun optimizeImports(file: KtFile) {
-        val optimizer = LanguageImportStatements.INSTANCE.forFile(file).firstOrNull() ?: return
-        optimizer.processFile(file).run()
     }
 }

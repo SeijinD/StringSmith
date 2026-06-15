@@ -4,6 +4,20 @@
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-15
+
+### Added
+- **Kotlin Multiplatform / Compose Multiplatform support.** StringSmith now detects Compose Multiplatform resource targets (`src/<sourceSet>/composeResources/values/strings.xml`) alongside Android `res/values/`, and generates the correct reference per resource system:
+  - `@Composable` (CMP) → `stringResource(Res.string.key)` with imports `org.jetbrains.compose.resources.stringResource`, `<pkg>.generated.resources.Res`, and `<pkg>.generated.resources.<key>`.
+  - Non-composable Kotlin (CMP) → bare `Res.string.key` (a `StringResource` object), mirroring Android's `R.string.key`.
+  - Format args are propagated for CMP composables: `stringResource(Res.string.key, name)`.
+  - Works across single extract, Quick Extract, Batch Extract, and the Alt+Enter intention. Locale variants under `composeResources/values-*/` are detected like Android's.
+- The generated `Res` package is auto-detected (gradle `packageOfResClass` → existing `*.generated.resources.Res` imports → derived from the module package), with a manual override under **Settings → Tools → StringSmith → Kotlin Multiplatform → Res package override**.
+- The extract dialog's module selector tags Compose Multiplatform targets with `[CMP]`.
+
+### Fixed
+- Unused string resource inspection now recognizes Compose Multiplatform `Res.string.key` references (and widened the reference look-behind to fit the longer `Res.string.` prefix). Previously every entry in a `composeResources` `strings.xml` was reported as unused because only `R.string.`/`@string/` were searched.
+
 ## [0.1.2] - 2026-06-15
 
 ### Fixed
@@ -60,7 +74,8 @@
 - `parseEntries` regex tolerates extra `<string>` attributes such as `translatable="false"`.
 - `ensureImport` uses a text-based `KtPsiFactory.createFile("import …")` instead of the deprecated `createImportDirective(ImportPath)`.
 
-[Unreleased]: https://github.com/SeijinD/stringsmith/compare/0.1.2...HEAD
+[Unreleased]: https://github.com/SeijinD/stringsmith/compare/0.2.0...HEAD
+[0.2.0]: https://github.com/SeijinD/stringsmith/compare/0.1.2...0.2.0
 [0.1.2]: https://github.com/SeijinD/stringsmith/compare/0.1.1...0.1.2
 [0.1.1]: https://github.com/SeijinD/stringsmith/compare/0.1.0...0.1.1
 [0.1.0]: https://github.com/SeijinD/stringsmith/commits/0.1.0

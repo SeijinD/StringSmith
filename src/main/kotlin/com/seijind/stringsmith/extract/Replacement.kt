@@ -1,28 +1,36 @@
 package com.seijind.stringsmith.extract
 
-import com.intellij.lang.LanguageImportStatements
 import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiDocumentManager
 import com.seijind.stringsmith.settings.StringSmithSettings
 import org.jetbrains.kotlin.psi.KtFile
-import org.jetbrains.kotlin.psi.KtPsiFactory
 
 object Replacement {
 
-    fun referenceFor(target: ExtractTarget, key: String): String {
+    fun referenceFor(target: ExtractTarget, key: String, system: ResourceSystem): String {
         val settings = StringSmithSettings.getInstance()
-        val base = when (target.kind) {
-            ExtractContextKind.COMPOSABLE -> settings.composeStyle.template.format(key)
-            ExtractContextKind.ANDROID_CLASS -> settings.activityStyle.template.format(key)
-            ExtractContextKind.KOTLIN_GENERIC -> "R.string.$key"
-            ExtractContextKind.XML_LAYOUT -> "@string/$key"
+        val base = when (system) {
+            ResourceSystem.ANDROID -> when (target.kind) {
+                ExtractContextKind.COMPOSABLE -> settings.composeStyle.template.format(key)
+                ExtractContextKind.ANDROID_CLASS -> settings.activityStyle.template.format(key)
+                ExtractContextKind.KOTLIN_GENERIC -> "R.string.$key"
+                ExtractContextKind.XML_LAYOUT -> "@string/$key"
+            }
+            ResourceSystem.COMPOSE_MULTIPLATFORM -> when (target.kind) {
+                ExtractContextKind.COMPOSABLE -> "stringResource(Res.string.$key)"
+                ExtractContextKind.XML_LAYOUT -> "@string/$key"
+                else -> "Res.string.$key"
+            }
         }
         if (target.formatArgs.isEmpty()) return base
-        return when (target.kind) {
-            ExtractContextKind.COMPOSABLE,
-            ExtractContextKind.ANDROID_CLASS -> insertArgsBeforeClose(base, target.formatArgs)
-            else -> base
-        }
+        return if (injectsArgs(system, target.kind)) insertArgsBeforeClose(base, target.formatArgs) else base
+    }
+
+    private fun injectsArgs(system: ResourceSystem, kind: ExtractContextKind): Boolean = when (system) {
+        ResourceSystem.ANDROID ->
+            kind == ExtractContextKind.COMPOSABLE || kind == ExtractContextKind.ANDROID_CLASS
+        ResourceSystem.COMPOSE_MULTIPLATFORM ->
+            kind == ExtractContextKind.COMPOSABLE
     }
 
     private fun insertArgsBeforeClose(base: String, args: List<String>): String {
@@ -32,8 +40,8 @@ object Replacement {
         return base.substring(0, lastClose) + ", " + argList + base.substring(lastClose)
     }
 
-    fun apply(editor: Editor, target: ExtractTarget, key: String) {
-        val replacement = referenceFor(target, key)
+    fun apply(editor: Editor, target: ExtractTarget, key: String, system: ResourceSystem) {
+        val replacement = referenceFor(target, key, system)
         val doc = editor.document
         when {
             target.kotlin != null -> {
@@ -48,38 +56,38 @@ object Replacement {
             }
         }
         PsiDocumentManager.getInstance(target.containingFile.project).commitDocument(doc)
-        addKotlinImports(target)
+        addKotlinImports(target, key, system)
     }
 
-    private fun addKotlinImports(target: ExtractTarget) {
+    private fun addKotlinImports(target: ExtractTarget, key: String, system: ResourceSystem) {
         val file = target.containingFile as? KtFile ?: return
         var added = false
-        if (target.kind == ExtractContextKind.COMPOSABLE) {
-            added = ensureImport(file, COMPOSE_IMPORT) || added
+        when (system) {
+            ResourceSystem.ANDROID -> {
+                if (target.kind == ExtractContextKind.COMPOSABLE) {
+                    added = KtImportUtil.ensureImport(file, ANDROID_COMPOSE_IMPORT) || added
+                }
+                if (target.kind != ExtractContextKind.XML_LAYOUT) {
+                    val vf = target.containingFile.virtualFile
+                    val rPkg = vf?.let { AndroidModuleUtil.findRPackage(it, file) }
+                    if (rPkg != null) added = KtImportUtil.ensureImport(file, "$rPkg.R") || added
+                }
+            }
+            ResourceSystem.COMPOSE_MULTIPLATFORM -> {
+                val vf = target.containingFile.virtualFile
+                val resPkg = vf?.let { CmpModuleUtil.findResPackage(file.project, it, file) }
+                if (resPkg != null) {
+                    added = KtImportUtil.ensureImport(file, "$resPkg.Res") || added
+                    added = KtImportUtil.ensureImport(file, "$resPkg.$key") || added
+                    if (target.kind == ExtractContextKind.COMPOSABLE) {
+                        added = KtImportUtil.ensureImport(file, CMP_COMPOSE_IMPORT) || added
+                    }
+                }
+            }
         }
-        if (target.kind != ExtractContextKind.XML_LAYOUT) {
-            val vf = target.containingFile.virtualFile
-            val rPkg = vf?.let { AndroidModuleUtil.findRPackage(it, file) }
-            if (rPkg != null) added = ensureImport(file, "$rPkg.R") || added
-        }
-        if (added) optimizeImports(file)
+        if (added) KtImportUtil.optimizeImports(file)
     }
 
-    private fun optimizeImports(file: KtFile) {
-        val optimizer = LanguageImportStatements.INSTANCE.forFile(file).firstOrNull() ?: return
-        optimizer.processFile(file).run()
-    }
-
-    private fun ensureImport(file: KtFile, fqName: String): Boolean {
-        val imports = file.importList ?: return false
-        val already = imports.imports.any { it.importedFqName?.asString() == fqName }
-        if (already) return false
-        val factory = KtPsiFactory(file.project)
-        val parsed = factory.createFile("import $fqName")
-        val newImport = parsed.importDirectives.firstOrNull() ?: return false
-        imports.add(newImport)
-        return true
-    }
-
-    private const val COMPOSE_IMPORT = "androidx.compose.ui.res.stringResource"
+    private const val ANDROID_COMPOSE_IMPORT = "androidx.compose.ui.res.stringResource"
+    private const val CMP_COMPOSE_IMPORT = "org.jetbrains.compose.resources.stringResource"
 }

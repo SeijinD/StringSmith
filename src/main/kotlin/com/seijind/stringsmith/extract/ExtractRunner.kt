@@ -49,7 +49,7 @@ object ExtractRunner {
         settings.lastTargetModulePath = result.targetStringsXml.path
 
         if (result.reuseExisting) {
-            ExtractWriter.writeReplaceOnly(project, editor, target, result.key)
+            ExtractWriter.writeReplaceOnly(project, editor, target, result.key, ResourceSystem.of(result.targetStringsXml))
             return
         }
 

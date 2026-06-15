@@ -56,10 +56,15 @@ class UnusedStringResourceInspection : LocalInspectionTool() {
                 val owner = element.containingFile ?: return@processElementsWithWord true
                 if (owner.name == "strings.xml") return@processElementsWithWord true
                 val text = element.text ?: return@processElementsWithWord true
-                val start = maxOf(0, offsetInElement - 10)
+                // Widen the look-behind to fit the longest prefix: "Res.string." (11) for Compose
+                // Multiplatform, plus "R.string." (9) and "@string/" (8) for Android.
+                val start = maxOf(0, offsetInElement - 12)
                 val end = minOf(text.length, offsetInElement + key.length + 2)
                 val window = text.substring(start, end)
-                if (window.contains("R.string.$key") || window.contains("@string/$key")) {
+                if (window.contains("R.string.$key") ||
+                    window.contains("Res.string.$key") ||
+                    window.contains("@string/$key")
+                ) {
                     found = true
                     return@processElementsWithWord false
                 }

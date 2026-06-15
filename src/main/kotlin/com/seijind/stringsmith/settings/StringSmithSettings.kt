@@ -53,7 +53,8 @@ class StringSmithSettings : PersistentStateComponent<StringSmithSettings.State> 
         var composeStyle: ComposeArgStyle = ComposeArgStyle.POSITIONAL,
         var lastTargetModulePath: String = "",
         var rememberLastModule: Boolean = true,
-        var customComposableLambdaFunctions: String = ""
+        var customComposableLambdaFunctions: String = "",
+        var cmpResPackageOverride: String = ""
     )
 
     private var state = State()
@@ -147,6 +148,10 @@ class StringSmithSettings : PersistentStateComponent<StringSmithSettings.State> 
     var customComposableLambdaFunctions: String
         get() = state.customComposableLambdaFunctions
         set(value) { state.customComposableLambdaFunctions = value }
+
+    var cmpResPackageOverride: String
+        get() = state.cmpResPackageOverride
+        set(value) { state.cmpResPackageOverride = value }
 
     fun customComposableLambdaFunctionSet(): Set<String> =
         customComposableLambdaFunctions.split(',', '\n', ' ')
