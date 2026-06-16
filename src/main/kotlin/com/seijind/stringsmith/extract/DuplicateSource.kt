@@ -1,0 +1,125 @@
+package com.seijind.stringsmith.extract
+
+import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
+import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.psi.xml.XmlTag
+import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
+import org.jetbrains.kotlin.psi.KtFile
+
+/** Where a duplicate was triggered from a Kotlin reference, so the reference can be switched in place. */
+data class DuplicateCodeRef(val ktFile: KtFile, val keyRangeStart: Int, val keyRangeEnd: Int)
+
+/** Resolved source of a duplicate: an existing key, its owning default `strings.xml`, and per-locale values. */
+data class DuplicateSource(
+    val key: String,
+    val system: ResourceSystem,
+    val defaultFile: VirtualFile,
+    val defaultValue: String,
+    /** Locale variant file -> the value that should be copied (that locale's value of [key], else [defaultValue]). */
+    val localeValues: Map<VirtualFile, String>,
+    /** Non-null when triggered from a `R.string`/`Res.string` reference in Kotlin. */
+    val codeRef: DuplicateCodeRef?
+)
+
+object DuplicateRefParser {
+
+    // Matches a trailing R.string.key / Res.string.key, optionally with a package qualifier (com.app.R.string.key).
+    private val RE = Regex("""(?:^|\.)(R|Res)\.string\.([A-Za-z][A-Za-z0-9_]*)$""")
+
+    /** Parses the resource system and key out of a reference expression's text, or null if it is not one. */
+    fun parse(refText: String): Pair<ResourceSystem, String>? {
+        val m = RE.find(refText.trim()) ?: return null
+        val system = if (m.groupValues[1] == "Res") ResourceSystem.COMPOSE_MULTIPLATFORM else ResourceSystem.ANDROID
+        return system to m.groupValues[2]
+    }
+}
+
+object DuplicateContext {
+
+    fun detect(project: com.intellij.openapi.project.Project, file: PsiFile, editor: Editor): DuplicateSource? {
+        val offset = editor.caretModel.offset
+        // Try the element at the caret, then the one just before it: a caret sitting at the *end* of a
+        // reference (right after `</string>` or the closing `)`) lands on the trailing token, not the key.
+        detectAt(project, file, offset)?.let { return it }
+        return if (offset > 0) detectAt(project, file, offset - 1) else null
+    }
+
+    private fun detectAt(project: com.intellij.openapi.project.Project, file: PsiFile, offset: Int): DuplicateSource? {
+        val element = file.findElementAt(offset) ?: return null
+        detectFromCode(project, file, element)?.let { return it }
+        return detectFromXml(project, file, element)
+    }
+
+    private fun detectFromCode(project: com.intellij.openapi.project.Project, file: PsiFile, element: PsiElement): DuplicateSource? {
+        val ktFile = file as? KtFile ?: return null
+        // Walk up to the outermost dot-qualified expression that is a R.string / Res.string reference.
+        var qualified = PsiTreeUtil.getParentOfType(element, KtDotQualifiedExpression::class.java, false) ?: return null
+        var match = DuplicateRefParser.parse(qualified.text)
+        while (match == null) {
+            qualified = PsiTreeUtil.getParentOfType(qualified, KtDotQualifiedExpression::class.java, true) ?: return null
+            match = DuplicateRefParser.parse(qualified.text)
+        }
+        val (system, key) = match
+        val keySelector = qualified.selectorExpression ?: return null
+        val nearTo = file.virtualFile
+
+        val defaultFile = resolveOwningDefaultFile(project, key, system, nearTo) ?: return null
+        return buildSource(
+            key = key,
+            system = system,
+            defaultFile = defaultFile,
+            codeRef = DuplicateCodeRef(ktFile, keySelector.textRange.startOffset, keySelector.textRange.endOffset)
+        )
+    }
+
+    private fun detectFromXml(project: com.intellij.openapi.project.Project, file: PsiFile, element: PsiElement): DuplicateSource? {
+        val vf = file.virtualFile ?: return null
+        if (vf.name != "strings.xml") return null
+        val tag = PsiTreeUtil.getParentOfType(element, XmlTag::class.java, false) ?: return null
+        if (tag.name != "string") return null
+        val key = tag.getAttributeValue("name") ?: return null
+
+        val system = ResourceSystem.of(vf)
+        val defaultFile = StringsXmlUtil.findDefaultStringsXml(project, vf) ?: return null
+        if (StringsXmlUtil.findValueOfKey(defaultFile, key) == null) return null
+        return buildSource(key = key, system = system, defaultFile = defaultFile, codeRef = null)
+    }
+
+    /** Among default strings.xml files of the matching system, the one containing [key], nearest to [nearTo]. */
+    private fun resolveOwningDefaultFile(
+        project: com.intellij.openapi.project.Project,
+        key: String,
+        system: ResourceSystem,
+        nearTo: VirtualFile?
+    ): VirtualFile? {
+        val candidates = StringsXmlUtil.findAllDefaultStringsXml(project)
+            .filter { ResourceSystem.of(it) == system }
+            .filter { StringsXmlUtil.findValueOfKey(it, key) != null }
+        if (candidates.isEmpty()) return null
+        if (nearTo == null) return candidates.first()
+        return candidates.maxByOrNull { commonPrefixLen(it.path, nearTo.path) }
+    }
+
+    private fun buildSource(
+        key: String,
+        system: ResourceSystem,
+        defaultFile: VirtualFile,
+        codeRef: DuplicateCodeRef?
+    ): DuplicateSource? {
+        val defaultValue = StringsXmlUtil.findValueOfKey(defaultFile, key) ?: return null
+        val localeValues = StringsXmlUtil.findLocaleVariants(defaultFile).associateWith { variant ->
+            StringsXmlUtil.findValueOfKey(variant, key) ?: defaultValue
+        }
+        return DuplicateSource(key, system, defaultFile, defaultValue, localeValues, codeRef)
+    }
+
+    private fun commonPrefixLen(a: String, b: String): Int {
+        var i = 0
+        val max = minOf(a.length, b.length)
+        while (i < max && a[i] == b[i]) i++
+        return i
+    }
+}

@@ -68,6 +68,9 @@ object StringsXmlUtil {
     fun keyExists(file: VirtualFile, key: String): Boolean =
         readEntries(file).any { it.key == key }
 
+    fun findValueOfKey(file: VirtualFile, key: String): String? =
+        readEntries(file).firstOrNull { it.key == key }?.value
+
     fun appendEntry(file: VirtualFile, key: String, value: String, comment: String? = null, sortAlpha: Boolean = false) {
         val doc = FileDocumentManager.getInstance().getDocument(file) ?: return
         val newText = StringsXmlText.appendEntry(doc.text, key, value, comment, sortAlpha)

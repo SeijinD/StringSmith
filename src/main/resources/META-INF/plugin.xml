@@ -63,6 +63,10 @@
             <className>com.seijind.stringsmith.intentions.ExtractStringResourceIntention</className>
             <category>StringSmith</category>
         </intentionAction>
+        <intentionAction>
+            <className>com.seijind.stringsmith.intentions.DuplicateStringResourceIntention</className>
+            <category>StringSmith</category>
+        </intentionAction>
         <applicationConfigurable
             parentId="tools"
             id="com.seijind.stringsmith.settings"
@@ -98,6 +102,14 @@
                 description="Extract all hardcoded strings in current file in one pass">
             <add-to-group group-id="RefactoringMenu" anchor="last"/>
             <keyboard-shortcut keymap="$default" first-keystroke="control alt shift B"/>
+        </action>
+        <action id="com.seijind.stringsmith.DuplicateStringResourceAction"
+                class="com.seijind.stringsmith.actions.DuplicateStringResourceAction"
+                text="Duplicate String Resource"
+                description="Copy an existing string resource to a new key across all locales">
+            <add-to-group group-id="EditorPopupMenu" anchor="first"/>
+            <add-to-group group-id="RefactoringMenu" anchor="last"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="control alt D"/>
         </action>
     </actions>
 </idea-plugin>
