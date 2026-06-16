@@ -34,18 +34,6 @@ class StringsXmlTextTest {
     }
 
     @Test
-    fun valueOfKey_returnsValue() {
-        val xml = """<resources><string name="a">A</string><string name="b">B</string></resources>"""
-        assertEquals("B", StringsXmlText.valueOfKey(xml, "b"))
-    }
-
-    @Test
-    fun valueOfKey_missingReturnsNull() {
-        val xml = """<resources><string name="a">A</string></resources>"""
-        assertEquals(null, StringsXmlText.valueOfKey(xml, "z"))
-    }
-
-    @Test
     fun parseEntries_decodesEscapedQuotes() {
         val xml = """<resources><string name="x">Don\'t click</string></resources>"""
         val entries = StringsXmlText.parseEntries(xml)

@@ -1,7 +1,6 @@
 package com.seijind.stringsmith.extract
 
 import com.intellij.openapi.command.WriteCommandAction
-import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.Project
@@ -12,7 +11,6 @@ object DuplicateWriter {
 
     fun write(
         project: Project,
-        editor: Editor,
         source: DuplicateSource,
         result: DuplicateDialogResult,
         settings: StringSmithSettings = StringSmithSettings.getInstance()

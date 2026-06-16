@@ -25,6 +25,12 @@ class DuplicateRefParserTest {
     }
 
     @Test
+    fun parsesKeyWithLeadingUnderscore() {
+        val parsed = DuplicateRefParser.parse("R.string._internal_key")
+        assertEquals(ResourceSystem.ANDROID to "_internal_key", parsed)
+    }
+
+    @Test
     fun rejectsNonStringReference() {
         assertNull(DuplicateRefParser.parse("R.drawable.icon"))
         assertNull(DuplicateRefParser.parse("foo.bar"))

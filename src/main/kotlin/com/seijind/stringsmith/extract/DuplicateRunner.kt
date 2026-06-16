@@ -24,6 +24,6 @@ object DuplicateRunner {
 
         val dialog = DuplicateDialog(project, source)
         if (!dialog.showAndGet()) return
-        DuplicateWriter.write(project, editor, source, dialog.result())
+        DuplicateWriter.write(project, source, dialog.result())
     }
 }
