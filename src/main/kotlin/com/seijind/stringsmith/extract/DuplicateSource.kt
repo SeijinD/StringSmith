@@ -18,8 +18,17 @@ data class DuplicateSource(
     val system: ResourceSystem,
     val defaultFile: VirtualFile,
     val defaultValue: String,
-    /** Locale variant file -> the value that should be copied (that locale's value of [key], else [defaultValue]). */
+    /**
+     * Locale variant file -> that locale's existing translation of [key]. Only locales that actually
+     * translate [key] are included, so the duplicate mirrors the source key's locale coverage instead
+     * of copying the default value in as a fake translation.
+     */
     val localeValues: Map<VirtualFile, String>,
+    /**
+     * Locale variants that exist but do not translate [key]; the new key is intentionally NOT written
+     * to them (surfaced in the dialog so the user knows which locales are skipped).
+     */
+    val untranslatedLocales: List<VirtualFile>,
     /** Non-null when triggered from a `R.string`/`Res.string` reference in Kotlin. */
     val codeRef: DuplicateCodeRef?
 )
@@ -110,10 +119,13 @@ object DuplicateContext {
         codeRef: DuplicateCodeRef?
     ): DuplicateSource? {
         val defaultValue = StringsXmlUtil.findValueOfKey(defaultFile, key) ?: return null
-        val localeValues = StringsXmlUtil.findLocaleVariants(defaultFile).associateWith { variant ->
-            StringsXmlUtil.findValueOfKey(variant, key) ?: defaultValue
+        val localeValues = LinkedHashMap<VirtualFile, String>()
+        val untranslated = mutableListOf<VirtualFile>()
+        for (variant in StringsXmlUtil.findLocaleVariants(defaultFile)) {
+            val value = StringsXmlUtil.findValueOfKey(variant, key)
+            if (value != null) localeValues[variant] = value else untranslated += variant
         }
-        return DuplicateSource(key, system, defaultFile, defaultValue, localeValues, codeRef)
+        return DuplicateSource(key, system, defaultFile, defaultValue, localeValues, untranslated, codeRef)
     }
 
     private fun commonPrefixLen(a: String, b: String): Int {

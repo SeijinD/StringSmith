@@ -3,6 +3,7 @@ package com.seijind.stringsmith.extract
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.ValidationInfo
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.panel
@@ -48,9 +49,44 @@ class DuplicateDialog(
         row(StringSmithBundle.message("label.value")) { cell(JBLabel(source.defaultValue)) }
         row(StringSmithBundle.message("duplicate.label.newKey")) { cell(keyField) }
         row("") { cell(previewLabel) }
+        row(StringSmithBundle.message("duplicate.label.copiesTo")) {
+            cell(summaryLabel(copyTargets()))
+        }
+        if (source.untranslatedLocales.isNotEmpty()) {
+            row(StringSmithBundle.message("duplicate.label.skipped")) {
+                cell(summaryLabel(source.untranslatedLocales.map(::localeLabel)).apply {
+                    foreground = com.intellij.util.ui.UIUtil.getContextHelpForeground()
+                })
+            }
+        }
         if (source.codeRef != null) {
             row("") { cell(updateRefCheckbox) }
         }
+    }
+
+    /** Locale qualifier shown to the user, e.g. `values` or `values-de`. */
+    private fun localeLabel(file: VirtualFile): String = file.parent?.name ?: file.name
+
+    /** Default file plus every locale that receives the copy. */
+    private fun copyTargets(): List<String> =
+        listOf(localeLabel(source.defaultFile)) + source.localeValues.keys.map(::localeLabel)
+
+    /**
+     * Lists locale folders inline when few, otherwise collapses to a count with the full list in a
+     * tooltip, so a project with many locales doesn't stretch the dialog into one giant line.
+     */
+    private fun summaryLabel(locales: List<String>): JBLabel {
+        val full = locales.joinToString(", ")
+        return if (locales.size <= MAX_INLINE_LOCALES) {
+            JBLabel(full)
+        } else {
+            JBLabel(StringSmithBundle.message("duplicate.locales.count", locales.size))
+                .apply { toolTipText = full }
+        }
+    }
+
+    private companion object {
+        const val MAX_INLINE_LOCALES = 6
     }
 
     override fun getPreferredFocusedComponent(): JComponent = keyField

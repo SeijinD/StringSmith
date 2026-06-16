@@ -98,9 +98,10 @@ class DuplicateContextTest : BasePlatformTestCase() {
         val source = DuplicateContext.detect(project, myFixture.file, myFixture.editor)!!
         val deValue = source.localeValues.entries.first { it.key.path.contains("values-de") }.value
         assertEquals("Willkommen", deValue)
+        assertTrue("A translated locale must not be flagged untranslated", source.untranslatedLocales.isEmpty())
     }
 
-    fun testFallsBackToDefaultWhenLocaleMissingKey() {
+    fun testSkipsLocaleMissingKey() {
         myFixture.addFileToProject(
             "app/src/main/res/values/strings.xml",
             """<resources><string name="welcome">Welcome</string></resources>"""
@@ -118,8 +119,16 @@ class DuplicateContextTest : BasePlatformTestCase() {
             """.trimIndent()
         )
         val source = DuplicateContext.detect(project, myFixture.file, myFixture.editor)!!
-        val deValue = source.localeValues.entries.first { it.key.path.contains("values-de") }.value
-        assertEquals("Welcome", deValue)
+        // values-de does not translate "welcome": it must NOT receive a fabricated default-value copy,
+        // it is reported as untranslated instead so the duplicate mirrors the source key's coverage.
+        assertTrue(
+            "Untranslated locale must not be in localeValues",
+            source.localeValues.keys.none { it.path.contains("values-de") }
+        )
+        assertTrue(
+            "Untranslated locale must be reported as skipped",
+            source.untranslatedLocales.any { it.path.contains("values-de") }
+        )
     }
 
     fun testReturnsNullWhenNotOnReference() {

@@ -7,7 +7,7 @@
 ### Added
 - **Duplicate String Resource.** Copy an existing string resource to a new key across `res/values/strings.xml` and every `values-*` locale file in one undoable step. Available as an action (`Ctrl+Alt+D`, editor popup and **Refactor** menu) and an Alt+Enter intention.
   - Works on any reference to the resource: `R.string.key`, `Res.string.key` (Compose Multiplatform), `@string/key`, or a `<string>` entry in `strings.xml`.
-  - Propagates across all locale files — a locale that already has the source key keeps its own translation, otherwise the default value is copied. Locales that already contain the new key are left untouched.
+  - Propagates to the default file and every locale that already translates the source key, reusing each locale's existing translation. Locales that don't translate the source key are skipped (and listed in the dialog) so the copy mirrors the original's coverage instead of writing the default value in as a fake translation. Locales that already contain the new key are left untouched.
   - Optionally redirects the reference under the caret to the new key (Compose Multiplatform imports are updated automatically).
   - Ships a description and Before/After preview in **Settings → Editor → Intentions** and the Alt+Enter `…` popup.
 
