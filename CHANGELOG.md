@@ -11,6 +11,9 @@
   - Optionally redirects the reference under the caret to the new key (Compose Multiplatform imports are updated automatically).
   - Ships a description and Before/After preview in **Settings → Editor → Intentions** and the Alt+Enter `…` popup.
 
+### Changed
+- **Restore Defaults** in settings now asks for confirmation before resetting, instead of wiping every option on a single click.
+
 ## [0.2.0] - 2026-06-15
 
 ### Added

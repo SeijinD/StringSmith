@@ -2,6 +2,8 @@ package com.seijind.stringsmith.settings
 
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.ui.DialogPanel
+import com.intellij.openapi.ui.Messages
+import com.seijind.stringsmith.StringSmithBundle
 import com.seijind.stringsmith.extract.KeyGenerator
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBLabel
@@ -220,9 +222,16 @@ class StringSmithConfigurable : Configurable {
 
             row {
                 button("Restore Defaults") {
-                    settings.resetToDefaults()
-                    dialogPanel?.reset()
-                    refreshPreview()
+                    val confirmed = Messages.showYesNoDialog(
+                        StringSmithBundle.message("settings.restoreDefaults.confirm"),
+                        StringSmithBundle.message("settings.restoreDefaults.title"),
+                        Messages.getQuestionIcon()
+                    )
+                    if (confirmed == Messages.YES) {
+                        settings.resetToDefaults()
+                        dialogPanel?.reset()
+                        refreshPreview()
+                    }
                 }
             }
         }
