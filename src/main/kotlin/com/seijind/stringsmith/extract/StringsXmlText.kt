@@ -10,9 +10,6 @@ object StringsXmlText {
             StringsXmlEntry(m.groupValues[1], decodeXml(m.groupValues[2]))
         }.toList()
 
-    fun valueOfKey(text: String, key: String): String? =
-        parseEntries(text).firstOrNull { it.key == key }?.value
-
     fun appendEntry(text: String, key: String, value: String, comment: String? = null, sortAlpha: Boolean = false): String {
         val escaped = encodeXml(value)
         val commentLine = if (!comment.isNullOrBlank()) "    <!-- $comment -->\n" else ""

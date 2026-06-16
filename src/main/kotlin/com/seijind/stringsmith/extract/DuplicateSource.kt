@@ -27,7 +27,7 @@ data class DuplicateSource(
 object DuplicateRefParser {
 
     // Matches a trailing R.string.key / Res.string.key, optionally with a package qualifier (com.app.R.string.key).
-    private val RE = Regex("""(?:^|\.)(R|Res)\.string\.([A-Za-z][A-Za-z0-9_]*)$""")
+    private val RE = Regex("""(?:^|\.)(R|Res)\.string\.([A-Za-z_][A-Za-z0-9_]*)$""")
 
     /** Parses the resource system and key out of a reference expression's text, or null if it is not one. */
     fun parse(refText: String): Pair<ResourceSystem, String>? {

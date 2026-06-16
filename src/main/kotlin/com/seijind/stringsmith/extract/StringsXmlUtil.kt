@@ -1,29 +1,54 @@
 package com.seijind.stringsmith.extract
 
 import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.search.FilenameIndex
+import com.intellij.psi.search.GlobalSearchScope
+import java.util.concurrent.ConcurrentHashMap
 
 data class StringsXmlEntry(val key: String, val value: String)
 
 object StringsXmlUtil {
 
+    private val IGNORED_DIRS = listOf(
+        "/build/", "\\build\\", "/.gradle/", "\\.gradle\\", "/.idea/", "\\.idea\\",
+    )
+
+    private fun isResStringsXml(vf: VirtualFile): Boolean =
+        !vf.isDirectory &&
+            vf.name == "strings.xml" &&
+            vf.parent?.name?.startsWith("values") == true &&
+            IGNORED_DIRS.none { vf.path.contains(it) }
+
+    /**
+     * Every `strings.xml` under a `res/values...` directory in the project. Uses the filename index (fast,
+     * called on every intention `isAvailable`); falls back to a manual VFS walk while indexes are
+     * unavailable (dumb mode).
+     */
     fun findAllStringsXml(project: Project): List<VirtualFile> {
+        val viaIndex = if (DumbService.isDumb(project)) {
+            null
+        } else {
+            runCatching {
+                FilenameIndex.getVirtualFilesByName("strings.xml", GlobalSearchScope.projectScope(project))
+            }.getOrNull()
+        }
+        val files = viaIndex ?: scanStringsXml(project)
+        return files.filter(::isResStringsXml)
+    }
+
+    private fun scanStringsXml(project: Project): List<VirtualFile> {
         val base = project.guessProjectDir() ?: return emptyList()
         val out = mutableListOf<VirtualFile>()
-        VfsUtil.iterateChildrenRecursively(base, { vf ->
-            !vf.path.contains("/build/") &&
-                !vf.path.contains("\\build\\") &&
-                !vf.path.contains("/.gradle/") &&
-                !vf.path.contains("\\.gradle\\") &&
-                !vf.path.contains("/.idea/") &&
-                !vf.path.contains("\\.idea\\")
-        }) { vf ->
-            if (!vf.isDirectory && vf.name == "strings.xml" && vf.parent?.name?.startsWith("values") == true) {
-                out += vf
-            }
+        VfsUtil.iterateChildrenRecursively(
+            base,
+            { vf -> IGNORED_DIRS.none { vf.path.contains(it) } },
+        ) { vf ->
+            if (isResStringsXml(vf)) out += vf
             true
         }
         return out
@@ -55,9 +80,19 @@ object StringsXmlUtil {
         return out
     }
 
+    private class CachedEntries(val stamp: Long, val entries: List<StringsXmlEntry>)
+
+    // Parsing every strings.xml on each intention `isAvailable` is the hot path; cache per file and
+    // invalidate on the document's modification stamp so edits are still reflected immediately.
+    private val entryCache = ConcurrentHashMap<VirtualFile, CachedEntries>()
+
     fun readEntries(file: VirtualFile): List<StringsXmlEntry> {
         val doc = FileDocumentManager.getInstance().getDocument(file) ?: return emptyList()
-        return StringsXmlText.parseEntries(doc.text)
+        val stamp = doc.modificationStamp
+        entryCache[file]?.let { if (it.stamp == stamp) return it.entries }
+        val entries = StringsXmlText.parseEntries(doc.text)
+        entryCache[file] = CachedEntries(stamp, entries)
+        return entries
     }
 
     fun findExistingKey(file: VirtualFile, value: String): String? {
