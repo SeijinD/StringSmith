@@ -1,0 +1,37 @@
+<html>
+<body>
+
+<p>
+    Copies the string resource referenced under the caret to a new key, writing the
+    same value into <code>res/values/strings.xml</code> and every matching
+    <code>values-*</code> locale file in one undoable step.
+</p>
+
+<p>Works on any reference to a string resource:</p>
+<table border="0" cellpadding="3" cellspacing="0">
+    <tr><td><b>Reference</b></td><td><b>System</b></td></tr>
+    <tr><td><code>R.string.key</code></td><td>Android</td></tr>
+    <tr><td><code>Res.string.key</code></td><td>Compose Multiplatform</td></tr>
+    <tr><td><code>@string/key</code></td><td>Android XML</td></tr>
+    <tr><td><code>&lt;string name="key"&gt;</code></td><td><code>strings.xml</code> entry</td></tr>
+</table>
+
+<p><b>Before</b></p>
+<pre><code>Text(stringResource(R.string.hello_world))</code></pre>
+
+<p><b>After</b></p>
+<pre><code>Text(stringResource(R.string.hello_world_copy))</code></pre>
+
+<p>
+    Pick the new key in the dialog. Optionally redirect the reference under the caret
+    to the new key (imports are updated for Compose Multiplatform). Locales that already
+    contain the new key are left untouched.
+</p>
+
+<p>
+    Configure <code>strings.xml</code> sort and open-after behavior in
+    <b>Settings | Tools | StringSmith</b>.
+</p>
+
+</body>
+</html>
