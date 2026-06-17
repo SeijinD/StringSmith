@@ -6,7 +6,6 @@ object StringsXmlText {
     // `<string\s+` (whitespace required) keeps this from matching <string-array> / <string-plurals>.
     // Groups: 1 = quote char, 2 = key, 3 = inner value.
     private val ENTRY_REGEX = Regex("""<string\s+[^>]*?\bname\s*=\s*(["'])(.*?)\1[^>]*>([\s\S]*?)</string>""")
-    private val ENTRY_WITH_COMMENT_REGEX = Regex("""(?:\s*<!--[^>]*-->)?\s*<string\s+name\s*=\s*"([^"]+)"[\s\S]*?</string>""")
 
     fun parseEntries(text: String): List<StringsXmlEntry> =
         ENTRY_REGEX.findAll(text).map { m ->
@@ -32,16 +31,25 @@ object StringsXmlText {
         return newText
     }
 
+    /**
+     * Reorders the `<string>` entries alphabetically by name, in place: each `<string>…</string>`
+     * block is sorted into the slots the blocks already occupy, while everything between and around
+     * them — comments, `<plurals>`, `<string-array>`, whitespace, and each block's verbatim inner
+     * text — is left byte-for-byte untouched. Nothing is dropped, re-indented, or reattached.
+     */
     fun sortStringEntries(xml: String): String {
-        val openIdx = xml.indexOf("<resources")
-        val openEnd = if (openIdx >= 0) xml.indexOf('>', openIdx) + 1 else return xml
-        val closeIdx = xml.lastIndexOf("</resources>")
-        if (openEnd <= 0 || closeIdx <= openEnd) return xml
-        val inner = xml.substring(openEnd, closeIdx)
-        val matches = ENTRY_WITH_COMMENT_REGEX.findAll(inner).toList()
+        val matches = ENTRY_REGEX.findAll(xml).toList()
         if (matches.size < 2) return xml
-        val sorted = matches.sortedBy { it.groupValues[1] }.joinToString("\n") { it.value.trim() }
-        return xml.substring(0, openEnd) + "\n    " + sorted.replace("\n", "\n    ") + "\n" + xml.substring(closeIdx)
+        val sortedBlocks = matches.sortedBy { it.groupValues[2] }.map { it.value }
+        val sb = StringBuilder(xml.length)
+        var last = 0
+        matches.forEachIndexed { i, m ->
+            sb.append(xml, last, m.range.first)
+            sb.append(sortedBlocks[i])
+            last = m.range.last + 1
+        }
+        sb.append(xml, last, xml.length)
+        return sb.toString()
     }
 
     fun encodeXml(value: String): String {

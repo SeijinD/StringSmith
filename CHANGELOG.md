@@ -16,6 +16,7 @@
 
 ### Fixed
 - `strings.xml` entries whose `name` is not the first attribute (e.g. `<string translatable="false" name="api_key">`) or that use single quotes (`name='key'`) are now recognized. Previously the parser only matched a double-quoted `name` in first position, so such entries were invisible to key lookups — letting a colliding duplicate key be written. `<string-array>` / `<plurals>` are still correctly ignored.
+- "Sort entries alphabetically after extract" no longer corrupts `strings.xml`. Previously it could reattach a section comment to the wrong entry, inject indentation into multi-line string values, and drop everything that wasn't a plain `<string>` (trailing comments, `<plurals>`, `<string-array>`). Sorting now reorders only the `<string>` blocks in place and leaves all other content byte-for-byte intact.
 
 ## [0.2.0] - 2026-06-15
 

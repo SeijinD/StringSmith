@@ -331,4 +331,57 @@ class StringsXmlTextTest {
         val zebraIdx = result.indexOf("name=\"zebra\"")
         assertTrue("apple should be before zebra", appleIdx < zebraIdx)
     }
+
+    @Test
+    fun sortStringEntries_preservesPluralsAndArrays() {
+        val xml = """
+            <resources>
+                <string name="zebra">Z</string>
+                <plurals name="apples"><item quantity="one">apple</item></plurals>
+                <string-array name="colors"><item>red</item></string-array>
+                <string name="apple">A</string>
+            </resources>
+        """.trimIndent()
+        val result = StringsXmlText.sortStringEntries(xml)
+        assertTrue("plurals must survive", result.contains("""<plurals name="apples">"""))
+        assertTrue("string-array must survive", result.contains("""<string-array name="colors">"""))
+        assertTrue(result.indexOf("name=\"apple\"") < result.indexOf("name=\"zebra\""))
+    }
+
+    @Test
+    fun sortStringEntries_doesNotReindentMultilineValue() {
+        val xml = "<resources>\n" +
+            "    <string name=\"zebra\">Z</string>\n" +
+            "    <string name=\"multi\">Line one\nLine two</string>\n" +
+            "</resources>"
+        val result = StringsXmlText.sortStringEntries(xml)
+        assertTrue("multi-line value must stay verbatim", result.contains("Line one\nLine two"))
+    }
+
+    @Test
+    fun sortStringEntries_preservesTrailingComment() {
+        val xml = """
+            <resources>
+                <string name="zebra">Z</string>
+                <string name="apple">A</string>
+                <!-- end of file -->
+            </resources>
+        """.trimIndent()
+        val result = StringsXmlText.sortStringEntries(xml)
+        assertTrue("trailing comment must survive", result.contains("<!-- end of file -->"))
+        assertTrue(result.indexOf("name=\"apple\"") < result.indexOf("name=\"zebra\""))
+    }
+
+    @Test
+    fun sortStringEntries_doesNotDuplicateSectionComment() {
+        val xml = """
+            <resources>
+                <!-- Settings -->
+                <string name="zebra">Z</string>
+                <string name="apple">A</string>
+            </resources>
+        """.trimIndent()
+        val result = StringsXmlText.sortStringEntries(xml)
+        assertEquals(1, Regex("<!-- Settings -->").findAll(result).count())
+    }
 }
