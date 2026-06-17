@@ -307,6 +307,72 @@ class StringsXmlTextTest {
     }
 
     @Test
+    fun appendEntries_insertsAllBeforeClosingTagInOrder() {
+        val xml = "<resources>\n    <string name=\"a\">A</string>\n</resources>"
+        val result = StringsXmlText.appendEntries(xml, listOf("b" to "B", "c" to "C"))
+        val order = Regex("""name="([^"]+)"""").findAll(result).map { it.groupValues[1] }.toList()
+        assertEquals(listOf("a", "b", "c"), order)
+        assertTrue(result.indexOf("name=\"c\"") < result.indexOf("</resources>"))
+    }
+
+    @Test
+    fun appendEntries_emptyListReturnsInputUnchanged() {
+        val xml = "<resources></resources>"
+        assertEquals(xml, StringsXmlText.appendEntries(xml, emptyList()))
+    }
+
+    @Test
+    fun appendEntries_matchesRepeatedAppendEntry() {
+        val xml = "<resources>\n    <string name=\"a\">A</string>\n</resources>"
+        val batched = StringsXmlText.appendEntries(xml, listOf("m" to "M", "z" to "Z"), sortAlpha = true)
+        val sequential = StringsXmlText.appendEntry(
+            StringsXmlText.appendEntry(xml, "m", "M", sortAlpha = true),
+            "z", "Z", sortAlpha = true
+        )
+        assertEquals(sequential, batched)
+    }
+
+    @Test
+    fun parseEntries_ignoresCommentedOutString() {
+        val xml = """
+            <resources>
+                <string name="live">Live</string>
+                <!--    <string name="dead">Dead translation</string>-->
+            </resources>
+        """.trimIndent()
+        val entries = StringsXmlText.parseEntries(xml)
+        assertEquals(listOf("live"), entries.map { it.key })
+    }
+
+    @Test
+    fun sortStringEntries_doesNotShuffleLiveStringsIntoComments() {
+        // Mirrors the real bug: a commented-out <string> sits between live entries. Sorting must leave
+        // the comment (and its dead entry) untouched and must NOT push a live entry inside the comment.
+        val xml = "<resources>\n" +
+            "    <string name=\"zebra\">Z</string>\n" +
+            "    <!--    <string name=\"old_dead\">Old</string>-->\n" +
+            "    <string name=\"apple\">A</string>\n" +
+            "</resources>"
+        val result = StringsXmlText.sortStringEntries(xml)
+        // Live entries reordered alphabetically.
+        assertTrue(result.indexOf("name=\"apple\"") < result.indexOf("name=\"zebra\""))
+        // The dead entry is still commented out, verbatim, exactly once.
+        assertTrue("dead entry must stay commented", result.contains("<!--    <string name=\"old_dead\">Old</string>-->"))
+        // No live entry was swallowed: both live keys are parseable as live entries.
+        assertEquals(listOf("apple", "zebra"), StringsXmlText.parseEntries(result).map { it.key })
+    }
+
+    @Test
+    fun sortStringEntries_commentedStringNotCountedTowardSortThreshold() {
+        // One live + one commented entry => fewer than 2 live entries => returned unchanged.
+        val xml = "<resources>\n" +
+            "    <string name=\"only_live\">L</string>\n" +
+            "    <!-- <string name=\"dead\">D</string> -->\n" +
+            "</resources>"
+        assertEquals(xml, StringsXmlText.sortStringEntries(xml))
+    }
+
+    @Test
     fun sortStringEntries_singleEntryReturnsAsIs() {
         val xml = """
             <resources>

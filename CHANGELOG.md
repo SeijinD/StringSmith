@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+### Fixed
+- Sorting `strings.xml` (the "Sort entries alphabetically after extract" option) no longer comments out live entries. Commented-out `<string>` entries (inside `<!-- … -->`) were matched as real entries, so sorting could shuffle a live translation into a comment region — silently commenting it out — and surface dead commented keys as real ones. Parsing and sorting now ignore any `<string>` inside an XML comment.
+
+### Performance
+- Exclusion-pattern regexes are compiled once and cached, rebuilt only when the patterns change, instead of being recompiled on every inspected literal and keystroke.
+- Batch Extract writes each `strings.xml` once instead of re-reading and rewriting the whole file per row (previously O(n²) on large files).
+- The unused-string inspection memoizes per-key reference lookups within a project PSI generation, so the same key is no longer re-searched once per locale file and on every re-run.
+- Parsed `strings.xml` entries are cached with weak file keys, so cache entries for closed or deleted files are released instead of living for the IDE's lifetime.
+- `decodeXml` skips its replace chain when there is nothing to unescape, and `ResourceSystem.of` no longer allocates a normalized copy of the path.
+
 ## [0.3.0] - 2026-06-17
 
 ### Added

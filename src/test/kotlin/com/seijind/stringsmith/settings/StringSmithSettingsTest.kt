@@ -65,6 +65,18 @@ class StringSmithSettingsTest {
     }
 
     @Test
+    fun excludePatternList_rebuildsWhenSourceChanges() {
+        val s = StringSmithSettings()
+        s.excludePatterns = "^[A-Z_]{2,}$"
+        assertTrue(s.matchesExclude("API_KEY"))
+        assertFalse(s.matchesExclude("https://x.com"))
+        // Changing the source must invalidate the cached compiled list.
+        s.excludePatterns = "https?://.*"
+        assertFalse(s.matchesExclude("API_KEY"))
+        assertTrue(s.matchesExclude("https://x.com"))
+    }
+
+    @Test
     fun resetToDefaults_clearsCustomValues() {
         val s = StringSmithSettings()
         s.keyPrefix = "custom"

@@ -164,12 +164,21 @@ class StringSmithSettings : PersistentStateComponent<StringSmithSettings.State> 
             .filter { it.isNotEmpty() }
             .toSet()
 
+    // Cache the compiled patterns; rebuild only when the source text changes.
+    @Volatile private var cachedPatternSource: String? = null
+    @Volatile private var cachedPatterns: List<Regex> = emptyList()
+
     fun excludePatternList(): List<Regex> {
-        return excludePatterns.lineSequence()
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-            .mapNotNull { runCatching { Regex(it) }.getOrNull() }
-            .toList()
+        val source = excludePatterns
+        if (source != cachedPatternSource) {
+            cachedPatterns = source.lineSequence()
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+                .mapNotNull { runCatching { Regex(it) }.getOrNull() }
+                .toList()
+            cachedPatternSource = source
+        }
+        return cachedPatterns
     }
 
     fun matchesExclude(value: String): Boolean =

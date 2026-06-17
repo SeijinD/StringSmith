@@ -8,7 +8,7 @@ import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.search.FilenameIndex
 import com.intellij.psi.search.GlobalSearchScope
-import java.util.concurrent.ConcurrentHashMap
+import com.intellij.util.containers.ContainerUtil
 
 data class StringsXmlEntry(val key: String, val value: String)
 
@@ -82,9 +82,9 @@ object StringsXmlUtil {
 
     private class CachedEntries(val stamp: Long, val entries: List<StringsXmlEntry>)
 
-    // Parsing every strings.xml on each intention `isAvailable` is the hot path; cache per file and
-    // invalidate on the document's modification stamp so edits are still reflected immediately.
-    private val entryCache = ConcurrentHashMap<VirtualFile, CachedEntries>()
+    // Per-file parse cache, invalidated by the document's modification stamp. Weak keys avoid leaking
+    // entries for deleted/closed files.
+    private val entryCache = ContainerUtil.createConcurrentWeakMap<VirtualFile, CachedEntries>()
 
     fun readEntries(file: VirtualFile): List<StringsXmlEntry> {
         val doc = FileDocumentManager.getInstance().getDocument(file) ?: return emptyList()
@@ -94,6 +94,10 @@ object StringsXmlUtil {
         entryCache[file] = CachedEntries(stamp, entries)
         return entries
     }
+
+    /** All declared keys in [file] (declaration order), parsed once and cached via [readEntries]. */
+    fun readKeys(file: VirtualFile): Set<String> =
+        readEntries(file).mapTo(LinkedHashSet()) { it.key }
 
     fun findExistingKey(file: VirtualFile, value: String): String? {
         val target = value.trim()
@@ -106,9 +110,14 @@ object StringsXmlUtil {
     fun findValueOfKey(file: VirtualFile, key: String): String? =
         readEntries(file).firstOrNull { it.key == key }?.value
 
-    fun appendEntry(file: VirtualFile, key: String, value: String, comment: String? = null, sortAlpha: Boolean = false) {
+    fun appendEntry(file: VirtualFile, key: String, value: String, comment: String? = null, sortAlpha: Boolean = false) =
+        appendEntries(file, listOf(key to value), comment, sortAlpha)
+
+    /** Inserts every pair in [entries] into [file] with a single document write (one re-parse, one save). */
+    fun appendEntries(file: VirtualFile, entries: List<Pair<String, String>>, comment: String? = null, sortAlpha: Boolean = false) {
+        if (entries.isEmpty()) return
         val doc = FileDocumentManager.getInstance().getDocument(file) ?: return
-        val newText = StringsXmlText.appendEntry(doc.text, key, value, comment, sortAlpha)
+        val newText = StringsXmlText.appendEntries(doc.text, entries, comment, sortAlpha)
         doc.setText(newText)
         FileDocumentManager.getInstance().saveDocument(doc)
     }

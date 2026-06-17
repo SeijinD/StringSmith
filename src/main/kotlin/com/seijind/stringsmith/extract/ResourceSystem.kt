@@ -15,8 +15,9 @@ enum class ResourceSystem {
         fun of(stringsXml: VirtualFile): ResourceSystem = of(stringsXml.path)
 
         fun of(path: String): ResourceSystem {
-            val normalized = path.replace('\\', '/')
-            return if (normalized.contains("/composeResources/")) COMPOSE_MULTIPLATFORM else ANDROID
+            // Check both separators directly instead of allocating a normalized copy of the path.
+            return if (path.contains("/composeResources/") || path.contains("\\composeResources\\"))
+                COMPOSE_MULTIPLATFORM else ANDROID
         }
     }
 }

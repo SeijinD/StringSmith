@@ -8,13 +8,19 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.PsiSearchHelper
 import com.intellij.psi.search.UsageSearchContext
+import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.xml.XmlTag
 import com.seijind.stringsmith.StringSmithBundle
 import com.seijind.stringsmith.settings.StringSmithSettings
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.experimental.or
 
 class UnusedStringResourceInspection : LocalInspectionTool() {
+
+    // Memoize per-key verdicts; drop the cache on any project PSI change so results never go stale.
+    @Volatile private var cacheModCount: Long = -1L
+    private val refCache = ConcurrentHashMap<String, Boolean>()
 
     override fun checkFile(file: PsiFile, manager: InspectionManager, isOnTheFly: Boolean): Array<ProblemDescriptor>? {
         if (!StringSmithSettings.getInstance().unusedStringInspectionEnabled) return null
@@ -27,10 +33,20 @@ class UnusedStringResourceInspection : LocalInspectionTool() {
         val helper = PsiSearchHelper.getInstance(file.project)
         val scope = GlobalSearchScope.projectScope(file.project)
 
+        val modCount = PsiModificationTracker.getInstance(file.project).modificationCount
+        if (modCount != cacheModCount) {
+            synchronized(this) {
+                if (modCount != cacheModCount) {
+                    refCache.clear()
+                    cacheModCount = modCount
+                }
+            }
+        }
+
         val problems = mutableListOf<ProblemDescriptor>()
         for (tag in tags) {
             val key = tag.getAttributeValue("name") ?: continue
-            if (isReferencedAnywhere(helper, scope, key)) continue
+            if (refCache.computeIfAbsent(key) { isReferencedAnywhere(helper, scope, it) }) continue
             val nameAttr = tag.getAttribute("name") ?: continue
             problems.add(
                 manager.createProblemDescriptor(

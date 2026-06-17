@@ -46,24 +46,19 @@ object BatchWriter {
             Edit(start = s, end = e, replacementText = text, key = row.key, kind = t.kind)
         }.sortedByDescending { it.start }
 
-        val seenKeysInDefault = mutableSetOf<String>()
-
         WriteCommandAction.runWriteCommandAction(project, "Batch Extract Strings", null, {
-            val comment = null
+            // Set.add returns false for reuse rows, in-batch duplicates, and keys already present.
+            val defaultExisting = StringsXmlUtil.readKeys(result.targetStringsXml).toMutableSet()
+            val toAdd = mutableListOf<Pair<String, String>>()
             included.forEach { row ->
                 if (row.existingKey != null && row.key == row.existingKey) return@forEach
-                if (row.key in seenKeysInDefault) return@forEach
-                if (StringsXmlUtil.keyExists(result.targetStringsXml, row.key)) {
-                    seenKeysInDefault.add(row.key)
-                    return@forEach
-                }
-                StringsXmlUtil.appendEntry(result.targetStringsXml, row.key, row.value, comment, settings.sortAfterExtract)
-                seenKeysInDefault.add(row.key)
-                result.localeSelections.filter { it.include }.forEach { loc ->
-                    if (!StringsXmlUtil.keyExists(loc.file, row.key)) {
-                        StringsXmlUtil.appendEntry(loc.file, row.key, row.value, comment, settings.sortAfterExtract)
-                    }
-                }
+                if (!defaultExisting.add(row.key)) return@forEach
+                toAdd += row.key to row.value
+            }
+            StringsXmlUtil.appendEntries(result.targetStringsXml, toAdd, null, settings.sortAfterExtract)
+            result.localeSelections.filter { it.include }.forEach { loc ->
+                val locExisting = StringsXmlUtil.readKeys(loc.file)
+                StringsXmlUtil.appendEntries(loc.file, toAdd.filter { it.first !in locExisting }, null, settings.sortAfterExtract)
             }
 
             val doc = editor.document

@@ -2,28 +2,52 @@ package com.seijind.stringsmith.extract
 
 object StringsXmlText {
 
-    // Matches a <string> element with a `name` attribute in ANY position, single- or double-quoted.
-    // `<string\s+` (whitespace required) keeps this from matching <string-array> / <string-plurals>.
-    // Groups: 1 = quote char, 2 = key, 3 = inner value.
+    // `\s+` after <string avoids matching <string-array>/<plurals>. Groups: 1=quote, 2=key, 3=value.
     private val ENTRY_REGEX = Regex("""<string\s+[^>]*?\bname\s*=\s*(["'])(.*?)\1[^>]*>([\s\S]*?)</string>""")
 
-    fun parseEntries(text: String): List<StringsXmlEntry> =
-        ENTRY_REGEX.findAll(text).map { m ->
-            StringsXmlEntry(m.groupValues[2], decodeXml(m.groupValues[3]))
-        }.toList()
+    // A `<string>` inside a comment is dead: never parse or sort it as a live entry.
+    private val COMMENT_REGEX = Regex("""<!--[\s\S]*?-->""")
 
-    fun appendEntry(text: String, key: String, value: String, comment: String? = null, sortAlpha: Boolean = false): String {
-        val escaped = encodeXml(value)
+    private fun liveEntryMatches(text: String): List<MatchResult> {
+        val commentRanges = COMMENT_REGEX.findAll(text).map { it.range }.toList()
+        return ENTRY_REGEX.findAll(text)
+            .filter { m -> commentRanges.none { m.range.first in it } }
+            .toList()
+    }
+
+    fun parseEntries(text: String): List<StringsXmlEntry> =
+        liveEntryMatches(text).map { m ->
+            StringsXmlEntry(m.groupValues[2], decodeXml(m.groupValues[3]))
+        }
+
+    fun appendEntry(text: String, key: String, value: String, comment: String? = null, sortAlpha: Boolean = false): String =
+        appendEntries(text, listOf(key to value), comment, sortAlpha)
+
+    /** Inserts all [entries] before `</resources>` in one pass, then sorts once if requested. */
+    fun appendEntries(
+        text: String,
+        entries: List<Pair<String, String>>,
+        comment: String? = null,
+        sortAlpha: Boolean = false
+    ): String {
+        if (entries.isEmpty()) return text
         val commentLine = if (!comment.isNullOrBlank()) "    <!-- $comment -->\n" else ""
-        val entry = "$commentLine    <string name=\"$key\">$escaped</string>\n"
+        val block = buildString {
+            for ((key, value) in entries) {
+                append(commentLine)
+                append("    <string name=\"").append(key).append("\">")
+                append(encodeXml(value))
+                append("</string>\n")
+            }
+        }
         val closeIdx = text.lastIndexOf("</resources>")
         var newText = if (closeIdx >= 0) {
-            text.substring(0, closeIdx) + entry + text.substring(closeIdx)
+            text.substring(0, closeIdx) + block + text.substring(closeIdx)
         } else {
             buildString {
                 append(text.trimEnd())
                 append("\n<resources>\n")
-                append(entry)
+                append(block)
                 append("</resources>\n")
             }
         }
@@ -32,13 +56,12 @@ object StringsXmlText {
     }
 
     /**
-     * Reorders the `<string>` entries alphabetically by name, in place: each `<string>…</string>`
-     * block is sorted into the slots the blocks already occupy, while everything between and around
-     * them — comments, `<plurals>`, `<string-array>`, whitespace, and each block's verbatim inner
-     * text — is left byte-for-byte untouched. Nothing is dropped, re-indented, or reattached.
+     * Sorts live `<string>` entries alphabetically in place: each block moves into a slot the blocks
+     * already occupy; everything else (comments, commented-out entries, plurals, arrays, whitespace)
+     * stays byte-for-byte untouched.
      */
     fun sortStringEntries(xml: String): String {
-        val matches = ENTRY_REGEX.findAll(xml).toList()
+        val matches = liveEntryMatches(xml)
         if (matches.size < 2) return xml
         val sortedBlocks = matches.sortedBy { it.groupValues[2] }.map { it.value }
         val sb = StringBuilder(xml.length)
@@ -70,6 +93,8 @@ object StringsXmlText {
     }
 
     fun decodeXml(value: String): String {
+        // Fast path: no escape/entity markers means nothing to unescape — skip the chained replaces.
+        if (value.indexOf('\\') < 0 && value.indexOf('&') < 0) return value.trim()
         val unescapedLeading = when {
             value.startsWith("\\@") -> "@" + value.substring(2)
             value.startsWith("\\?") -> "?" + value.substring(2)
