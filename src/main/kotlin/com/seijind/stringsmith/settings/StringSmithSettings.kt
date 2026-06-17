@@ -38,6 +38,7 @@ class StringSmithSettings : PersistentStateComponent<StringSmithSettings.State> 
         var autoIncludeLocales: Boolean = true,
         var excludePreviewComposables: Boolean = true,
         var inspectionEnabled: Boolean = false,
+        var ignoreLoggingStrings: Boolean = true,
         var detectFormatArgs: Boolean = true,
         var duplicateValueInspectionEnabled: Boolean = true,
         var unusedStringInspectionEnabled: Boolean = true,
@@ -84,6 +85,10 @@ class StringSmithSettings : PersistentStateComponent<StringSmithSettings.State> 
     var inspectionEnabled: Boolean
         get() = state.inspectionEnabled
         set(value) { state.inspectionEnabled = value }
+
+    var ignoreLoggingStrings: Boolean
+        get() = state.ignoreLoggingStrings
+        set(value) { state.ignoreLoggingStrings = value }
 
     var detectFormatArgs: Boolean
         get() = state.detectFormatArgs

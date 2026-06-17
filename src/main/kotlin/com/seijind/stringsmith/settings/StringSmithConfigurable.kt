@@ -153,6 +153,12 @@ class StringSmithConfigurable : Configurable {
                         .applyToComponent { toolTipText = "Off by default; opt in for passive discovery of unextracted strings" }
                 }
                 row {
+                    checkBox("Ignore logging strings")
+                        .bindSelected({ settings.ignoreLoggingStrings }, { settings.ignoreLoggingStrings = it })
+                        .comment("Don't flag literals passed to <code>Log.*</code>, <code>Timber.*</code>, <code>println</code>, <code>require</code>/<code>check</code>. Annotation arguments and <code>const</code> values are always skipped.")
+                        .applyToComponent { toolTipText = "Logging and assertion messages are usually not user-facing text" }
+                }
+                row {
                     checkBox("Flag duplicate values in strings.xml")
                         .bindSelected({ settings.duplicateValueInspectionEnabled }, { settings.duplicateValueInspectionEnabled = it })
                         .comment("Reports two or more <code>&lt;string&gt;</code> entries with the same text under different keys.")

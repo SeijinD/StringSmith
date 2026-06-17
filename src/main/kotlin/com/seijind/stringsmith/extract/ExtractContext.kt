@@ -6,9 +6,11 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.xml.XmlAttributeValue
 import com.seijind.stringsmith.settings.StringSmithSettings
+import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.KtAnnotationEntry
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtClass
+import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtEscapeStringTemplateEntry
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtLambdaArgument
@@ -16,10 +18,12 @@ import org.jetbrains.kotlin.psi.KtLambdaExpression
 import org.jetbrains.kotlin.psi.KtLiteralStringTemplateEntry
 import org.jetbrains.kotlin.psi.KtNameReferenceExpression
 import org.jetbrains.kotlin.psi.KtNamedFunction
+import org.jetbrains.kotlin.psi.KtProperty
 import org.jetbrains.kotlin.psi.KtSimpleNameStringTemplateEntry
 import org.jetbrains.kotlin.psi.KtStringTemplateEntryWithExpression
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression
 import org.jetbrains.kotlin.psi.KtSuperTypeListEntry
+import org.jetbrains.kotlin.psi.KtValueArgument
 
 enum class ExtractContextKind {
     COMPOSABLE,
@@ -195,6 +199,43 @@ object ExtractContext {
 
     fun fromKotlin(expr: KtStringTemplateExpression, file: PsiFile): ExtractTarget? =
         buildKotlinTarget(expr, file)
+
+    /**
+     * Contexts where a Kotlin string literal is technical rather than user-facing UI text, so the
+     * hardcoded-string inspection should stay quiet. Consulted ONLY by the inspection — manual extract
+     * (the action / Alt+Enter intention) still works on these, so nothing is blocked, just un-flagged.
+     *
+     * Annotation arguments (e.g. `@SerialName("user")`, `@Query("SELECT …")`) and `const` initializers
+     * are always ignored; logging-call arguments (`Log.d`, `Timber.*`, `println`, `require`/`check`)
+     * are ignored when [StringSmithSettings.ignoreLoggingStrings] is on.
+     */
+    fun isIgnorableForInspection(expr: KtStringTemplateExpression): Boolean {
+        if (PsiTreeUtil.getParentOfType(expr, KtAnnotationEntry::class.java, true) != null) return true
+
+        val prop = PsiTreeUtil.getParentOfType(expr, KtProperty::class.java, true)
+        if (prop != null &&
+            prop.hasModifier(KtTokens.CONST_KEYWORD) &&
+            prop.initializer?.let { PsiTreeUtil.isAncestor(it, expr, false) } == true
+        ) return true
+
+        return StringSmithSettings.getInstance().ignoreLoggingStrings && isLoggingArgument(expr)
+    }
+
+    private fun isLoggingArgument(expr: KtStringTemplateExpression): Boolean {
+        val call = PsiTreeUtil.getParentOfType(expr, KtCallExpression::class.java, true) ?: return false
+        val argList = call.valueArgumentList ?: return false
+        val arg = PsiTreeUtil.getParentOfType(expr, KtValueArgument::class.java, true) ?: return false
+        // Must be a plain value argument of this call, not e.g. a string inside a trailing lambda.
+        if (!PsiTreeUtil.isAncestor(argList, arg, false)) return false
+        val callee = (call.calleeExpression as? KtNameReferenceExpression)?.getReferencedName()
+        if (callee in LOGGING_CALLS) return true
+        val receiver = (call.parent as? KtDotQualifiedExpression)
+            ?.receiverExpression?.text?.substringAfterLast('.')?.trim()
+        return receiver in LOGGING_RECEIVERS
+    }
+
+    private val LOGGING_CALLS = setOf("println", "print", "error", "require", "check", "checkNotNull", "requireNotNull")
+    private val LOGGING_RECEIVERS = setOf("Log", "Timber", "Logger")
 
     fun isInsidePreviewComposable(target: ExtractTarget): Boolean {
         val expr = target.kotlin ?: return false

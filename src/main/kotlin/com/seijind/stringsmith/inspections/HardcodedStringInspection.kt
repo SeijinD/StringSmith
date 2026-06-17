@@ -29,6 +29,7 @@ class HardcodedStringInspection : LocalInspectionTool() {
             }
 
             private fun visitKotlin(expr: KtStringTemplateExpression) {
+                if (ExtractContext.isIgnorableForInspection(expr)) return
                 val file = expr.containingFile ?: return
                 val target = ExtractContext.fromKotlin(expr, file) ?: return
                 reportIfExtractable(target, expr, settings)

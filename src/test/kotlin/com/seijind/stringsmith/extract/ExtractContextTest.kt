@@ -438,6 +438,91 @@ class ExtractContextTest : BasePlatformTestCase() {
         assertNull(target)
     }
 
+    fun testIgnorableForInspection_annotationArgument() {
+        assertTrue(
+            ignorableAt(
+                """
+                @Deprecated("do not <caret>use this")
+                fun old() {}
+                """.trimIndent(),
+                "Old.kt"
+            )
+        )
+    }
+
+    fun testIgnorableForInspection_constValue() {
+        assertTrue(
+            ignorableAt(
+                """
+                object C { const val TAG = "Main<caret>Activity" }
+                """.trimIndent(),
+                "C.kt"
+            )
+        )
+    }
+
+    fun testIgnorableForInspection_loggingArgument() {
+        assertTrue(
+            ignorableAt(
+                """
+                fun f() { Log.d(TAG, "loading <caret>data") }
+                """.trimIndent(),
+                "F.kt"
+            )
+        )
+    }
+
+    fun testIgnorableForInspection_timberArgument() {
+        assertTrue(
+            ignorableAt(
+                """
+                fun f(e: Throwable) { Timber.e(e, "sync <caret>failed") }
+                """.trimIndent(),
+                "F.kt"
+            )
+        )
+    }
+
+    fun testIgnorableForInspection_plainUiStringIsNotIgnorable() {
+        assertFalse(
+            ignorableAt(
+                """
+                fun f() { val x = "Wel<caret>come" }
+                """.trimIndent(),
+                "F.kt"
+            )
+        )
+    }
+
+    fun testIgnorableForInspection_loggingRespectsToggleOff() {
+        val settings = com.seijind.stringsmith.settings.StringSmithSettings.getInstance()
+        val previous = settings.ignoreLoggingStrings
+        settings.ignoreLoggingStrings = false
+        try {
+            assertFalse(
+                ignorableAt(
+                    """
+                    fun f() { Log.d(TAG, "loading <caret>data") }
+                    """.trimIndent(),
+                    "F.kt"
+                )
+            )
+        } finally {
+            settings.ignoreLoggingStrings = previous
+        }
+    }
+
+    private fun ignorableAt(content: String, fileName: String): Boolean {
+        myFixture.configureByText(fileName, content)
+        val offset = myFixture.editor.caretModel.offset
+        val expr = com.intellij.psi.util.PsiTreeUtil.getParentOfType(
+            myFixture.file.findElementAt(offset),
+            org.jetbrains.kotlin.psi.KtStringTemplateExpression::class.java,
+            false
+        )!!
+        return ExtractContext.isIgnorableForInspection(expr)
+    }
+
     // Real project-relative path (configureByText cannot set one) so res/<type>/ detection applies.
     private fun detectInResXml(path: String, content: String): ExtractTarget? {
         val caret = content.indexOf("<caret>")
