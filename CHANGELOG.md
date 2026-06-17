@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-06-17
+
 ### Added
 - **Duplicate String Resource.** Copy an existing string resource to a new key across `res/values/strings.xml` and every `values-*` locale file in one undoable step. Available as an action (`Ctrl+Alt+D`, editor popup and **Refactor** menu) and an Alt+Enter intention.
   - Works on any reference to the resource: `R.string.key`, `Res.string.key` (Compose Multiplatform), `@string/key`, or a `<string>` entry in `strings.xml`.
@@ -107,7 +109,8 @@
 - `parseEntries` regex tolerates extra `<string>` attributes such as `translatable="false"`.
 - `ensureImport` uses a text-based `KtPsiFactory.createFile("import …")` instead of the deprecated `createImportDirective(ImportPath)`.
 
-[Unreleased]: https://github.com/SeijinD/stringsmith/compare/0.2.0...HEAD
+[Unreleased]: https://github.com/SeijinD/stringsmith/compare/0.3.0...HEAD
+[0.3.0]: https://github.com/SeijinD/stringsmith/compare/0.2.0...0.3.0
 [0.2.0]: https://github.com/SeijinD/stringsmith/compare/0.1.2...0.2.0
 [0.1.2]: https://github.com/SeijinD/stringsmith/compare/0.1.1...0.1.2
 [0.1.1]: https://github.com/SeijinD/stringsmith/compare/0.1.0...0.1.1

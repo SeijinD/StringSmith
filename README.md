@@ -43,6 +43,14 @@ IntelliJ IDEA / Android Studio plugin for managing Android `strings.xml` resourc
 - Quick extract: skip dialog when target is unambiguous (inline hint confirms the chosen key)
 - Batch extract: extract all strings in a file in one pass — colour-coded per-row status, with status/summary updating live while you edit keys
 - `@Preview` composables excluded by default (configurable)
+- Key suggestions romanize Greek and Cyrillic and strip Latin accents (`Καλημέρα` → `kalimera`, `Café` → `cafe`)
+
+### Duplicate
+
+- Copy an existing string resource to a new key across `res/values/strings.xml` and every `values-*` locale in one undoable step (`Ctrl+Alt+D` or Alt+Enter)
+- Works on any reference: `R.string.key`, `Res.string.key`, `@string/key`, or a `<string>` entry
+- Reuses each locale's existing translation; locales that don't translate the source key are skipped (shown in the dialog) instead of being filled with the default value
+- Optionally redirects the reference under the caret to the new key (Compose Multiplatform imports updated automatically)
 
 ### Inspect
 
@@ -137,6 +145,12 @@ Gradle property (e.g. in `~/.gradle/gradle.properties`) if installed elsewhere
 
 `Ctrl+Alt+Shift+B` or **Refactor → Batch Extract Strings in File** — opens a table of all extractable strings in the current file. Edit per-row keys, toggle inclusion, pick locale propagation, write all in one undoable step.
 
+### Duplicate a string resource
+
+1. Place caret on a string reference (`R.string.key`, `Res.string.key`, `@string/key`) or a `<string>` entry in `strings.xml`.
+2. `Ctrl+Alt+D` or right-click → **Duplicate String Resource** (also Alt+Enter).
+3. Pick the new key. The dialog lists which locales receive the copy. Optionally redirect the reference under the caret to the new key.
+
 ### `@Preview` exclusion
 
 Strings inside `@Preview` composables are skipped by default (typically dummy data). Toggle in **Settings → Tools → StringSmith → Compose Previews**.
@@ -148,6 +162,7 @@ Strings inside `@Preview` composables are skipped by default (typically dummy da
 | Extract to strings.xml | `Ctrl+Alt+X` |
 | Quick Extract (skip dialog when unambiguous) | `Ctrl+Alt+Shift+X` |
 | Batch Extract Strings in File | `Ctrl+Alt+Shift+B` |
+| Duplicate String Resource | `Ctrl+Alt+D` |
 
 ## Compatibility
 
