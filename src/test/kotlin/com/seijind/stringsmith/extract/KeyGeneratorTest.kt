@@ -3,6 +3,7 @@ package com.seijind.stringsmith.extract
 import com.seijind.stringsmith.settings.NamingConvention
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -63,9 +64,10 @@ class KeyGeneratorTest {
     }
 
     @Test
-    fun suggest_emptyValueFallback() {
+    fun suggest_emptyValueFallbackIsValid() {
         val key = KeyGenerator.suggest("!!!", "", NamingConvention.SNAKE_CASE, 40)
-        assertEquals("label", key)
+        assertTrue(key.startsWith("label"))
+        assertTrue(KeyGenerator.isValidKey(key))
     }
 
     @Test
@@ -115,9 +117,38 @@ class KeyGeneratorTest {
     }
 
     @Test
-    fun suggest_unicodeStrippedToEmptyFallsBack() {
-        val key = KeyGenerator.suggest("Καλημέρα", "", NamingConvention.SNAKE_CASE, 40)
-        assertEquals("label", key)
+    fun suggest_transliteratesGreek() {
+        assertEquals("kalimera", KeyGenerator.suggest("Καλημέρα", "", NamingConvention.SNAKE_CASE, 40))
+        assertEquals("antio", KeyGenerator.suggest("Αντίο", "", NamingConvention.SNAKE_CASE, 40))
+    }
+
+    @Test
+    fun suggest_transliteratesCyrillic() {
+        assertEquals("privet", KeyGenerator.suggest("Привет", "", NamingConvention.SNAKE_CASE, 40))
+    }
+
+    @Test
+    fun suggest_nonLatinGivesDistinctKeys() {
+        val a = KeyGenerator.suggest("Καλημέρα", "", NamingConvention.SNAKE_CASE, 40)
+        val b = KeyGenerator.suggest("Αντίο", "", NamingConvention.SNAKE_CASE, 40)
+        assertTrue(KeyGenerator.isValidKey(a))
+        assertTrue(KeyGenerator.isValidKey(b))
+        assertNotEquals("non-Latin strings must not collapse to the same key", a, b)
+    }
+
+    @Test
+    fun suggest_untransliterableScriptGetsStableValidFallback() {
+        val a = KeyGenerator.suggest("日本語", "", NamingConvention.SNAKE_CASE, 40)
+        val b = KeyGenerator.suggest("日本語", "", NamingConvention.SNAKE_CASE, 40)
+        assertTrue(KeyGenerator.isValidKey(a))
+        assertTrue(a.startsWith("label"))
+        assertEquals("same text must be stable", a, b)
+    }
+
+    @Test
+    fun suggest_transliteratesAccentedLatin() {
+        assertEquals("cafe_menu", KeyGenerator.suggest("Café Menu", "", NamingConvention.SNAKE_CASE, 40))
+        assertEquals("naive", KeyGenerator.suggest("naïve", "", NamingConvention.SNAKE_CASE, 40))
     }
 
     @Test
