@@ -4,6 +4,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.psi.xml.XmlAttribute
 import com.intellij.psi.xml.XmlAttributeValue
 import com.seijind.stringsmith.settings.StringSmithSettings
 import org.jetbrains.kotlin.lexer.KtTokens
@@ -64,10 +65,29 @@ object ExtractContext {
 
     private fun buildXmlTarget(attr: XmlAttributeValue, file: PsiFile): ExtractTarget? {
         if (!isAndroidResourceXml(file)) return null
+        val attribute = attr.parent as? XmlAttribute ?: return null
+        if (!isExtractableTextAttribute(attribute)) return null
         val value = attr.value
         if (value.startsWith("@") || value.startsWith("?")) return null
         return ExtractTarget(xml = attr, rawValue = value, kind = ExtractContextKind.XML_LAYOUT, containingFile = file)
     }
+
+    // Only user-facing text attributes are extractable. Enum/dimension/reference attributes
+    // (layout_width="match_parent", textSize="16sp", orientation="vertical", …) must never be
+    // offered an @string/ replacement — it would break the layout. tools: is design-time only.
+    private fun isExtractableTextAttribute(attribute: XmlAttribute): Boolean {
+        val name = attribute.name
+        if (name.startsWith("tools:")) return false
+        return name.substringAfterLast(':') in TEXT_ATTRIBUTES
+    }
+
+    private val TEXT_ATTRIBUTES = setOf(
+        "text", "hint", "contentDescription", "label", "title", "subtitle",
+        "summary", "description", "message", "tooltipText", "prompt",
+        "dialogTitle", "dialogMessage", "text1", "text2",
+        "queryHint", "helperText", "placeholderText", "error",
+        "prefixText", "suffixText", "titleText", "subtitleText"
+    )
 
     // Restrict to res/<type>/ (layout, menu, …) where @string/ is valid; excludes res/values*, manifest, unrelated XML.
     private fun isAndroidResourceXml(file: PsiFile): Boolean {

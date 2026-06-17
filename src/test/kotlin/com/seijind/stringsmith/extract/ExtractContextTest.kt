@@ -394,6 +394,48 @@ class ExtractContextTest : BasePlatformTestCase() {
         assertEquals("Welcome", target.rawValue)
     }
 
+    fun testDetectsXmlHintAttribute() {
+        val target = detectInResXml(
+            "res/layout/layout.xml",
+            """
+            <EditText android:hint="Enter <caret>name" />
+            """.trimIndent()
+        )
+        assertNotNull(target)
+        assertEquals(ExtractContextKind.XML_LAYOUT, target!!.kind)
+        assertEquals("Enter name", target.rawValue)
+    }
+
+    fun testRejectsXmlLayoutEnumAttribute() {
+        val target = detectInResXml(
+            "res/layout/layout.xml",
+            """
+            <LinearLayout android:layout_width="match_<caret>parent" />
+            """.trimIndent()
+        )
+        assertNull(target)
+    }
+
+    fun testRejectsXmlDimensionAttribute() {
+        val target = detectInResXml(
+            "res/layout/layout.xml",
+            """
+            <TextView android:textSize="16<caret>sp" />
+            """.trimIndent()
+        )
+        assertNull(target)
+    }
+
+    fun testRejectsXmlToolsAttribute() {
+        val target = detectInResXml(
+            "res/layout/layout.xml",
+            """
+            <TextView tools:text="Sample <caret>text" />
+            """.trimIndent()
+        )
+        assertNull(target)
+    }
+
     fun testRejectsXmlStringReference() {
         val target = detectInResXml(
             "res/layout/layout.xml",
