@@ -2,12 +2,15 @@ package com.seijind.stringsmith.extract
 
 object StringsXmlText {
 
-    private val ENTRY_REGEX = Regex("""<string\s+name\s*=\s*"([^"]+)"[^>]*>([\s\S]*?)</string>""")
+    // Matches a <string> element with a `name` attribute in ANY position, single- or double-quoted.
+    // `<string\s+` (whitespace required) keeps this from matching <string-array> / <string-plurals>.
+    // Groups: 1 = quote char, 2 = key, 3 = inner value.
+    private val ENTRY_REGEX = Regex("""<string\s+[^>]*?\bname\s*=\s*(["'])(.*?)\1[^>]*>([\s\S]*?)</string>""")
     private val ENTRY_WITH_COMMENT_REGEX = Regex("""(?:\s*<!--[^>]*-->)?\s*<string\s+name\s*=\s*"([^"]+)"[\s\S]*?</string>""")
 
     fun parseEntries(text: String): List<StringsXmlEntry> =
         ENTRY_REGEX.findAll(text).map { m ->
-            StringsXmlEntry(m.groupValues[1], decodeXml(m.groupValues[2]))
+            StringsXmlEntry(m.groupValues[2], decodeXml(m.groupValues[3]))
         }.toList()
 
     fun appendEntry(text: String, key: String, value: String, comment: String? = null, sortAlpha: Boolean = false): String {

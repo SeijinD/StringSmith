@@ -14,6 +14,9 @@
 ### Changed
 - **Restore Defaults** in settings now asks for confirmation before resetting, instead of wiping every option on a single click.
 
+### Fixed
+- `strings.xml` entries whose `name` is not the first attribute (e.g. `<string translatable="false" name="api_key">`) or that use single quotes (`name='key'`) are now recognized. Previously the parser only matched a double-quoted `name` in first position, so such entries were invisible to key lookups — letting a colliding duplicate key be written. `<string-array>` / `<plurals>` are still correctly ignored.
+
 ## [0.2.0] - 2026-06-15
 
 ### Added

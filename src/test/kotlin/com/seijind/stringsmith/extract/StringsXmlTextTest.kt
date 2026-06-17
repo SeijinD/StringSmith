@@ -259,6 +259,40 @@ class StringsXmlTextTest {
     }
 
     @Test
+    fun parseEntries_handlesNameNotFirstAttribute() {
+        val xml = """
+            <resources>
+                <string translatable="false" name="api_key">XYZ</string>
+            </resources>
+        """.trimIndent()
+        val entries = StringsXmlText.parseEntries(xml)
+        assertEquals(1, entries.size)
+        assertEquals("api_key", entries[0].key)
+        assertEquals("XYZ", entries[0].value)
+    }
+
+    @Test
+    fun parseEntries_handlesSingleQuotedName() {
+        val xml = "<resources><string name='hello'>Hello</string></resources>"
+        val entries = StringsXmlText.parseEntries(xml)
+        assertEquals(1, entries.size)
+        assertEquals("hello", entries[0].key)
+        assertEquals("Hello", entries[0].value)
+    }
+
+    @Test
+    fun parseEntries_stringArrayNotMistakenForString() {
+        val xml = """
+            <resources>
+                <string-array name="colors"><item>red</item><item>blue</item></string-array>
+                <string name="real">Real</string>
+            </resources>
+        """.trimIndent()
+        val entries = StringsXmlText.parseEntries(xml)
+        assertEquals(listOf("real"), entries.map { it.key })
+    }
+
+    @Test
     fun appendEntry_sortsAlphabeticallyKeepsCommentsBeforeEntries() {
         val xml = """
             <resources>
