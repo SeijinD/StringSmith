@@ -1,6 +1,7 @@
 package com.seijind.stringsmith.extract
 
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
@@ -48,7 +49,7 @@ object DuplicateRefParser {
 
 object DuplicateContext {
 
-    fun detect(project: com.intellij.openapi.project.Project, file: PsiFile, editor: Editor): DuplicateSource? {
+    fun detect(project: Project, file: PsiFile, editor: Editor): DuplicateSource? {
         val offset = editor.caretModel.offset
         // Try the element at the caret, then the one just before it: a caret sitting at the *end* of a
         // reference (right after `</string>` or the closing `)`) lands on the trailing token, not the key.
@@ -56,13 +57,13 @@ object DuplicateContext {
         return if (offset > 0) detectAt(project, file, offset - 1) else null
     }
 
-    private fun detectAt(project: com.intellij.openapi.project.Project, file: PsiFile, offset: Int): DuplicateSource? {
+    private fun detectAt(project: Project, file: PsiFile, offset: Int): DuplicateSource? {
         val element = file.findElementAt(offset) ?: return null
         detectFromCode(project, file, element)?.let { return it }
         return detectFromXml(project, file, element)
     }
 
-    private fun detectFromCode(project: com.intellij.openapi.project.Project, file: PsiFile, element: PsiElement): DuplicateSource? {
+    private fun detectFromCode(project: Project, file: PsiFile, element: PsiElement): DuplicateSource? {
         val ktFile = file as? KtFile ?: return null
         // Walk up to the outermost dot-qualified expression that is a R.string / Res.string reference.
         var qualified = PsiTreeUtil.getParentOfType(element, KtDotQualifiedExpression::class.java, false) ?: return null
@@ -84,7 +85,7 @@ object DuplicateContext {
         )
     }
 
-    private fun detectFromXml(project: com.intellij.openapi.project.Project, file: PsiFile, element: PsiElement): DuplicateSource? {
+    private fun detectFromXml(project: Project, file: PsiFile, element: PsiElement): DuplicateSource? {
         val vf = file.virtualFile ?: return null
         if (vf.name != "strings.xml") return null
         val tag = PsiTreeUtil.getParentOfType(element, XmlTag::class.java, false) ?: return null
@@ -99,7 +100,7 @@ object DuplicateContext {
 
     /** Among default strings.xml files of the matching system, the one containing [key], nearest to [nearTo]. */
     private fun resolveOwningDefaultFile(
-        project: com.intellij.openapi.project.Project,
+        project: Project,
         key: String,
         system: ResourceSystem,
         nearTo: VirtualFile?

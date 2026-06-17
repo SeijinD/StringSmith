@@ -12,6 +12,7 @@ import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.xml.XmlTag
 import com.seijind.stringsmith.StringSmithBundle
+import com.seijind.stringsmith.extract.ResourceSystem
 import com.seijind.stringsmith.settings.StringSmithSettings
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.experimental.or
@@ -72,15 +73,12 @@ class UnusedStringResourceInspection : LocalInspectionTool() {
                 val owner = element.containingFile ?: return@processElementsWithWord true
                 if (owner.name == "strings.xml") return@processElementsWithWord true
                 val text = element.text ?: return@processElementsWithWord true
-                // Widen the look-behind to fit the longest prefix: "Res.string." (11) for Compose
-                // Multiplatform, plus "R.string." (9) and "@string/" (8) for Android.
-                val start = maxOf(0, offsetInElement - 12)
-                val end = minOf(text.length, offsetInElement + key.length + 2)
+                // The word index anchors `key` at offsetInElement; widen the window to fit the prefix
+                // in front of it (longest is "Res.string.", 11 chars) plus a little slack each side.
+                val start = maxOf(0, offsetInElement - LOOK_BEHIND)
+                val end = minOf(text.length, offsetInElement + key.length + LOOK_AHEAD)
                 val window = text.substring(start, end)
-                if (window.contains("R.string.$key") ||
-                    window.contains("Res.string.$key") ||
-                    window.contains("@string/$key")
-                ) {
+                if (REFERENCE_PREFIXES.any { window.contains("$it$key") }) {
                     found = true
                     return@processElementsWithWord false
                 }
@@ -92,5 +90,16 @@ class UnusedStringResourceInspection : LocalInspectionTool() {
             true
         )
         return found
+    }
+
+    private companion object {
+        // Reference forms a key can appear in: Android `R.string.`/`@string/` and CMP `Res.string.`.
+        val REFERENCE_PREFIXES = listOf(
+            ResourceSystem.ANDROID_REF_PREFIX,
+            ResourceSystem.CMP_REF_PREFIX,
+            ResourceSystem.XML_REF_PREFIX,
+        )
+        const val LOOK_BEHIND = 12
+        const val LOOK_AHEAD = 2
     }
 }

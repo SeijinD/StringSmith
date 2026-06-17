@@ -50,7 +50,7 @@ class StringsXmlCacheTest : BasePlatformTestCase() {
         ).virtualFile
 
         WriteCommandAction.runWriteCommandAction(project) {
-            StringsXmlUtil.appendEntries(file, listOf("b" to "B", "c" to "C"))
+            StringsXmlUtil.appendEntries(file, listOf(StringEntryDraft("b", "B"), StringEntryDraft("c", "C")))
         }
 
         assertTrue(StringsXmlUtil.keyExists(file, "b"))

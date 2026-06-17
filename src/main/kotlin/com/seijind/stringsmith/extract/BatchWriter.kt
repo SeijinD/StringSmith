@@ -4,10 +4,19 @@ import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
+import com.seijind.stringsmith.StringSmithBundle
 import com.seijind.stringsmith.settings.StringSmithSettings
 import org.jetbrains.kotlin.psi.KtFile
 
 object BatchWriter {
+
+    private data class Edit(
+        val start: Int,
+        val end: Int,
+        val replacementText: String,
+        val key: String,
+        val kind: ExtractContextKind
+    )
 
     fun write(
         project: Project,
@@ -18,14 +27,6 @@ object BatchWriter {
         val included = result.rows.filter { it.include }
         if (included.isEmpty()) return
 
-        data class Edit(
-            val start: Int,
-            val end: Int,
-            val replacementText: String,
-            val key: String,
-            val kind: ExtractContextKind
-        )
-
         val system = ResourceSystem.of(result.targetStringsXml)
         val ktFile = included.firstOrNull()?.target?.containingFile as? KtFile
         val androidRPackage = if (system == ResourceSystem.ANDROID) {
@@ -35,7 +36,23 @@ object BatchWriter {
             ktFile?.let { it.virtualFile?.let { vf -> CmpModuleUtil.findResPackage(it.project, vf, it) } }
         } else null
 
-        val edits = included.mapNotNull { row ->
+        val edits = buildEdits(included, system)
+        val sourceFileName = included.firstOrNull()?.target?.containingFile?.name
+
+        var writeOk = true
+        WriteCommandAction.runWriteCommandAction(project, "Batch Extract Strings", null, {
+            writeOk = writeStringEntries(result, settings, sourceFileName)
+            applyEditorEdits(project, editor, edits)
+            if (ktFile != null) addImports(ktFile, system, edits, androidRPackage, cmpResPackage)
+        })
+        if (!writeOk) {
+            StringSmithNotifications.warn(project, StringSmithBundle.message("write.error.noDocument", result.targetStringsXml.name))
+        }
+    }
+
+    /** Editor replacements for each included row, sorted last-to-first so offsets stay valid as we apply. */
+    private fun buildEdits(included: List<BatchRow>, system: ResourceSystem): List<Edit> =
+        included.mapNotNull { row ->
             val t = row.target
             val reference = Replacement.referenceFor(t, row.key, system)
             val (s, e, text) = when {
@@ -46,52 +63,45 @@ object BatchWriter {
             Edit(start = s, end = e, replacementText = text, key = row.key, kind = t.kind)
         }.sortedByDescending { it.start }
 
-        WriteCommandAction.runWriteCommandAction(project, "Batch Extract Strings", null, {
-            // Set.add returns false for reuse rows, in-batch duplicates, and keys already present.
-            val defaultExisting = StringsXmlUtil.readKeys(result.targetStringsXml).toMutableSet()
-            val toAdd = mutableListOf<Pair<String, String>>()
-            included.forEach { row ->
-                if (row.existingKey != null && row.key == row.existingKey) return@forEach
-                if (!defaultExisting.add(row.key)) return@forEach
-                toAdd += row.key to row.value
-            }
-            StringsXmlUtil.appendEntries(result.targetStringsXml, toAdd, null, settings.sortAfterExtract)
-            result.localeSelections.filter { it.include }.forEach { loc ->
-                val locExisting = StringsXmlUtil.readKeys(loc.file)
-                StringsXmlUtil.appendEntries(loc.file, toAdd.filter { it.first !in locExisting }, null, settings.sortAfterExtract)
-            }
-
-            val doc = editor.document
-            edits.forEach { edit ->
-                doc.replaceString(edit.start, edit.end, edit.replacementText)
-            }
-            PsiDocumentManager.getInstance(project).commitDocument(doc)
-
-            if (ktFile != null) {
-                var added = false
-                when (system) {
-                    ResourceSystem.ANDROID -> {
-                        if (edits.any { it.kind == ExtractContextKind.COMPOSABLE }) {
-                            added = KtImportUtil.ensureImport(ktFile, "androidx.compose.ui.res.stringResource") || added
-                        }
-                        if (androidRPackage != null && edits.any { it.kind != ExtractContextKind.XML_LAYOUT }) {
-                            added = KtImportUtil.ensureImport(ktFile, "$androidRPackage.R") || added
-                        }
-                    }
-                    ResourceSystem.COMPOSE_MULTIPLATFORM -> {
-                        if (cmpResPackage != null) {
-                            added = KtImportUtil.ensureImport(ktFile, "$cmpResPackage.Res") || added
-                            edits.map { it.key }.distinct().forEach { key ->
-                                added = KtImportUtil.ensureImport(ktFile, "$cmpResPackage.$key") || added
-                            }
-                            if (edits.any { it.kind == ExtractContextKind.COMPOSABLE }) {
-                                added = KtImportUtil.ensureImport(ktFile, "org.jetbrains.compose.resources.stringResource") || added
-                            }
-                        }
-                    }
-                }
-                if (added) KtImportUtil.optimizeImports(ktFile)
-            }
-        })
+    /** Adds new keys to the default file once, then mirrors them into each included locale. */
+    private fun writeStringEntries(result: BatchDialogResult, settings: StringSmithSettings, sourceFileName: String?): Boolean {
+        val addComment = settings.addSourceComment && sourceFileName != null
+        // Set.add returns false for reuse rows, in-batch duplicates, and keys already present.
+        val defaultExisting = StringsXmlUtil.readKeys(result.targetStringsXml).toMutableSet()
+        val drafts = mutableListOf<StringEntryDraft>()
+        result.rows.filter { it.include }.forEach { row ->
+            if (row.existingKey != null && row.key == row.existingKey) return@forEach
+            if (!defaultExisting.add(row.key)) return@forEach
+            val comment = if (addComment) "from $sourceFileName:${row.sourceLine}" else null
+            drafts += StringEntryDraft(row.key, row.value, comment)
+        }
+        val written = StringsXmlUtil.appendEntries(result.targetStringsXml, drafts, settings.sortAfterExtract)
+        result.localeSelections.filter { it.include }.forEach { loc ->
+            val locExisting = StringsXmlUtil.readKeys(loc.file)
+            StringsXmlUtil.appendEntries(loc.file, drafts.filter { it.key !in locExisting }, settings.sortAfterExtract)
+        }
+        return written
     }
+
+    private fun applyEditorEdits(project: Project, editor: Editor, edits: List<Edit>) {
+        val doc = editor.document
+        edits.forEach { doc.replaceString(it.start, it.end, it.replacementText) }
+        PsiDocumentManager.getInstance(project).commitDocument(doc)
+    }
+
+    private fun addImports(
+        ktFile: KtFile,
+        system: ResourceSystem,
+        edits: List<Edit>,
+        androidRPackage: String?,
+        cmpResPackage: String?
+    ) = KtImportUtil.addResourceImports(
+        file = ktFile,
+        system = system,
+        hasComposable = edits.any { it.kind == ExtractContextKind.COMPOSABLE },
+        hasNonXmlReference = edits.any { it.kind != ExtractContextKind.XML_LAYOUT },
+        keys = edits.map { it.key },
+        androidRPackage = androidRPackage,
+        cmpResPackage = cmpResPackage
+    )
 }

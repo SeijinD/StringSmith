@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### Added
+- Extract, Batch Extract, and Duplicate now show a warning balloon when a target `strings.xml` cannot be written (no editable document) instead of failing silently with no feedback.
+
+### Changed
+- Batch Extract now honors the **Add XML comment with source file:line** setting, writing a `<!-- from File.kt:line -->` comment above each new entry (previously only single extract did this).
+
 ### Fixed
 - Sorting `strings.xml` (the "Sort entries alphabetically after extract" option) no longer comments out live entries. Commented-out `<string>` entries (inside `<!-- … -->`) were matched as real entries, so sorting could shuffle a live translation into a comment region — silently commenting it out — and surface dead commented keys as real ones. Parsing and sorting now ignore any `<string>` inside an XML comment.
 

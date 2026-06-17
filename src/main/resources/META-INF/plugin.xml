@@ -75,6 +75,7 @@
             instance="com.seijind.stringsmith.settings.StringSmithConfigurable"/>
         <applicationService
             serviceImplementation="com.seijind.stringsmith.settings.StringSmithSettings"/>
+        <notificationGroup id="StringSmith" displayType="BALLOON"/>
     </extensions>
 
     <extensions defaultExtensionNs="org.jetbrains.kotlin">

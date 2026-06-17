@@ -5,6 +5,7 @@ import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
+import com.seijind.stringsmith.StringSmithBundle
 import com.seijind.stringsmith.settings.StringSmithSettings
 
 object DuplicateWriter {
@@ -15,8 +16,9 @@ object DuplicateWriter {
         result: DuplicateDialogResult,
         settings: StringSmithSettings = StringSmithSettings.getInstance()
     ) {
+        var writeOk = true
         WriteCommandAction.runWriteCommandAction(project, "Duplicate String Resource", null, {
-            StringsXmlUtil.appendEntry(source.defaultFile, result.newKey, source.defaultValue, null, settings.sortAfterExtract)
+            writeOk = StringsXmlUtil.appendEntry(source.defaultFile, result.newKey, source.defaultValue, null, settings.sortAfterExtract)
             source.localeValues.forEach { (file, value) ->
                 if (!StringsXmlUtil.keyExists(file, result.newKey)) {
                     StringsXmlUtil.appendEntry(file, result.newKey, value, null, settings.sortAfterExtract)
@@ -27,6 +29,9 @@ object DuplicateWriter {
             }
         })
 
+        if (!writeOk) {
+            StringSmithNotifications.warn(project, StringSmithBundle.message("write.error.noDocument", source.defaultFile.name))
+        }
         if (settings.openStringsXmlAfterExtract) {
             jumpToEntry(project, source, result.newKey)
         }

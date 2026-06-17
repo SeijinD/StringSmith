@@ -309,7 +309,7 @@ class StringsXmlTextTest {
     @Test
     fun appendEntries_insertsAllBeforeClosingTagInOrder() {
         val xml = "<resources>\n    <string name=\"a\">A</string>\n</resources>"
-        val result = StringsXmlText.appendEntries(xml, listOf("b" to "B", "c" to "C"))
+        val result = StringsXmlText.appendEntries(xml, listOf(StringEntryDraft("b", "B"), StringEntryDraft("c", "C")))
         val order = Regex("""name="([^"]+)"""").findAll(result).map { it.groupValues[1] }.toList()
         assertEquals(listOf("a", "b", "c"), order)
         assertTrue(result.indexOf("name=\"c\"") < result.indexOf("</resources>"))
@@ -322,9 +322,20 @@ class StringsXmlTextTest {
     }
 
     @Test
+    fun appendEntries_writesPerEntryComment() {
+        val xml = "<resources></resources>"
+        val result = StringsXmlText.appendEntries(
+            xml,
+            listOf(StringEntryDraft("a", "A", "from A.kt:1"), StringEntryDraft("b", "B"))
+        )
+        assertTrue(result.contains("<!-- from A.kt:1 -->"))
+        assertEquals(1, Regex("<!--").findAll(result).count()) // only the entry that had a comment
+    }
+
+    @Test
     fun appendEntries_matchesRepeatedAppendEntry() {
         val xml = "<resources>\n    <string name=\"a\">A</string>\n</resources>"
-        val batched = StringsXmlText.appendEntries(xml, listOf("m" to "M", "z" to "Z"), sortAlpha = true)
+        val batched = StringsXmlText.appendEntries(xml, listOf(StringEntryDraft("m", "M"), StringEntryDraft("z", "Z")), sortAlpha = true)
         val sequential = StringsXmlText.appendEntry(
             StringsXmlText.appendEntry(xml, "m", "M", sortAlpha = true),
             "z", "Z", sortAlpha = true

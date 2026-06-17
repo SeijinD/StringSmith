@@ -21,20 +21,18 @@ object StringsXmlText {
         }
 
     fun appendEntry(text: String, key: String, value: String, comment: String? = null, sortAlpha: Boolean = false): String =
-        appendEntries(text, listOf(key to value), comment, sortAlpha)
+        appendEntries(text, listOf(StringEntryDraft(key, value, comment)), sortAlpha)
 
-    /** Inserts all [entries] before `</resources>` in one pass, then sorts once if requested. */
+    /** Inserts all [drafts] (each with its own optional comment) before `</resources>`, sorting once if asked. */
     fun appendEntries(
         text: String,
-        entries: List<Pair<String, String>>,
-        comment: String? = null,
+        drafts: List<StringEntryDraft>,
         sortAlpha: Boolean = false
     ): String {
-        if (entries.isEmpty()) return text
-        val commentLine = if (!comment.isNullOrBlank()) "    <!-- $comment -->\n" else ""
+        if (drafts.isEmpty()) return text
         val block = buildString {
-            for ((key, value) in entries) {
-                append(commentLine)
+            for ((key, value, comment) in drafts) {
+                if (!comment.isNullOrBlank()) append("    <!-- ").append(comment).append(" -->\n")
                 append("    <string name=\"").append(key).append("\">")
                 append(encodeXml(value))
                 append("</string>\n")
@@ -75,6 +73,15 @@ object StringsXmlText {
         return sb.toString()
     }
 
+    /**
+     * Escapes a raw string for an Android `strings.xml` value. Rules:
+     * - `"` → `\"` and `'` → `\'` — Android requires quotes/apostrophes escaped in unquoted values.
+     * - `&`/`<`/`>` → `&amp;`/`&lt;`/`&gt;` — XML entities.
+     * - a *leading* `@` or `?` → `\@`/`\?` — otherwise Android reads it as a resource/attr reference.
+     *
+     * Inverse of [decodeXml]; not perfectly symmetric: [decodeXml] also trims surrounding whitespace,
+     * and `>` need not be escaped to round-trip but is encoded for consistency with `<`.
+     */
     fun encodeXml(value: String): String {
         val sb = StringBuilder(value.length + 8)
         for ((i, ch) in value.withIndex()) {
@@ -92,6 +99,7 @@ object StringsXmlText {
         return sb.toString()
     }
 
+    /** Inverse of [encodeXml]: unescapes entities and leading `\@`/`\?`, then trims whitespace. */
     fun decodeXml(value: String): String {
         // Fast path: no escape/entity markers means nothing to unescape — skip the chained replaces.
         if (value.indexOf('\\') < 0 && value.indexOf('&') < 0) return value.trim()

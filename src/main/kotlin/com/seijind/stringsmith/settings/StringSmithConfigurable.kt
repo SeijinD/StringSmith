@@ -104,9 +104,9 @@ class StringSmithConfigurable : Configurable {
                         .align(AlignX.FILL)
                         .applyToComponent {
                             rows = 3
-                            toolTipText = "One function name per line. Strings inside their trailing lambda use stringResource."
+                            toolTipText = "One function name per line, comma- or space-separated. Strings inside their trailing lambda use stringResource."
                         }
-                        .comment("Function names whose trailing lambda is a <code>@Composable</code> scope (e.g. <code>screenViewComposable</code>). Strings inside them use <code>stringResource</code> instead of <code>getString</code>. One per line or comma-separated.")
+                        .comment("Function names whose trailing lambda is a <code>@Composable</code> scope (e.g. <code>screenViewComposable</code>). Strings inside them use <code>stringResource</code> instead of <code>getString</code>. Separate names with a newline, comma, or space.")
                 }
             }
 

@@ -23,4 +23,51 @@ object KtImportUtil {
         val optimizer = LanguageImportStatements.INSTANCE.forFile(file).firstOrNull() ?: return
         optimizer.processFile(file).run()
     }
+
+    const val ANDROID_COMPOSE_IMPORT = "androidx.compose.ui.res.stringResource"
+    const val CMP_COMPOSE_IMPORT = "org.jetbrains.compose.resources.stringResource"
+
+    /**
+     * The fully-qualified imports an extracted reference needs — single source of truth shared by the
+     * single and batch writers so they can't drift. [keys] are the CMP `Res.string.<key>` imports (one
+     * per distinct key). Pure: no PSI, so it is unit-testable on its own.
+     */
+    fun resourceImportsFor(
+        system: ResourceSystem,
+        hasComposable: Boolean,
+        hasNonXmlReference: Boolean,
+        keys: Collection<String>,
+        androidRPackage: String?,
+        cmpResPackage: String?
+    ): List<String> = buildList {
+        when (system) {
+            ResourceSystem.ANDROID -> {
+                if (hasComposable) add(ANDROID_COMPOSE_IMPORT)
+                if (androidRPackage != null && hasNonXmlReference) add("$androidRPackage.R")
+            }
+            ResourceSystem.COMPOSE_MULTIPLATFORM -> {
+                if (cmpResPackage != null) {
+                    add("$cmpResPackage.Res")
+                    keys.distinct().forEach { add("$cmpResPackage.$it") }
+                    if (hasComposable) add(CMP_COMPOSE_IMPORT)
+                }
+            }
+        }
+    }
+
+    /** Ensures every import from [resourceImportsFor] is present, then optimizes if anything was added. */
+    fun addResourceImports(
+        file: KtFile,
+        system: ResourceSystem,
+        hasComposable: Boolean,
+        hasNonXmlReference: Boolean,
+        keys: Collection<String>,
+        androidRPackage: String?,
+        cmpResPackage: String?
+    ) {
+        var added = false
+        resourceImportsFor(system, hasComposable, hasNonXmlReference, keys, androidRPackage, cmpResPackage)
+            .forEach { added = ensureImport(file, it) || added }
+        if (added) optimizeImports(file)
+    }
 }

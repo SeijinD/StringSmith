@@ -5,6 +5,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.Project
+import com.seijind.stringsmith.StringSmithBundle
 import com.seijind.stringsmith.settings.StringSmithSettings
 
 object ExtractWriter {
@@ -19,8 +20,9 @@ object ExtractWriter {
         val comment = if (settings.addSourceComment) buildSourceComment(target, editor) else null
         val system = ResourceSystem.of(result.targetStringsXml)
 
+        var writeOk = true
         WriteCommandAction.runWriteCommandAction(project, "Extract String Resource", null, {
-            StringsXmlUtil.appendEntry(result.targetStringsXml, result.key, result.defaultValue, comment, settings.sortAfterExtract)
+            writeOk = StringsXmlUtil.appendEntry(result.targetStringsXml, result.key, result.defaultValue, comment, settings.sortAfterExtract)
             result.localeEntries.filter { it.include }.forEach { entry ->
                 if (!StringsXmlUtil.keyExists(entry.file, result.key)) {
                     StringsXmlUtil.appendEntry(entry.file, result.key, entry.value, comment, settings.sortAfterExtract)
@@ -29,6 +31,9 @@ object ExtractWriter {
             Replacement.apply(editor, target, result.key, system)
         })
 
+        if (!writeOk) {
+            StringSmithNotifications.warn(project, StringSmithBundle.message("write.error.noDocument", result.targetStringsXml.name))
+        }
         if (settings.openStringsXmlAfterExtract) {
             jumpToEntry(project, result.targetStringsXml, result.key)
         }

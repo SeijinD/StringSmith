@@ -43,7 +43,7 @@ class ExtractDialog(
     private val allTargets: List<VirtualFile>
 ) : DialogWrapper(project, true) {
 
-    private val projectBasePath: String? = project.basePath?.replace('\\', '/')?.trimEnd('/')
+    private val proj: Project = project
 
     private val keyField: JTextField = JBTextField(suggestedKey).apply { columns = 50 }
     private val valueField: JTextField = JBTextField(rawValue).apply { columns = 50 }
@@ -172,11 +172,7 @@ class ExtractDialog(
 
     private fun describeTarget(file: VirtualFile): String {
         val moduleRoot = inferModuleRootFrom(file)
-        val normalized = file.path.replace('\\', '/')
-        val relative = projectBasePath
-            ?.takeIf { normalized.startsWith("$it/") }
-            ?.let { normalized.removePrefix("$it/") }
-            ?: normalized
+        val relative = DisplayPath.projectRelative(proj, file)
         val tag = if (ResourceSystem.of(file) == ResourceSystem.COMPOSE_MULTIPLATFORM) "  [CMP]" else ""
         return (moduleRoot?.let { "${it.name}  ($relative)" } ?: relative) + tag
     }

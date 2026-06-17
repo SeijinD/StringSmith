@@ -24,18 +24,16 @@ object BatchRunner {
 
         val initialTarget = chooseInitialTarget(project, file, allTargets, settings)
 
+        // Seed each row with a suggested key only; BatchDialog recomputes existing-key reuse and status
+        // for the chosen target in its init (refreshAllStatuses), so duplicating that here is redundant.
         val rows = candidates.map { target ->
-            val suggested = KeyGenerator.suggest(target.rawValue, settings.keyPrefix, settings.namingConvention, settings.maxKeyLength)
-            val existing = StringsXmlUtil.findExistingKey(initialTarget, target.rawValue)
-            val effectiveKey = existing ?: suggested
-            val line = lineOf(editor, target)
             BatchRow(
                 target = target,
                 include = true,
-                key = effectiveKey,
+                key = KeyGenerator.suggest(target.rawValue, settings.keyPrefix, settings.namingConvention, settings.maxKeyLength),
                 value = target.rawValue,
-                sourceLine = line,
-                existingKey = existing,
+                sourceLine = lineOf(editor, target),
+                existingKey = null,
                 status = BatchRowStatus.NEW
             )
         }

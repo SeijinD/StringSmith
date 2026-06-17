@@ -55,7 +55,7 @@ class BatchDialog(
     private val allTargets: List<VirtualFile>
 ) : DialogWrapper(project, true) {
 
-    private val projectBasePath: String? = project.basePath?.replace('\\', '/')?.trimEnd('/')
+    private val proj: Project = project
 
     private val rows: MutableList<BatchRow> = initialRows.toMutableList()
     private val tableModel = RowModel()
@@ -170,11 +170,7 @@ class BatchDialog(
 
     private fun describeTarget(file: VirtualFile): String {
         val moduleRoot = ModuleRootUtil.findModuleRoot(file)
-        val normalized = file.path.replace('\\', '/')
-        val relative = projectBasePath
-            ?.takeIf { normalized.startsWith("$it/") }
-            ?.let { normalized.removePrefix("$it/") }
-            ?: normalized
+        val relative = DisplayPath.projectRelative(proj, file)
         return moduleRoot?.let { "${it.name}  ($relative)" } ?: relative
     }
 
@@ -198,21 +194,25 @@ class BatchDialog(
         }
     }
 
+    // Status precedence: Invalid > Reuse > Collision > Duplicate > New.
     private fun computeStatus(key: String, value: String, xml: VirtualFile, existingKey: String?, selfIndex: Int): BatchRowStatus {
         if (!KeyGenerator.isValidKey(key)) return BatchRowStatus.INVALID
         if (existingKey != null && key == existingKey) return BatchRowStatus.REUSE
-        val keyExistsInXml = StringsXmlUtil.keyExists(xml, key)
-        if (keyExistsInXml && existingKey != key) return BatchRowStatus.COLLISION
-        val sameKeyDiffValueInBatch = rows.withIndex().any { (i, other) ->
-            i != selfIndex && other.include && other.key == key && other.value != value
-        }
-        if (sameKeyDiffValueInBatch) return BatchRowStatus.COLLISION
-        val dupInBatch = rows.withIndex().any { (i, other) ->
-            i != selfIndex && other.value == value
-        }
-        if (dupInBatch) return BatchRowStatus.DUPLICATE
+        val collidesInXml = StringsXmlUtil.keyExists(xml, key) && existingKey != key
+        if (collidesInXml || collidesWithOtherRow(key, value, selfIndex)) return BatchRowStatus.COLLISION
+        if (duplicateValueInBatch(value, selfIndex)) return BatchRowStatus.DUPLICATE
         return BatchRowStatus.NEW
     }
+
+    /** Another included row reuses this key for a different value — writing both would clobber one. */
+    private fun collidesWithOtherRow(key: String, value: String, selfIndex: Int): Boolean =
+        rows.withIndex().any { (i, other) ->
+            i != selfIndex && other.include && other.key == key && other.value != value
+        }
+
+    /** Another row already carries the same value (extract once, reuse the key). */
+    private fun duplicateValueInBatch(value: String, selfIndex: Int): Boolean =
+        rows.withIndex().any { (i, other) -> i != selfIndex && other.value == value }
 
     private fun refreshSummary() {
         val included = rows.count { it.include }

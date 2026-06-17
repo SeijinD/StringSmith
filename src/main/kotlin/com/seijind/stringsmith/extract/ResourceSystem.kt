@@ -12,11 +12,19 @@ enum class ResourceSystem {
     COMPOSE_MULTIPLATFORM;
 
     companion object {
+        /** Directory that marks a Compose Multiplatform resource tree (`…/composeResources/values/…`). */
+        const val CMP_PATH_MARKER = "composeResources"
+
+        /** Reference forms a string key can appear in across the resource systems. */
+        const val ANDROID_REF_PREFIX = "R.string."
+        const val CMP_REF_PREFIX = "Res.string."
+        const val XML_REF_PREFIX = "@string/"
+
         fun of(stringsXml: VirtualFile): ResourceSystem = of(stringsXml.path)
 
         fun of(path: String): ResourceSystem {
             // Check both separators directly instead of allocating a normalized copy of the path.
-            return if (path.contains("/composeResources/") || path.contains("\\composeResources\\"))
+            return if (path.contains("/$CMP_PATH_MARKER/") || path.contains("\\$CMP_PATH_MARKER\\"))
                 COMPOSE_MULTIPLATFORM else ANDROID
         }
     }

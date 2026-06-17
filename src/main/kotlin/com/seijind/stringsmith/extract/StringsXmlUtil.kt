@@ -12,6 +12,9 @@ import com.intellij.util.containers.ContainerUtil
 
 data class StringsXmlEntry(val key: String, val value: String)
 
+/** A `<string>` to be written, with an optional preceding comment (e.g. `from File.kt:42`). */
+data class StringEntryDraft(val key: String, val value: String, val comment: String? = null)
+
 object StringsXmlUtil {
 
     private val IGNORED_DIRS = listOf(
@@ -58,7 +61,8 @@ object StringsXmlUtil {
         val all = findAllDefaultStringsXml(project)
         if (all.isEmpty()) return null
         if (near != null) {
-            val nearest = all.minByOrNull { commonPrefix(it.path, near.path).length * -1 }
+            // Prefer the default file sharing the longest path prefix with `near` (same module/tree).
+            val nearest = all.maxByOrNull { commonPrefix(it.path, near.path).length }
             if (nearest != null) return nearest
         }
         return all.firstOrNull()
@@ -110,16 +114,19 @@ object StringsXmlUtil {
     fun findValueOfKey(file: VirtualFile, key: String): String? =
         readEntries(file).firstOrNull { it.key == key }?.value
 
-    fun appendEntry(file: VirtualFile, key: String, value: String, comment: String? = null, sortAlpha: Boolean = false) =
-        appendEntries(file, listOf(key to value), comment, sortAlpha)
+    fun appendEntry(file: VirtualFile, key: String, value: String, comment: String? = null, sortAlpha: Boolean = false): Boolean =
+        appendEntries(file, listOf(StringEntryDraft(key, value, comment)), sortAlpha)
 
-    /** Inserts every pair in [entries] into [file] with a single document write (one re-parse, one save). */
-    fun appendEntries(file: VirtualFile, entries: List<Pair<String, String>>, comment: String? = null, sortAlpha: Boolean = false) {
-        if (entries.isEmpty()) return
-        val doc = FileDocumentManager.getInstance().getDocument(file) ?: return
-        val newText = StringsXmlText.appendEntries(doc.text, entries, comment, sortAlpha)
-        doc.setText(newText)
+    /**
+     * Inserts every draft in [drafts] into [file] with a single document write (one re-parse, one save).
+     * Returns false if the file has no document to write into (so callers can report the failure).
+     */
+    fun appendEntries(file: VirtualFile, drafts: List<StringEntryDraft>, sortAlpha: Boolean = false): Boolean {
+        if (drafts.isEmpty()) return true
+        val doc = FileDocumentManager.getInstance().getDocument(file) ?: return false
+        doc.setText(StringsXmlText.appendEntries(doc.text, drafts, sortAlpha))
         FileDocumentManager.getInstance().saveDocument(doc)
+        return true
     }
 
     fun offsetOfKey(file: VirtualFile, key: String): Int {

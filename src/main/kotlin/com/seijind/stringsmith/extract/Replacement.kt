@@ -61,33 +61,17 @@ object Replacement {
 
     private fun addKotlinImports(target: ExtractTarget, key: String, system: ResourceSystem) {
         val file = target.containingFile as? KtFile ?: return
-        var added = false
-        when (system) {
-            ResourceSystem.ANDROID -> {
-                if (target.kind == ExtractContextKind.COMPOSABLE) {
-                    added = KtImportUtil.ensureImport(file, ANDROID_COMPOSE_IMPORT) || added
-                }
-                if (target.kind != ExtractContextKind.XML_LAYOUT) {
-                    val vf = target.containingFile.virtualFile
-                    val rPkg = vf?.let { AndroidModuleUtil.findRPackage(it, file) }
-                    if (rPkg != null) added = KtImportUtil.ensureImport(file, "$rPkg.R") || added
-                }
-            }
-            ResourceSystem.COMPOSE_MULTIPLATFORM -> {
-                val vf = target.containingFile.virtualFile
-                val resPkg = vf?.let { CmpModuleUtil.findResPackage(file.project, it, file) }
-                if (resPkg != null) {
-                    added = KtImportUtil.ensureImport(file, "$resPkg.Res") || added
-                    added = KtImportUtil.ensureImport(file, "$resPkg.$key") || added
-                    if (target.kind == ExtractContextKind.COMPOSABLE) {
-                        added = KtImportUtil.ensureImport(file, CMP_COMPOSE_IMPORT) || added
-                    }
-                }
-            }
-        }
-        if (added) KtImportUtil.optimizeImports(file)
+        val vf = target.containingFile.virtualFile
+        val androidRPackage = if (system == ResourceSystem.ANDROID) vf?.let { AndroidModuleUtil.findRPackage(it, file) } else null
+        val cmpResPackage = if (system == ResourceSystem.COMPOSE_MULTIPLATFORM) vf?.let { CmpModuleUtil.findResPackage(file.project, it, file) } else null
+        KtImportUtil.addResourceImports(
+            file = file,
+            system = system,
+            hasComposable = target.kind == ExtractContextKind.COMPOSABLE,
+            hasNonXmlReference = target.kind != ExtractContextKind.XML_LAYOUT,
+            keys = listOf(key),
+            androidRPackage = androidRPackage,
+            cmpResPackage = cmpResPackage
+        )
     }
-
-    private const val ANDROID_COMPOSE_IMPORT = "androidx.compose.ui.res.stringResource"
-    private const val CMP_COMPOSE_IMPORT = "org.jetbrains.compose.resources.stringResource"
 }
