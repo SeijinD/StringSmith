@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-06-19
+
 ### Added
 - Extract, Batch Extract, and Duplicate now show a warning balloon when a `strings.xml` cannot be written (no editable document) instead of failing silently with no feedback. The balloon now also covers **locale** files, not just the default file, and lists each unwritable file by its project-relative path.
 
@@ -21,6 +23,9 @@
 - The unused-string inspection memoizes per-key reference lookups within a project PSI generation, so the same key is no longer re-searched once per locale file and on every re-run.
 - Parsed `strings.xml` entries are cached with weak file keys, so cache entries for closed or deleted files are released instead of living for the IDE's lifetime.
 - `decodeXml` skips its replace chain when there is nothing to unescape, and `ResourceSystem.of` no longer allocates a normalized copy of the path.
+
+### Internal
+- Extracted the batch-row status precedence into a pure `BatchStatus` and added unit tests covering every status and the precedence order; pruned redundant comments.
 
 ## [0.3.0] - 2026-06-17
 
@@ -127,7 +132,8 @@
 - `parseEntries` regex tolerates extra `<string>` attributes such as `translatable="false"`.
 - `ensureImport` uses a text-based `KtPsiFactory.createFile("import …")` instead of the deprecated `createImportDirective(ImportPath)`.
 
-[Unreleased]: https://github.com/SeijinD/stringsmith/compare/0.3.0...HEAD
+[Unreleased]: https://github.com/SeijinD/stringsmith/compare/0.4.0...HEAD
+[0.4.0]: https://github.com/SeijinD/stringsmith/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/SeijinD/stringsmith/compare/0.2.0...0.3.0
 [0.2.0]: https://github.com/SeijinD/stringsmith/compare/0.1.2...0.2.0
 [0.1.2]: https://github.com/SeijinD/stringsmith/compare/0.1.1...0.1.2
