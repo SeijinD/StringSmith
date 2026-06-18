@@ -194,25 +194,11 @@ class BatchDialog(
         }
     }
 
-    // Status precedence: Invalid > Reuse > Collision > Duplicate > New.
-    private fun computeStatus(key: String, value: String, xml: VirtualFile, existingKey: String?, selfIndex: Int): BatchRowStatus {
-        if (!KeyGenerator.isValidKey(key)) return BatchRowStatus.INVALID
-        if (existingKey != null && key == existingKey) return BatchRowStatus.REUSE
-        val collidesInXml = StringsXmlUtil.keyExists(xml, key) && existingKey != key
-        if (collidesInXml || collidesWithOtherRow(key, value, selfIndex)) return BatchRowStatus.COLLISION
-        if (duplicateValueInBatch(value, selfIndex)) return BatchRowStatus.DUPLICATE
-        return BatchRowStatus.NEW
-    }
-
-    /** Another included row reuses this key for a different value — writing both would clobber one. */
-    private fun collidesWithOtherRow(key: String, value: String, selfIndex: Int): Boolean =
-        rows.withIndex().any { (i, other) ->
-            i != selfIndex && other.include && other.key == key && other.value != value
-        }
-
-    /** Another row already carries the same value (extract once, reuse the key). */
-    private fun duplicateValueInBatch(value: String, selfIndex: Int): Boolean =
-        rows.withIndex().any { (i, other) -> i != selfIndex && other.value == value }
+    private fun computeStatus(key: String, value: String, xml: VirtualFile, existingKey: String?, selfIndex: Int): BatchRowStatus =
+        BatchStatus.compute(
+            rows.map { BatchStatus.RowFacts(it.include, it.key, it.value) },
+            selfIndex, key, value, existingKey, StringsXmlUtil.keyExists(xml, key)
+        )
 
     private fun refreshSummary() {
         val included = rows.count { it.include }

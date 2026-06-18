@@ -36,7 +36,7 @@ object StringsXmlText {
     fun appendEntry(text: String, key: String, value: String, comment: String? = null, sortAlpha: Boolean = false): String =
         appendEntries(text, listOf(StringEntryDraft(key, value, comment)), sortAlpha)
 
-    /** Inserts all [drafts] (each with its own optional comment) before `</resources>`, sorting once if asked. */
+    /** Inserts all [drafts] before `</resources>`, sorting once at the end if asked. */
     fun appendEntries(
         text: String,
         drafts: List<StringEntryDraft>,
@@ -91,9 +91,6 @@ object StringsXmlText {
      * - `"` → `\"` and `'` → `\'` — Android requires quotes/apostrophes escaped in unquoted values.
      * - `&`/`<`/`>` → `&amp;`/`&lt;`/`&gt;` — XML entities.
      * - a *leading* `@` or `?` → `\@`/`\?` — otherwise Android reads it as a resource/attr reference.
-     *
-     * Inverse of [decodeXml]; not perfectly symmetric: [decodeXml] also trims surrounding whitespace,
-     * and `>` need not be escaped to round-trip but is encoded for consistency with `<`.
      */
     fun encodeXml(value: String): String {
         val sb = StringBuilder(value.length + 8)
