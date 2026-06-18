@@ -16,12 +16,16 @@ object DuplicateWriter {
         result: DuplicateDialogResult,
         settings: StringSmithSettings = StringSmithSettings.getInstance()
     ) {
-        var writeOk = true
+        val failed = mutableListOf<String>()
         WriteCommandAction.runWriteCommandAction(project, "Duplicate String Resource", null, {
-            writeOk = StringsXmlUtil.appendEntry(source.defaultFile, result.newKey, source.defaultValue, null, settings.sortAfterExtract)
+            if (!StringsXmlUtil.appendEntry(source.defaultFile, result.newKey, source.defaultValue, null, settings.sortAfterExtract)) {
+                failed += DisplayPath.projectRelative(project, source.defaultFile)
+            }
             source.localeValues.forEach { (file, value) ->
                 if (!StringsXmlUtil.keyExists(file, result.newKey)) {
-                    StringsXmlUtil.appendEntry(file, result.newKey, value, null, settings.sortAfterExtract)
+                    if (!StringsXmlUtil.appendEntry(file, result.newKey, value, null, settings.sortAfterExtract)) {
+                        failed += DisplayPath.projectRelative(project, file)
+                    }
                 }
             }
             if (result.updateReference && source.codeRef != null) {
@@ -29,8 +33,8 @@ object DuplicateWriter {
             }
         })
 
-        if (!writeOk) {
-            StringSmithNotifications.warn(project, StringSmithBundle.message("write.error.noDocument", source.defaultFile.name))
+        if (failed.isNotEmpty()) {
+            StringSmithNotifications.warn(project, StringSmithBundle.message("write.error.noDocument", failed.joinToString(", ")))
         }
         if (settings.openStringsXmlAfterExtract) {
             jumpToEntry(project, source, result.newKey)

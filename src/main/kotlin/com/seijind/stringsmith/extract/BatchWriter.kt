@@ -39,14 +39,14 @@ object BatchWriter {
         val edits = buildEdits(included, system)
         val sourceFileName = included.firstOrNull()?.target?.containingFile?.name
 
-        var writeOk = true
+        var failed: List<String> = emptyList()
         WriteCommandAction.runWriteCommandAction(project, "Batch Extract Strings", null, {
-            writeOk = writeStringEntries(result, settings, sourceFileName)
+            failed = writeStringEntries(project, result, settings, sourceFileName)
             applyEditorEdits(project, editor, edits)
             if (ktFile != null) addImports(ktFile, system, edits, androidRPackage, cmpResPackage)
         })
-        if (!writeOk) {
-            StringSmithNotifications.warn(project, StringSmithBundle.message("write.error.noDocument", result.targetStringsXml.name))
+        if (failed.isNotEmpty()) {
+            StringSmithNotifications.warn(project, StringSmithBundle.message("write.error.noDocument", failed.joinToString(", ")))
         }
     }
 
@@ -63,8 +63,11 @@ object BatchWriter {
             Edit(start = s, end = e, replacementText = text, key = row.key, kind = t.kind)
         }.sortedByDescending { it.start }
 
-    /** Adds new keys to the default file once, then mirrors them into each included locale. */
-    private fun writeStringEntries(result: BatchDialogResult, settings: StringSmithSettings, sourceFileName: String?): Boolean {
+    /**
+     * Adds new keys to the default file once, then mirrors them into each included locale.
+     * Returns the project-relative paths of any files that could not be written (no editable document).
+     */
+    private fun writeStringEntries(project: Project, result: BatchDialogResult, settings: StringSmithSettings, sourceFileName: String?): List<String> {
         val addComment = settings.addSourceComment && sourceFileName != null
         // Set.add returns false for reuse rows, in-batch duplicates, and keys already present.
         val defaultExisting = StringsXmlUtil.readKeys(result.targetStringsXml).toMutableSet()
@@ -75,12 +78,17 @@ object BatchWriter {
             val comment = if (addComment) "from $sourceFileName:${row.sourceLine}" else null
             drafts += StringEntryDraft(row.key, row.value, comment)
         }
-        val written = StringsXmlUtil.appendEntries(result.targetStringsXml, drafts, settings.sortAfterExtract)
+        val failed = mutableListOf<String>()
+        if (!StringsXmlUtil.appendEntries(result.targetStringsXml, drafts, settings.sortAfterExtract)) {
+            failed += DisplayPath.projectRelative(project, result.targetStringsXml)
+        }
         result.localeSelections.filter { it.include }.forEach { loc ->
             val locExisting = StringsXmlUtil.readKeys(loc.file)
-            StringsXmlUtil.appendEntries(loc.file, drafts.filter { it.key !in locExisting }, settings.sortAfterExtract)
+            if (!StringsXmlUtil.appendEntries(loc.file, drafts.filter { it.key !in locExisting }, settings.sortAfterExtract)) {
+                failed += DisplayPath.projectRelative(project, loc.file)
+            }
         }
-        return written
+        return failed
     }
 
     private fun applyEditorEdits(project: Project, editor: Editor, edits: List<Edit>) {

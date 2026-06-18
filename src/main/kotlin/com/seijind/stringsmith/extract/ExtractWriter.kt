@@ -20,19 +20,23 @@ object ExtractWriter {
         val comment = if (settings.addSourceComment) buildSourceComment(target, editor) else null
         val system = ResourceSystem.of(result.targetStringsXml)
 
-        var writeOk = true
+        val failed = mutableListOf<String>()
         WriteCommandAction.runWriteCommandAction(project, "Extract String Resource", null, {
-            writeOk = StringsXmlUtil.appendEntry(result.targetStringsXml, result.key, result.defaultValue, comment, settings.sortAfterExtract)
+            if (!StringsXmlUtil.appendEntry(result.targetStringsXml, result.key, result.defaultValue, comment, settings.sortAfterExtract)) {
+                failed += DisplayPath.projectRelative(project, result.targetStringsXml)
+            }
             result.localeEntries.filter { it.include }.forEach { entry ->
                 if (!StringsXmlUtil.keyExists(entry.file, result.key)) {
-                    StringsXmlUtil.appendEntry(entry.file, result.key, entry.value, comment, settings.sortAfterExtract)
+                    if (!StringsXmlUtil.appendEntry(entry.file, result.key, entry.value, comment, settings.sortAfterExtract)) {
+                        failed += DisplayPath.projectRelative(project, entry.file)
+                    }
                 }
             }
             Replacement.apply(editor, target, result.key, system)
         })
 
-        if (!writeOk) {
-            StringSmithNotifications.warn(project, StringSmithBundle.message("write.error.noDocument", result.targetStringsXml.name))
+        if (failed.isNotEmpty()) {
+            StringSmithNotifications.warn(project, StringSmithBundle.message("write.error.noDocument", failed.joinToString(", ")))
         }
         if (settings.openStringsXmlAfterExtract) {
             jumpToEntry(project, result.targetStringsXml, result.key)

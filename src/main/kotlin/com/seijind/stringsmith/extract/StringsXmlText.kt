@@ -8,10 +8,23 @@ object StringsXmlText {
     // A `<string>` inside a comment is dead: never parse or sort it as a live entry.
     private val COMMENT_REGEX = Regex("""<!--[\s\S]*?-->""")
 
+    // Runs of two or more hyphens, illegal inside an XML comment (`--` ends/breaks a comment).
+    private val DOUBLE_HYPHEN_REGEX = Regex("-{2,}")
+
+    /**
+     * Makes [text] safe to embed in an XML comment: XML 1.0 forbids `--` inside a comment and forbids a
+     * comment ending in `-`. Splits any hyphen run with spaces and pads a trailing hyphen.
+     */
+    private fun sanitizeComment(text: String): String =
+        text.replace(DOUBLE_HYPHEN_REGEX) { m -> m.value.toCharArray().joinToString(" ") }
+            .let { if (it.endsWith('-')) "$it " else it }
+
     private fun liveEntryMatches(text: String): List<MatchResult> {
         val commentRanges = COMMENT_REGEX.findAll(text).map { it.range }.toList()
+        // An entry is dead if it overlaps a comment region at all — not just where it starts — so an
+        // entry straddling a comment boundary is never treated as live.
         return ENTRY_REGEX.findAll(text)
-            .filter { m -> commentRanges.none { m.range.first in it } }
+            .filter { m -> commentRanges.none { c -> m.range.first <= c.last && c.first <= m.range.last } }
             .toList()
     }
 
@@ -32,7 +45,7 @@ object StringsXmlText {
         if (drafts.isEmpty()) return text
         val block = buildString {
             for ((key, value, comment) in drafts) {
-                if (!comment.isNullOrBlank()) append("    <!-- ").append(comment).append(" -->\n")
+                if (!comment.isNullOrBlank()) append("    <!-- ").append(sanitizeComment(comment)).append(" -->\n")
                 append("    <string name=\"").append(key).append("\">")
                 append(encodeXml(value))
                 append("</string>\n")

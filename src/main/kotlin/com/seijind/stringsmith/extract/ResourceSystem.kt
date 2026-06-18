@@ -23,9 +23,18 @@ enum class ResourceSystem {
         fun of(stringsXml: VirtualFile): ResourceSystem = of(stringsXml.path)
 
         fun of(path: String): ResourceSystem {
-            // Check both separators directly instead of allocating a normalized copy of the path.
-            return if (path.contains("/$CMP_PATH_MARKER/") || path.contains("\\$CMP_PATH_MARKER\\"))
-                COMPOSE_MULTIPLATFORM else ANDROID
+            // Look for the marker as a full path segment, accepting either separator on each side (so
+            // mixed `\…/composeResources/…` still matches), without allocating a normalized path copy.
+            var idx = path.indexOf(CMP_PATH_MARKER)
+            while (idx >= 0) {
+                val before = path.getOrNull(idx - 1)
+                val after = path.getOrNull(idx + CMP_PATH_MARKER.length)
+                if (before.isPathSeparator() && after.isPathSeparator()) return COMPOSE_MULTIPLATFORM
+                idx = path.indexOf(CMP_PATH_MARKER, idx + 1)
+            }
+            return ANDROID
         }
+
+        private fun Char?.isPathSeparator(): Boolean = this == '/' || this == '\\'
     }
 }

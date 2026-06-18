@@ -461,4 +461,37 @@ class StringsXmlTextTest {
         val result = StringsXmlText.sortStringEntries(xml)
         assertEquals(1, Regex("<!-- Settings -->").findAll(result).count())
     }
+
+    @Test
+    fun appendEntry_commentWithDoubleHyphenStaysValidXml() {
+        // A source filename like `foo--bar.kt` must not produce `<!-- … foo--bar.kt … -->` (XML 1.0
+        // forbids `--` inside a comment), which would corrupt strings.xml.
+        val xml = "<resources></resources>"
+        val result = StringsXmlText.appendEntry(xml, "x", "v", comment = "from foo--bar.kt:42")
+        val comment = Regex("<!--.*?-->", RegexOption.DOT_MATCHES_ALL).find(result)!!.value
+        // No `--` survives inside the comment body (only the opening `<!--`/closing `-->` markers).
+        val body = comment.removePrefix("<!--").removeSuffix("-->")
+        assertTrue("comment body must not contain '--': $body", !body.contains("--"))
+        assertTrue("comment must not end in '-'", !body.trimEnd().endsWith("-") || body.endsWith(" "))
+    }
+
+    @Test
+    fun appendEntry_commentTrailingHyphenPadded() {
+        val xml = "<resources></resources>"
+        val result = StringsXmlText.appendEntry(xml, "x", "v", comment = "from weird-")
+        // Closing marker must not glue onto a trailing hyphen (`--->` is illegal).
+        assertTrue(!result.contains("--->"))
+    }
+
+    @Test
+    fun parseEntries_ignoresEntryStraddlingCommentBoundary() {
+        // An entry whose opening tag is live but whose close falls inside a comment must be treated as
+        // dead, not parsed with a truncated/garbage value.
+        val xml = "<resources>\n" +
+            "    <string name=\"live\">Live</string>\n" +
+            "    <string name=\"straddle\">val <!-- oops</string> still comment -->\n" +
+            "</resources>"
+        val entries = StringsXmlText.parseEntries(xml)
+        assertEquals(listOf("live"), entries.map { it.key })
+    }
 }
