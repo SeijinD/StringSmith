@@ -20,8 +20,6 @@ import javax.swing.JCheckBox
 import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.JTextField
-import javax.swing.event.DocumentEvent
-import javax.swing.event.DocumentListener
 
 data class LocaleEntry(val file: VirtualFile, val value: String, val include: Boolean)
 
@@ -150,7 +148,7 @@ class ExtractDialog(
             localeRows.forEach { lr ->
                 row {
                     cell(lr.include)
-                    label("${lr.variant.parent?.name ?: lr.variant.name}:")
+                    label("${LocaleUi.localeLabel(lr.variant)}:")
                     cell(lr.value).align(AlignX.FILL)
                 }
             }
@@ -181,8 +179,8 @@ class ExtractDialog(
         ModuleRootUtil.findModuleRoot(stringsXml)
 
     private fun wireListeners() {
-        keyField.document.addDocumentListener(simpleListener { refreshAll() })
-        valueField.document.addDocumentListener(simpleListener { refreshAll() })
+        keyField.document.addDocumentListener(LocaleUi.changeListener { refreshAll() })
+        valueField.document.addDocumentListener(LocaleUi.changeListener { refreshAll() })
         reuseCheckbox.addActionListener { refreshAll() }
         moduleCombo.addActionListener { onModuleChanged() }
     }
@@ -199,12 +197,6 @@ class ExtractDialog(
             reuseCheckbox.isVisible = false
         }
         refreshAll()
-    }
-
-    private fun simpleListener(action: () -> Unit) = object : DocumentListener {
-        override fun insertUpdate(e: DocumentEvent) = action()
-        override fun removeUpdate(e: DocumentEvent) = action()
-        override fun changedUpdate(e: DocumentEvent) = action()
     }
 
     private fun refreshAll() {

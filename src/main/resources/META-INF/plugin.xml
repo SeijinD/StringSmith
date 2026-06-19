@@ -68,6 +68,10 @@
             <className>com.seijind.stringsmith.intentions.DuplicateStringResourceIntention</className>
             <category>StringSmith</category>
         </intentionAction>
+        <intentionAction>
+            <className>com.seijind.stringsmith.intentions.EditStringResourceIntention</className>
+            <category>StringSmith</category>
+        </intentionAction>
         <applicationConfigurable
             parentId="tools"
             id="com.seijind.stringsmith.settings"
@@ -112,6 +116,14 @@
             <add-to-group group-id="EditorPopupMenu" anchor="first"/>
             <add-to-group group-id="RefactoringMenu" anchor="last"/>
             <keyboard-shortcut keymap="$default" first-keystroke="control alt D"/>
+        </action>
+        <action id="com.seijind.stringsmith.EditStringResourceAction"
+                class="com.seijind.stringsmith.actions.EditStringResourceAction"
+                text="Edit String Resource"
+                description="Edit an existing string resource's key and values across all locales">
+            <add-to-group group-id="EditorPopupMenu" anchor="first"/>
+            <add-to-group group-id="RefactoringMenu" anchor="last"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="control alt E"/>
         </action>
     </actions>
 </idea-plugin>

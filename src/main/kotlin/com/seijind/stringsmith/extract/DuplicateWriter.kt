@@ -1,8 +1,6 @@
 package com.seijind.stringsmith.extract
 
 import com.intellij.openapi.command.WriteCommandAction
-import com.intellij.openapi.fileEditor.FileEditorManager
-import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
 import com.seijind.stringsmith.StringSmithBundle
@@ -37,7 +35,7 @@ object DuplicateWriter {
             StringSmithNotifications.warn(project, StringSmithBundle.message("write.error.noDocument", failed.joinToString(", ")))
         }
         if (settings.openStringsXmlAfterExtract) {
-            jumpToEntry(project, source, result.newKey)
+            EntryNavigation.openAtKey(project, source.defaultFile, result.newKey)
         }
     }
 
@@ -54,13 +52,4 @@ object DuplicateWriter {
         }
     }
 
-    private fun jumpToEntry(project: Project, source: DuplicateSource, key: String) {
-        val offset = StringsXmlUtil.offsetOfKey(source.defaultFile, key)
-        if (offset >= 0) {
-            FileEditorManager.getInstance(project).openTextEditor(
-                OpenFileDescriptor(project, source.defaultFile, offset),
-                true
-            )
-        }
-    }
 }

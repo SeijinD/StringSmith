@@ -109,7 +109,7 @@ object DuplicateContext {
             .filter { StringsXmlUtil.findValueOfKey(it, key) != null }
         if (candidates.isEmpty()) return null
         if (nearTo == null) return candidates.first()
-        return candidates.maxByOrNull { commonPrefixLen(it.path, nearTo.path) }
+        return candidates.maxByOrNull { it.path.commonPrefixWith(nearTo.path).length }
     }
 
     private fun buildSource(
@@ -126,12 +126,5 @@ object DuplicateContext {
             if (value != null) localeValues[variant] = value else untranslated += variant
         }
         return DuplicateSource(key, system, defaultFile, defaultValue, localeValues, untranslated, codeRef)
-    }
-
-    private fun commonPrefixLen(a: String, b: String): Int {
-        var i = 0
-        val max = minOf(a.length, b.length)
-        while (i < max && a[i] == b[i]) i++
-        return i
     }
 }

@@ -3,7 +3,6 @@ package com.seijind.stringsmith.extract
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.ValidationInfo
-import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.panel
@@ -11,8 +10,6 @@ import com.seijind.stringsmith.StringSmithBundle
 import javax.swing.JCheckBox
 import javax.swing.JComponent
 import javax.swing.JTextField
-import javax.swing.event.DocumentEvent
-import javax.swing.event.DocumentListener
 
 data class DuplicateDialogResult(val newKey: String, val updateReference: Boolean)
 
@@ -32,11 +29,7 @@ class DuplicateDialog(
 
     init {
         title = StringSmithBundle.message("duplicate.dialog.title")
-        keyField.document.addDocumentListener(object : DocumentListener {
-            override fun insertUpdate(e: DocumentEvent) = refreshPreview()
-            override fun removeUpdate(e: DocumentEvent) = refreshPreview()
-            override fun changedUpdate(e: DocumentEvent) = refreshPreview()
-        })
+        keyField.document.addDocumentListener(LocaleUi.changeListener { refreshPreview() })
         refreshPreview()
         init()
     }
@@ -54,7 +47,7 @@ class DuplicateDialog(
         }
         if (source.untranslatedLocales.isNotEmpty()) {
             row(StringSmithBundle.message("duplicate.label.skipped")) {
-                cell(summaryLabel(source.untranslatedLocales.map(::localeLabel)).apply {
+                cell(summaryLabel(source.untranslatedLocales.map(LocaleUi::localeLabel)).apply {
                     foreground = com.intellij.util.ui.UIUtil.getContextHelpForeground()
                 })
             }
@@ -64,12 +57,9 @@ class DuplicateDialog(
         }
     }
 
-    /** Locale qualifier shown to the user, e.g. `values` or `values-de`. */
-    private fun localeLabel(file: VirtualFile): String = file.parent?.name ?: file.name
-
     /** Default file plus every locale that receives the copy. */
     private fun copyTargets(): List<String> =
-        listOf(localeLabel(source.defaultFile)) + source.localeValues.keys.map(::localeLabel)
+        listOf(LocaleUi.localeLabel(source.defaultFile)) + source.localeValues.keys.map(LocaleUi::localeLabel)
 
     /**
      * Lists locale folders inline when few, otherwise collapses to a count with the full list in a

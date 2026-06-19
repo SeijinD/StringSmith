@@ -66,6 +66,32 @@ object StringsXmlText {
         return newText
     }
 
+    /** Replaces the value of the live `<string name="[key]">` entry; no-op if the key is absent. */
+    fun updateEntryValue(text: String, key: String, newValue: String): String {
+        val m = liveEntryMatches(text).firstOrNull { it.groupValues[2] == key } ?: return text
+        val valueRange = m.groups[3]!!.range
+        // For an empty value the range is empty (first > last); first..last+1 still inserts at the right spot.
+        return text.substring(0, valueRange.first) + encodeXml(newValue) + text.substring(valueRange.last + 1)
+    }
+
+    /** Renames the `name` attribute of the live `<string>` entry [oldKey] to [newKey]; no-op if absent. */
+    fun renameEntryKey(text: String, oldKey: String, newKey: String): String {
+        val m = liveEntryMatches(text).firstOrNull { it.groupValues[2] == oldKey } ?: return text
+        val keyRange = m.groups[2]!!.range
+        return text.substring(0, keyRange.first) + newKey + text.substring(keyRange.last + 1)
+    }
+
+    /** Removes the live `<string name="[key]">` entry and its own line; no-op if the key is absent. */
+    fun deleteEntry(text: String, key: String): String {
+        val m = liveEntryMatches(text).firstOrNull { it.groupValues[2] == key } ?: return text
+        var start = m.range.first
+        var end = m.range.last + 1
+        // Swallow the entry's leading indentation and its trailing newline so no blank line is left behind.
+        while (start > 0 && (text[start - 1] == ' ' || text[start - 1] == '\t')) start--
+        if (end < text.length && text[end] == '\n') end++
+        return text.substring(0, start) + text.substring(end)
+    }
+
     /**
      * Sorts live `<string>` entries alphabetically in place: each block moves into a slot the blocks
      * already occupy; everything else (comments, commented-out entries, plurals, arrays, whitespace)

@@ -2,8 +2,6 @@ package com.seijind.stringsmith.extract
 
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.fileEditor.FileEditorManager
-import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.Project
 import com.seijind.stringsmith.StringSmithBundle
 import com.seijind.stringsmith.settings.StringSmithSettings
@@ -39,7 +37,7 @@ object ExtractWriter {
             StringSmithNotifications.warn(project, StringSmithBundle.message("write.error.noDocument", failed.joinToString(", ")))
         }
         if (settings.openStringsXmlAfterExtract) {
-            jumpToEntry(project, result.targetStringsXml, result.key)
+            EntryNavigation.openAtKey(project, result.targetStringsXml, result.key)
         }
     }
 
@@ -47,16 +45,6 @@ object ExtractWriter {
         WriteCommandAction.runWriteCommandAction(project, "Replace With String Resource", null, {
             Replacement.apply(editor, target, key, system)
         })
-    }
-
-    private fun jumpToEntry(project: Project, stringsXml: com.intellij.openapi.vfs.VirtualFile, key: String) {
-        val offset = StringsXmlUtil.offsetOfKey(stringsXml, key)
-        if (offset >= 0) {
-            FileEditorManager.getInstance(project).openTextEditor(
-                OpenFileDescriptor(project, stringsXml, offset),
-                true
-            )
-        }
     }
 
     private fun buildSourceComment(target: ExtractTarget, editor: Editor): String {

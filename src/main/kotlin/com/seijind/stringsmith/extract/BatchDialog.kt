@@ -153,7 +153,7 @@ class BatchDialog(
             localeRows.forEach { lr ->
                 row {
                     cell(lr.include)
-                    label(lr.variant.parent?.name ?: lr.variant.name)
+                    label(LocaleUi.localeLabel(lr.variant))
                 }
             }
         }

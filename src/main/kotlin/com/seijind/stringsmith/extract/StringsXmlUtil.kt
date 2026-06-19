@@ -62,7 +62,7 @@ object StringsXmlUtil {
         if (all.isEmpty()) return null
         if (near != null) {
             // Prefer the default file sharing the longest path prefix with `near` (same module/tree).
-            val nearest = all.maxByOrNull { commonPrefix(it.path, near.path).length }
+            val nearest = all.maxByOrNull { it.path.commonPrefixWith(near.path).length }
             if (nearest != null) return nearest
         }
         return all.firstOrNull()
@@ -129,15 +129,28 @@ object StringsXmlUtil {
         return true
     }
 
+    /** Replaces the value of [key] in [file]. Returns false if the file has no editable document. */
+    fun updateValue(file: VirtualFile, key: String, newValue: String): Boolean =
+        applyAndSave(file) { StringsXmlText.updateEntryValue(it, key, newValue) }
+
+    /** Renames [oldKey] to [newKey] in [file] (no-op if absent). Returns false if no editable document. */
+    fun renameKey(file: VirtualFile, oldKey: String, newKey: String): Boolean =
+        applyAndSave(file) { StringsXmlText.renameEntryKey(it, oldKey, newKey) }
+
+    /** Removes [key] from [file] (no-op if absent). Returns false if the file has no editable document. */
+    fun deleteKey(file: VirtualFile, key: String): Boolean =
+        applyAndSave(file) { StringsXmlText.deleteEntry(it, key) }
+
+    /** Rewrites [file]'s document via [transform]. Returns false if the file has no editable document. */
+    private fun applyAndSave(file: VirtualFile, transform: (String) -> String): Boolean {
+        val doc = FileDocumentManager.getInstance().getDocument(file) ?: return false
+        doc.setText(transform(doc.text))
+        FileDocumentManager.getInstance().saveDocument(doc)
+        return true
+    }
+
     fun offsetOfKey(file: VirtualFile, key: String): Int {
         val doc = FileDocumentManager.getInstance().getDocument(file) ?: return -1
         return doc.text.indexOf("name=\"$key\"")
-    }
-
-    private fun commonPrefix(a: String, b: String): String {
-        var i = 0
-        val max = minOf(a.length, b.length)
-        while (i < max && a[i] == b[i]) i++
-        return a.substring(0, i)
     }
 }
