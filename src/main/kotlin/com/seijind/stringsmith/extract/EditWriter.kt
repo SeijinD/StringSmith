@@ -29,7 +29,7 @@ object EditWriter {
             if (result.newKey != originalKey) {
                 StringsXmlUtil.renameKey(source.defaultFile, originalKey, result.newKey)
                 result.localeEdits.forEach { StringsXmlUtil.renameKey(it.file, originalKey, result.newKey) }
-                ReferenceRenamer.rename(project, originalKey, result.newKey, source.system)
+                ReferenceRenamer.rename(project, source.defaultFile, originalKey, result.newKey, source.system)
             }
         })
 

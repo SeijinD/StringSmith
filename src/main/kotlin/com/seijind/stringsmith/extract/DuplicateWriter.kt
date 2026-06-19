@@ -16,8 +16,11 @@ object DuplicateWriter {
     ) {
         val failed = mutableListOf<String>()
         WriteCommandAction.runWriteCommandAction(project, "Duplicate String Resource", null, {
+            // Abort if the new key never lands in the default file: switching the caret reference to a
+            // non-existent key would break the build with only a warning.
             if (!StringsXmlUtil.appendEntry(source.defaultFile, result.newKey, source.defaultValue, null, settings.sortAfterExtract)) {
                 failed += DisplayPath.projectRelative(project, source.defaultFile)
+                return@runWriteCommandAction
             }
             source.localeValues.forEach { (file, value) ->
                 if (!StringsXmlUtil.keyExists(file, result.newKey)) {
