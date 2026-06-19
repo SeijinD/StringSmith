@@ -3,7 +3,9 @@ package com.seijind.stringsmith.extract
 object StringsXmlText {
 
     // `\s+` after <string avoids matching <string-array>/<plurals>. Groups: 1=quote, 2=key, 3=value.
-    private val ENTRY_REGEX = Regex("""<string\s+[^>]*?\bname\s*=\s*(["'])(.*?)\1[^>]*>([\s\S]*?)</string>""")
+    // The tail `(?:/>|>…</string>)` matches both a normal `<string name="x">v</string>` (group 3 = value)
+    // and a self-closed empty `<string name="x"/>` (group 3 absent → treated as an empty value).
+    private val ENTRY_REGEX = Regex("""<string\s+[^>]*?\bname\s*=\s*(["'])(.*?)\1[^>]*?(?:/>|>([\s\S]*?)</string>)""")
 
     // A `<string>` inside a comment is dead: never parse or sort it as a live entry.
     private val COMMENT_REGEX = Regex("""<!--[\s\S]*?-->""")
@@ -32,6 +34,14 @@ object StringsXmlText {
         liveEntryMatches(text).map { m ->
             StringsXmlEntry(m.groupValues[2], decodeXml(m.groupValues[3]))
         }
+
+    /**
+     * Offset of the live `<string name="[key]">` entry's `name` value (the key text), or -1 if absent.
+     * Uses [liveEntryMatches] so it never matches a commented-out entry, a `<string-array>`/`<plurals>`,
+     * or a longer key — unlike a raw `indexOf`.
+     */
+    fun offsetOfKey(text: String, key: String): Int =
+        liveEntryMatches(text).firstOrNull { it.groupValues[2] == key }?.groups?.get(2)?.range?.first ?: -1
 
     fun appendEntry(text: String, key: String, value: String, comment: String? = null, sortAlpha: Boolean = false): String =
         appendEntries(text, listOf(StringEntryDraft(key, value, comment)), sortAlpha)
@@ -69,7 +79,15 @@ object StringsXmlText {
     /** Replaces the value of the live `<string name="[key]">` entry; no-op if the key is absent. */
     fun updateEntryValue(text: String, key: String, newValue: String): String {
         val m = liveEntryMatches(text).firstOrNull { it.groupValues[2] == key } ?: return text
-        val valueRange = m.groups[3]!!.range
+        val valueGroup = m.groups[3]
+        if (valueGroup == null) {
+            // Self-closed `<string name="x"/>`: rewrite the whole tag as an open entry carrying the value.
+            val openTag = m.value.removeSuffix("/>").trimEnd() + ">"
+            return text.substring(0, m.range.first) +
+                openTag + encodeXml(newValue) + "</string>" +
+                text.substring(m.range.last + 1)
+        }
+        val valueRange = valueGroup.range
         // For an empty value the range is empty (first > last); first..last+1 still inserts at the right spot.
         return text.substring(0, valueRange.first) + encodeXml(newValue) + text.substring(valueRange.last + 1)
     }

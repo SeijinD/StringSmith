@@ -41,7 +41,7 @@ IntelliJ IDEA / Android Studio plugin for managing Android `strings.xml` resourc
 - Kotlin template expressions extracted as `%1$s` format args (e.g. `"Hello $name"` → `stringResource(R.string.hello_s, name)`)
 - Quick-fix intention on hardcoded literals (Alt+Enter)
 - Quick extract: skip dialog when target is unambiguous (inline hint confirms the chosen key)
-- Batch extract: extract all strings in a file in one pass — colour-coded per-row status, with status/summary updating live while you edit keys
+- Batch extract: extract all strings in a file in one pass — colour-coded per-row status with per-status counts, a one-click **Fix collisions** action, and status/summary updating live while you edit keys
 - `@Preview` composables excluded by default (configurable)
 - Key suggestions romanize Greek and Cyrillic and strip Latin accents (`Καλημέρα` → `kalimera`, `Café` → `cafe`)
 
@@ -51,6 +51,14 @@ IntelliJ IDEA / Android Studio plugin for managing Android `strings.xml` resourc
 - Works on any reference: `R.string.key`, `Res.string.key`, `@string/key`, or a `<string>` entry
 - Reuses each locale's existing translation; locales that don't translate the source key are skipped (shown in the dialog) instead of being filled with the default value
 - Optionally redirects the reference under the caret to the new key (Compose Multiplatform imports updated automatically)
+- Redirecting the reference shows an inline hint with the new key
+
+### Edit
+
+- Rename an existing string key and edit its default and per-locale values in one undoable step (`Ctrl+Alt+E` or Alt+Enter)
+- Renames every `R.string.key`, `Res.string.key`, and `@string/key` reference to the renamed key, scoped to the declaring module and its dependents
+- Reports how many references were updated (and warns when none were found, e.g. a dynamically-built key)
+- Works on any reference or a `<string>` entry, in Android and Compose Multiplatform projects
 
 ### Inspect
 
@@ -157,6 +165,12 @@ Gradle property (e.g. in `~/.gradle/gradle.properties`) if installed elsewhere
 2. `Ctrl+Alt+D` or right-click → **Duplicate String Resource** (also Alt+Enter).
 3. Pick the new key. The dialog lists which locales receive the copy. Optionally redirect the reference under the caret to the new key.
 
+### Edit a string resource
+
+1. Place caret on a string reference (`R.string.key`, `Res.string.key`, `@string/key`) or a `<string>` entry in `strings.xml`.
+2. `Ctrl+Alt+E` or right-click → **Edit String Resource** (also Alt+Enter).
+3. Change the key and/or the default and per-locale values. On rename, every reference is updated and the dialog reports how many.
+
 ### `@Preview` exclusion
 
 Strings inside `@Preview` composables are skipped by default (typically dummy data). Toggle in **Settings → Tools → StringSmith → Compose Previews**.
@@ -169,11 +183,12 @@ Strings inside `@Preview` composables are skipped by default (typically dummy da
 | Quick Extract (skip dialog when unambiguous) | `Ctrl+Alt+Shift+X` |
 | Batch Extract Strings in File | `Ctrl+Alt+Shift+B` |
 | Duplicate String Resource | `Ctrl+Alt+D` |
+| Edit String Resource | `Ctrl+Alt+E` |
 
 ## Compatibility
 
-- IntelliJ IDEA 2025.1+
-- Android Studio (compatible IntelliJ 251+ platform)
+- IntelliJ IDEA 2024.2+
+- Android Studio (compatible IntelliJ 242+ platform, i.e. Ladybug 2024.2 and newer)
 - Kotlin plugin K1 and K2 modes
 - Android `res/values/` and Compose Multiplatform `composeResources/values/` resource layouts
 

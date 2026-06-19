@@ -1,5 +1,6 @@
 package com.seijind.stringsmith.extract
 
+import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
@@ -118,39 +119,80 @@ object StringsXmlUtil {
         appendEntries(file, listOf(StringEntryDraft(key, value, comment)), sortAlpha)
 
     /**
+     * Writes [key] → each locale's value into every locale file that doesn't already declare [key].
+     * Returns the files that had no editable document, so the caller can report them. Shared by the
+     * single-extract and duplicate writers.
+     */
+    fun mirrorKeyToLocales(
+        locales: List<Pair<VirtualFile, String>>,
+        key: String,
+        comment: String?,
+        sortAlpha: Boolean
+    ): List<VirtualFile> {
+        val failed = mutableListOf<VirtualFile>()
+        for ((file, value) in locales) {
+            if (keyExists(file, key)) continue
+            if (!appendEntry(file, key, value, comment, sortAlpha)) failed += file
+        }
+        return failed
+    }
+
+    /**
      * Inserts every draft in [drafts] into [file] with a single document write (one re-parse, one save).
      * Returns false if the file has no document to write into (so callers can report the failure).
      */
     fun appendEntries(file: VirtualFile, drafts: List<StringEntryDraft>, sortAlpha: Boolean = false): Boolean {
         if (drafts.isEmpty()) return true
         val doc = FileDocumentManager.getInstance().getDocument(file) ?: return false
-        doc.setText(StringsXmlText.appendEntries(doc.text, drafts, sortAlpha))
-        FileDocumentManager.getInstance().saveDocument(doc)
+        replaceMinimalDiff(doc, StringsXmlText.appendEntries(doc.text, drafts, sortAlpha))
         return true
     }
 
     /** Replaces the value of [key] in [file]. Returns false if the file has no editable document. */
     fun updateValue(file: VirtualFile, key: String, newValue: String): Boolean =
-        applyAndSave(file) { StringsXmlText.updateEntryValue(it, key, newValue) }
+        applyDocument(file) { StringsXmlText.updateEntryValue(it, key, newValue) }
 
     /** Renames [oldKey] to [newKey] in [file] (no-op if absent). Returns false if no editable document. */
     fun renameKey(file: VirtualFile, oldKey: String, newKey: String): Boolean =
-        applyAndSave(file) { StringsXmlText.renameEntryKey(it, oldKey, newKey) }
+        applyDocument(file) { StringsXmlText.renameEntryKey(it, oldKey, newKey) }
 
     /** Removes [key] from [file] (no-op if absent). Returns false if the file has no editable document. */
     fun deleteKey(file: VirtualFile, key: String): Boolean =
-        applyAndSave(file) { StringsXmlText.deleteEntry(it, key) }
+        applyDocument(file) { StringsXmlText.deleteEntry(it, key) }
 
-    /** Rewrites [file]'s document via [transform]. Returns false if the file has no editable document. */
-    private fun applyAndSave(file: VirtualFile, transform: (String) -> String): Boolean {
+    /**
+     * Rewrites [file]'s document via [transform]. Returns false if the file has no editable document.
+     * The document is left unsaved on purpose — the platform persists it on its own; forcing
+     * `saveDocument` here would do disk I/O on the EDT under the write lock.
+     */
+    private fun applyDocument(file: VirtualFile, transform: (String) -> String): Boolean {
         val doc = FileDocumentManager.getInstance().getDocument(file) ?: return false
-        doc.setText(transform(doc.text))
-        FileDocumentManager.getInstance().saveDocument(doc)
+        replaceMinimalDiff(doc, transform(doc.text))
         return true
+    }
+
+    /**
+     * Replaces only the changed span of [doc] (skipping the common prefix and suffix) so the user's
+     * caret, selection, and folding survive when the target `strings.xml` happens to be open, and the
+     * undo step covers just the edit instead of the whole file. The resulting text equals [newText].
+     */
+    private fun replaceMinimalDiff(doc: Document, newText: String) {
+        val old = doc.charsSequence
+        val oldLen = old.length
+        val newLen = newText.length
+        if (oldLen == newLen && old.contentEquals(newText)) return
+        val maxPrefix = minOf(oldLen, newLen)
+        var prefix = 0
+        while (prefix < maxPrefix && old[prefix] == newText[prefix]) prefix++
+        var suffix = 0
+        while (suffix < maxPrefix - prefix &&
+            old[oldLen - 1 - suffix] == newText[newLen - 1 - suffix]
+        ) suffix++
+        doc.replaceString(prefix, oldLen - suffix, newText.subSequence(prefix, newLen - suffix))
     }
 
     fun offsetOfKey(file: VirtualFile, key: String): Int {
         val doc = FileDocumentManager.getInstance().getDocument(file) ?: return -1
-        return doc.text.indexOf("name=\"$key\"")
+        return StringsXmlText.offsetOfKey(doc.text, key)
     }
 }

@@ -3,7 +3,6 @@ package com.seijind.stringsmith.extract
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
-import com.seijind.stringsmith.StringSmithBundle
 import com.seijind.stringsmith.settings.StringSmithSettings
 
 object ExtractWriter {
@@ -27,19 +26,14 @@ object ExtractWriter {
                 failed += DisplayPath.projectRelative(project, result.targetStringsXml)
                 return@runWriteCommandAction
             }
-            result.localeEntries.filter { it.include }.forEach { entry ->
-                if (!StringsXmlUtil.keyExists(entry.file, result.key)) {
-                    if (!StringsXmlUtil.appendEntry(entry.file, result.key, entry.value, comment, settings.sortAfterExtract)) {
-                        failed += DisplayPath.projectRelative(project, entry.file)
-                    }
-                }
-            }
+            StringsXmlUtil.mirrorKeyToLocales(
+                result.localeEntries.filter { it.include }.map { it.file to it.value },
+                result.key, comment, settings.sortAfterExtract
+            ).forEach { failed += DisplayPath.projectRelative(project, it) }
             Replacement.apply(editor, target, result.key, system)
         })
 
-        if (failed.isNotEmpty()) {
-            StringSmithNotifications.warn(project, StringSmithBundle.message("write.error.noDocument", failed.joinToString(", ")))
-        }
+        StringSmithNotifications.warnFailedWrites(project, failed)
         if (settings.openStringsXmlAfterExtract) {
             EntryNavigation.openAtKey(project, result.targetStringsXml, result.key)
         }

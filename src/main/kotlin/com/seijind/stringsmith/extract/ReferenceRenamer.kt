@@ -19,7 +19,22 @@ import kotlin.experimental.or
  */
 object ReferenceRenamer {
 
-    fun rename(project: Project, declaringFile: VirtualFile, oldKey: String, newKey: String, system: ResourceSystem) {
+    /** A rename computed by [planRename]: the reference offsets to rewrite, ready to apply under a write lock. */
+    class RenamePlan(
+        val oldKey: String,
+        val newKey: String,
+        val system: ResourceSystem,
+        internal val edits: Map<Document, List<Int>>,
+        internal val touchedKtFiles: List<KtFile>
+    )
+
+    /**
+     * Searches for in-scope references and returns a [RenamePlan]. Run this OUTSIDE the write command:
+     * `processElementsWithWord` is a potentially slow project search, and holding the write lock across
+     * it blocks the EDT. The plan only records offsets, so it stays valid as long as the searched files
+     * aren't edited before [applyPlan] (the caller only mutates `strings.xml`, which is skipped here).
+     */
+    fun planRename(project: Project, declaringFile: VirtualFile, oldKey: String, newKey: String, system: ResourceSystem): RenamePlan {
         // Code references (R.string. / Res.string.) are module-local, so scope to the declaring module and
         // its dependents — never the whole project, where another module's identically-named key would be
         // wrongly rewritten while its own strings.xml keeps the old name.
@@ -27,7 +42,6 @@ object ReferenceRenamer {
         val helper = PsiSearchHelper.getInstance(project)
         val docManager = PsiDocumentManager.getInstance(project)
 
-        // Collect first, edit after: mutating documents while the word-search walks them is unsafe.
         val edits = LinkedHashMap<Document, MutableSet<Int>>()
         val touchedKtFiles = LinkedHashSet<KtFile>()
 
@@ -47,17 +61,24 @@ object ReferenceRenamer {
                 (UsageSearchContext.IN_FOREIGN_LANGUAGES or UsageSearchContext.IN_STRINGS)
             )
         }
+        return RenamePlan(oldKey, newKey, system, edits.mapValues { it.value.toList() }, touchedKtFiles.toList())
+    }
 
-        edits.forEach { (doc, offsets) ->
+    /** Applies a [RenamePlan]'s edits (call inside a write command) and returns how many sites were rewritten. */
+    fun applyPlan(project: Project, plan: RenamePlan): Int {
+        val docManager = PsiDocumentManager.getInstance(project)
+        var renamed = 0
+        plan.edits.forEach { (doc, offsets) ->
             offsets.sortedDescending().forEach { start ->
-                doc.replaceString(start, start + oldKey.length, newKey)
+                doc.replaceString(start, start + plan.oldKey.length, plan.newKey)
+                renamed++
             }
             docManager.commitDocument(doc)
         }
-
-        if (system == ResourceSystem.COMPOSE_MULTIPLATFORM) {
-            touchedKtFiles.forEach { fixCmpImport(project, it, newKey) }
+        if (plan.system == ResourceSystem.COMPOSE_MULTIPLATFORM) {
+            plan.touchedKtFiles.forEach { KtImportUtil.addCmpKeyImport(project, it, plan.newKey) }
         }
+        return renamed
     }
 
     private fun ownerScope(project: Project, declaringFile: VirtualFile): SearchScope {
@@ -109,10 +130,4 @@ object ReferenceRenamer {
         )
     }
 
-    private fun fixCmpImport(project: Project, ktFile: KtFile, newKey: String) {
-        val vf = ktFile.virtualFile ?: return
-        val resPkg = CmpModuleUtil.findResPackage(project, vf, ktFile) ?: return
-        KtImportUtil.ensureImport(ktFile, "$resPkg.$newKey")
-        KtImportUtil.optimizeImports(ktFile)
-    }
 }

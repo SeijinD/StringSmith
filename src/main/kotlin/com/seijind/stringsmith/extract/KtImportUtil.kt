@@ -1,6 +1,7 @@
 package com.seijind.stringsmith.extract
 
 import com.intellij.lang.LanguageImportStatements
+import com.intellij.openapi.project.Project
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtPsiFactory
 
@@ -22,6 +23,16 @@ object KtImportUtil {
     fun optimizeImports(file: KtFile) {
         val optimizer = LanguageImportStatements.INSTANCE.forFile(file).firstOrNull() ?: return
         optimizer.processFile(file).run()
+    }
+
+    /**
+     * Imports the Compose Multiplatform `Res.string.<key>` accessor: resolves the generated `Res`
+     * package for [ktFile] and adds `<pkg>.<key>`, optimizing only if something was added. Shared by the
+     * reference renamer and the duplicate writer so the CMP-import step can't drift between them.
+     */
+    fun addCmpKeyImport(project: Project, ktFile: KtFile, key: String) {
+        val resPkg = ktFile.virtualFile?.let { CmpModuleUtil.findResPackage(project, it, ktFile) } ?: return
+        if (ensureImport(ktFile, "$resPkg.$key")) optimizeImports(ktFile)
     }
 
     const val ANDROID_COMPOSE_IMPORT = "androidx.compose.ui.res.stringResource"

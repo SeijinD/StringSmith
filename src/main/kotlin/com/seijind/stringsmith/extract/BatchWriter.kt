@@ -4,7 +4,6 @@ import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
-import com.seijind.stringsmith.StringSmithBundle
 import com.seijind.stringsmith.settings.StringSmithSettings
 import org.jetbrains.kotlin.psi.KtFile
 
@@ -50,9 +49,7 @@ object BatchWriter {
                 if (ktFile != null) addImports(ktFile, system, edits, androidRPackage, cmpResPackage)
             }
         })
-        if (failed.isNotEmpty()) {
-            StringSmithNotifications.warn(project, StringSmithBundle.message("write.error.noDocument", failed.joinToString(", ")))
-        }
+        StringSmithNotifications.warnFailedWrites(project, failed)
     }
 
     /** Editor replacements for each included row, sorted last-to-first so offsets stay valid as we apply. */

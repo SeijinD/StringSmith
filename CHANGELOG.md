@@ -4,6 +4,34 @@
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-06-20
+
+### Added
+- **Edit String Resource.** Rename an existing string key and edit its default and per-locale values in one undoable step, updating every `R.string`/`Res.string`/`@string/` reference to the renamed key. Available as an action (`Ctrl+Alt+E`, editor popup and **Refactor** menu) and an Alt+Enter intention; works on any reference or a `<string>` entry, in Android and Compose Multiplatform projects.
+- Editing a string resource's key now reports how many code references were updated in a balloon, and warns when none were found (so a reference that lives in a dynamically-built key or an out-of-scope module is visible immediately instead of surfacing later as a broken build).
+- Duplicating a string resource and redirecting the caret reference now shows an inline hint with the new key, matching Quick Extract.
+- The Batch Extract dialog gained a **Fix collisions** link that auto-suffixes clashing keys, and a per-status count line (New / Reuse / Duplicate / Collision / Invalid).
+
+### Changed
+- Lowered the minimum supported platform to 2024.2 (`sinceBuild` 251 → 242), so the plugin now also installs on IntelliJ IDEA 2024.2/2024.3 and Android Studio Ladybug/Meerkat. Only structural Kotlin PSI and long-stable platform APIs are used, so no functionality depends on the 2025.1 baseline.
+
+### Performance
+- The unused-string inspection now checks for cancellation between keys, so editing a large `strings.xml` no longer blocks on a stale per-key reference scan when you keep typing — the daemon abandons the outdated pass instead of grinding through every remaining key.
+- The hardcoded-string inspection rejects too-short non-interpolated literals before running its context classification, trimming work on every keystroke when the inspection is enabled.
+- Writing to `strings.xml` no longer forces a synchronous document save on the UI thread under the write lock; the platform persists the change as usual.
+- Writes to `strings.xml` now replace only the changed span instead of the whole file, so an open `strings.xml` keeps your caret position and code folding, and each write is a single focused undo step.
+- Renaming a string key now runs the project-wide reference search before taking the write lock, so the UI no longer stalls while the search runs during the rename.
+
+### Internal
+- Removed the unused `ExtractContext.isKotlinFile` helper.
+- Deduplicated the duplicate/edit runners into a shared `KeyRefRunner`, the Compose Multiplatform import step into `KtImportUtil.addCmpKeyImport`, and the writers' locale-mirroring and failure-notification into `StringsXmlUtil.mirrorKeyToLocales` / `StringSmithNotifications.warnFailedWrites`. No behavior change.
+
+### Fixed
+- Renaming a key now searches only the declaring module and the modules that depend on it, instead of the whole project, so an identically-named key in an unrelated module is no longer rewritten while its own `strings.xml` keeps the old name. Reference matching also respects word boundaries, so renaming `app` no longer touches `app_bar`.
+- Extract, Duplicate, and Batch Extract now abort cleanly when the default `strings.xml` cannot be written, instead of rewriting the code to reference a key that was never created.
+- "Open `strings.xml` after extract" (and the post-Duplicate/Edit jump) now places the caret on the real `<string>` entry. The offset lookup used a plain text search for `name="key"`, which could land on a commented-out entry, a `<string-array>`/`<plurals>` with the same name, or a longer key such as `key_2`; it now resolves the offset against live `<string>` entries only.
+- Self-closed empty entries (`<string name="x"/>`) are now recognized. Previously they were invisible to parsing, duplicate/unused detection, and Edit/Duplicate/Delete; editing such a key did nothing. They are now parsed as empty-value entries, and setting a value rewrites the tag into the normal `<string name="x">value</string>` form.
+
 ## [0.4.0] - 2026-06-19
 
 ### Added

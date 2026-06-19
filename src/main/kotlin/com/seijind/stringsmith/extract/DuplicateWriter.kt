@@ -3,7 +3,6 @@ package com.seijind.stringsmith.extract
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
-import com.seijind.stringsmith.StringSmithBundle
 import com.seijind.stringsmith.settings.StringSmithSettings
 
 object DuplicateWriter {
@@ -22,21 +21,15 @@ object DuplicateWriter {
                 failed += DisplayPath.projectRelative(project, source.defaultFile)
                 return@runWriteCommandAction
             }
-            source.localeValues.forEach { (file, value) ->
-                if (!StringsXmlUtil.keyExists(file, result.newKey)) {
-                    if (!StringsXmlUtil.appendEntry(file, result.newKey, value, null, settings.sortAfterExtract)) {
-                        failed += DisplayPath.projectRelative(project, file)
-                    }
-                }
-            }
+            StringsXmlUtil.mirrorKeyToLocales(
+                source.localeValues.toList(), result.newKey, null, settings.sortAfterExtract
+            ).forEach { failed += DisplayPath.projectRelative(project, it) }
             if (result.updateReference && source.codeRef != null) {
                 switchReference(source.codeRef, result.newKey, source.system)
             }
         })
 
-        if (failed.isNotEmpty()) {
-            StringSmithNotifications.warn(project, StringSmithBundle.message("write.error.noDocument", failed.joinToString(", ")))
-        }
+        StringSmithNotifications.warnFailedWrites(project, failed)
         if (settings.openStringsXmlAfterExtract) {
             EntryNavigation.openAtKey(project, source.defaultFile, result.newKey)
         }
@@ -47,11 +40,7 @@ object DuplicateWriter {
         doc.replaceString(ref.keyRangeStart, ref.keyRangeEnd, newKey)
         PsiDocumentManager.getInstance(ref.ktFile.project).commitDocument(doc)
         if (system == ResourceSystem.COMPOSE_MULTIPLATFORM) {
-            val resPkg = ref.ktFile.virtualFile?.let { CmpModuleUtil.findResPackage(ref.ktFile.project, it, ref.ktFile) }
-            if (resPkg != null) {
-                KtImportUtil.ensureImport(ref.ktFile, "$resPkg.$newKey")
-                KtImportUtil.optimizeImports(ref.ktFile)
-            }
+            KtImportUtil.addCmpKeyImport(ref.ktFile.project, ref.ktFile, newKey)
         }
     }
 

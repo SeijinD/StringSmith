@@ -150,6 +150,9 @@ object ExtractContext {
         val customNames = StringSmithSettings.getInstance().customComposableLambdaFunctionSet()
         var lambda = PsiTreeUtil.getParentOfType(expr, KtLambdaExpression::class.java, true)
         while (lambda != null) {
+            // Only a trailing-lambda argument preserves a composable scope (Column { }, run { }, …). A
+            // value-argument lambda such as onClick = { } is an event handler that runs outside
+            // composition, so it deliberately stops the walk → getString / R.string, not stringResource.
             val lambdaArg = lambda.parent as? KtLambdaArgument ?: return false
             val call = lambdaArg.parent as? KtCallExpression ?: return false
             val callee = (call.calleeExpression as? KtNameReferenceExpression)?.getReferencedName() ?: return false
@@ -214,8 +217,6 @@ object ExtractContext {
         "LinearLayout",
         "ConstraintLayout"
     )
-
-    fun isKotlinFile(file: PsiFile): Boolean = file is KtFile
 
     fun fromKotlin(expr: KtStringTemplateExpression, file: PsiFile): ExtractTarget? =
         buildKotlinTarget(expr, file)

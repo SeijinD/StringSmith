@@ -80,6 +80,7 @@ class BatchDialog(
     }
 
     private val summaryLabel = JBLabel("").apply { foreground = JBColor.GRAY }
+    private val countsLabel = JBLabel("").apply { foreground = JBColor.GRAY }
 
     private data class LocaleRow(val variant: VirtualFile, val include: JCheckBox)
     private var localeRows: List<LocaleRow> = emptyList()
@@ -125,6 +126,7 @@ class BatchDialog(
                 tableModel.fireTableDataChanged()
                 refreshSummary()
             }
+            link(StringSmithBundle.message("batch.link.fixCollisions")) { fixCollisions() }
         }
         row {
             cell(buildLocalePanel()).align(AlignX.FILL)
@@ -132,6 +134,32 @@ class BatchDialog(
         row {
             cell(summaryLabel)
         }
+        row {
+            cell(countsLabel)
+        }
+    }
+
+    /** Auto-suffixes every colliding key (`key`, `key_2`, …) until it no longer clashes with the file or another included row. */
+    private fun fixCollisions() {
+        val xml = currentStringsXml()
+        rows.forEachIndexed { i, r ->
+            if (r.status == BatchRowStatus.COLLISION) {
+                rows[i] = r.copy(key = uniqueKey(r.key, xml, i))
+            }
+        }
+        recomputeStatusesPreservingKeys()
+        tableModel.fireTableDataChanged()
+        refreshSummary()
+    }
+
+    private fun uniqueKey(base: String, xml: VirtualFile, selfIndex: Int): String {
+        fun taken(k: String): Boolean =
+            StringsXmlUtil.keyExists(xml, k) ||
+                rows.withIndex().any { (j, r) -> j != selfIndex && r.include && r.key == k }
+        if (!taken(base)) return base
+        var n = 2
+        while (taken("${base}_$n")) n++
+        return "${base}_$n"
     }
 
     private fun buildLocalePanel(): JComponent = panel {
@@ -204,6 +232,12 @@ class BatchDialog(
         val included = rows.count { it.include }
         val blocking = rows.count { it.include && (it.status == BatchRowStatus.COLLISION || it.status == BatchRowStatus.INVALID) }
         summaryLabel.text = StringSmithBundle.message("batch.summary", included, rows.size, blocking)
+        fun count(s: BatchRowStatus) = rows.count { it.status == s }
+        countsLabel.text = StringSmithBundle.message(
+            "batch.counts",
+            count(BatchRowStatus.NEW), count(BatchRowStatus.REUSE), count(BatchRowStatus.DUPLICATE),
+            count(BatchRowStatus.COLLISION), count(BatchRowStatus.INVALID)
+        )
         isOKActionEnabled = included > 0 && blocking == 0
     }
 

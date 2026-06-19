@@ -12,6 +12,7 @@ import com.seijind.stringsmith.extract.ExtractTarget
 import com.seijind.stringsmith.extract.ExtractValidator
 import com.seijind.stringsmith.intentions.ExtractStringResourceCoreIntention
 import com.seijind.stringsmith.settings.StringSmithSettings
+import org.jetbrains.kotlin.psi.KtStringTemplateEntryWithExpression
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression
 
 class HardcodedStringInspection : LocalInspectionTool() {
@@ -30,9 +31,19 @@ class HardcodedStringInspection : LocalInspectionTool() {
 
             private fun visitKotlin(expr: KtStringTemplateExpression) {
                 if (ExtractContext.isIgnorableForInspection(expr)) return
+                // Cheap reject before the context-classification walks in fromKotlin: a literal with no
+                // interpolation whose (trimmed) text is below the minimum can't pass validate anyway.
+                if (isDefinitelyTooShort(expr)) return
                 val file = expr.containingFile ?: return
                 val target = ExtractContext.fromKotlin(expr, file) ?: return
                 reportIfExtractable(target, expr, settings)
+            }
+
+            private fun isDefinitelyTooShort(expr: KtStringTemplateExpression): Boolean {
+                if (expr.entries.any { it is KtStringTemplateEntryWithExpression }) return false
+                val content = expr.entries.joinToString("") { it.text }
+                val effective = if (settings.trimWhitespace) content.trim() else content
+                return effective.length < settings.minStringLength
             }
 
             private fun visitXml(attr: XmlAttributeValue) {

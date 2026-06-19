@@ -14,6 +14,14 @@ object EditWriter {
         settings: StringSmithSettings = StringSmithSettings.getInstance()
     ) {
         val failed = mutableListOf<String>()
+        val keyChanged = result.newKey != result.originalKey
+        var renamedRefs = 0
+
+        // Plan the reference rename before taking the write lock (see ReferenceRenamer.planRename).
+        val renamePlan = if (keyChanged) {
+            ReferenceRenamer.planRename(project, source.defaultFile, result.originalKey, result.newKey, source.system)
+        } else null
+
         WriteCommandAction.runWriteCommandAction(project, "Edit String Resource", null, {
             val originalKey = result.originalKey
 
@@ -26,15 +34,24 @@ object EditWriter {
             }
 
             // 2. Rename the key everywhere only after the values are in place.
-            if (result.newKey != originalKey) {
+            if (renamePlan != null) {
                 StringsXmlUtil.renameKey(source.defaultFile, originalKey, result.newKey)
                 result.localeEdits.forEach { StringsXmlUtil.renameKey(it.file, originalKey, result.newKey) }
-                ReferenceRenamer.rename(project, source.defaultFile, originalKey, result.newKey, source.system)
+                renamedRefs = ReferenceRenamer.applyPlan(project, renamePlan)
             }
         })
 
-        if (failed.isNotEmpty()) {
-            StringSmithNotifications.warn(project, StringSmithBundle.message("write.error.noDocument", failed.joinToString(", ")))
+        StringSmithNotifications.warnFailedWrites(project, failed)
+        // The rename touches code references in a separate, search-scoped pass that the user can't see; tell
+        // them how many were updated so a missed reference (dynamic key, out-of-scope module) is visible
+        // instead of surfacing later as a broken build.
+        if (keyChanged && failed.isEmpty()) {
+            val message = if (renamedRefs > 0) {
+                StringSmithBundle.message("edit.renamed.withRefs", result.newKey, renamedRefs)
+            } else {
+                StringSmithBundle.message("edit.renamed.noRefs", result.newKey)
+            }
+            StringSmithNotifications.info(project, message)
         }
         if (settings.openStringsXmlAfterExtract) {
             EntryNavigation.openAtKey(project, source.defaultFile, result.newKey)

@@ -4,6 +4,7 @@ import com.intellij.codeInspection.InspectionManager
 import com.intellij.codeInspection.LocalInspectionTool
 import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.codeInspection.ProblemHighlightType
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.psi.PsiFile
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.PsiSearchHelper
@@ -46,6 +47,9 @@ class UnusedStringResourceInspection : LocalInspectionTool() {
 
         val problems = mutableListOf<ProblemDescriptor>()
         for (tag in tags) {
+            // Each uncached key triggers a project-wide word search; bail out promptly when the daemon
+            // cancels (e.g. the user keeps typing) instead of grinding through every remaining key.
+            ProgressManager.checkCanceled()
             val key = tag.getAttributeValue("name") ?: continue
             if (refCache.computeIfAbsent(key) { isReferencedAnywhere(helper, scope, it) }) continue
             val nameAttr = tag.getAttribute("name") ?: continue

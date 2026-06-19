@@ -484,6 +484,64 @@ class StringsXmlTextTest {
     }
 
     @Test
+    fun offsetOfKey_pointsAtLiveStringEntryNotCommentOrArrayOrPrefix() {
+        val xml = "<resources>\n" +
+            "    <!-- <string name=\"title\">commented</string> -->\n" +
+            "    <string-array name=\"title\"><item>a</item></string-array>\n" +
+            "    <string name=\"title_long\">Not me</string>\n" +
+            "    <string name=\"title\">Real</string>\n" +
+            "</resources>"
+        val offset = StringsXmlText.offsetOfKey(xml, "title")
+        // Must land on the key text of the real <string name="title">, not the comment, the
+        // <string-array>, or the longer "title_long" key.
+        assertEquals("title", xml.substring(offset, offset + "title".length))
+        val before = xml.lastIndexOf("<string ", offset)
+        assertEquals("Real", StringsXmlText.parseEntries(xml.substring(before)).first().value)
+    }
+
+    @Test
+    fun offsetOfKey_returnsMinusOneWhenAbsent() {
+        assertEquals(-1, StringsXmlText.offsetOfKey("<resources></resources>", "missing"))
+    }
+
+    @Test
+    fun parseEntries_readsSelfClosedEmptyString() {
+        val xml = "<resources>\n" +
+            "    <string name=\"empty\"/>\n" +
+            "    <string name=\"full\">Hi</string>\n" +
+            "</resources>"
+        val entries = StringsXmlText.parseEntries(xml)
+        assertEquals(listOf("empty", "full"), entries.map { it.key })
+        assertEquals("", entries.first { it.key == "empty" }.value)
+    }
+
+    @Test
+    fun selfClosed_isNotMatchedForStringArrayOrPlurals() {
+        val xml = "<resources>\n" +
+            "    <string-array name=\"arr\"/>\n" +
+            "    <plurals name=\"pl\"/>\n" +
+            "</resources>"
+        assertEquals(emptyList<String>(), StringsXmlText.parseEntries(xml).map { it.key })
+    }
+
+    @Test
+    fun updateEntryValue_convertsSelfClosedToOpenEntry() {
+        val xml = "<resources>\n    <string name=\"empty\"/>\n</resources>"
+        val out = StringsXmlText.updateEntryValue(xml, "empty", "Now set")
+        assertTrue("must become an open entry: $out", out.contains("<string name=\"empty\">Now set</string>"))
+        assertEquals("Now set", StringsXmlText.parseEntries(out).first { it.key == "empty" }.value)
+    }
+
+    @Test
+    fun renameAndDelete_workOnSelfClosedEntry() {
+        val xml = "<resources>\n    <string name=\"empty\"/>\n</resources>"
+        val renamed = StringsXmlText.renameEntryKey(xml, "empty", "blank")
+        assertEquals(listOf("blank"), StringsXmlText.parseEntries(renamed).map { it.key })
+        val deleted = StringsXmlText.deleteEntry(xml, "empty")
+        assertEquals(emptyList<String>(), StringsXmlText.parseEntries(deleted).map { it.key })
+    }
+
+    @Test
     fun parseEntries_ignoresEntryStraddlingCommentBoundary() {
         // An entry whose opening tag is live but whose close falls inside a comment must be treated as
         // dead, not parsed with a truncated/garbage value.
