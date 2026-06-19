@@ -84,6 +84,12 @@ Extract every string in a file in one pass — per-row keys, inclusion toggles, 
 
 ![Batch Extract Strings dialog](docs/batch.png)
 
+### Duplicate
+
+Copy an existing string resource to a new key across `res/values/strings.xml` and every locale in one undoable step — with a live preview and the option to redirect the reference under the caret. Works in Android and Compose Multiplatform (`Res.string.key`) projects alike.
+
+![Duplicate String Resource dialog](docs/duplicate.png)
+
 ### Inspections
 
 Duplicate and unused `strings.xml` entries are flagged inline.
