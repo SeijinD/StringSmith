@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-06-20
+
+### Changed
+- Expanded the Marketplace plugin description: added the **Edit String Resource** section, a one-line getting-started, the full Duplicate behavior, and the Settings summary.
+
+### Documentation
+- Added an FAQ / troubleshooting section to the README (action greyed out, wrong target module, CMP `Res.string` vs `R.string`, "0 references updated", custom Composable wrappers, `@Preview` skipping).
+
 ## [0.5.0] - 2026-06-20
 
 ### Added
@@ -160,7 +168,9 @@
 - `parseEntries` regex tolerates extra `<string>` attributes such as `translatable="false"`.
 - `ensureImport` uses a text-based `KtPsiFactory.createFile("import …")` instead of the deprecated `createImportDirective(ImportPath)`.
 
-[Unreleased]: https://github.com/SeijinD/stringsmith/compare/0.4.0...HEAD
+[Unreleased]: https://github.com/SeijinD/stringsmith/compare/0.5.1...HEAD
+[0.5.1]: https://github.com/SeijinD/stringsmith/compare/0.5.0...0.5.1
+[0.5.0]: https://github.com/SeijinD/stringsmith/compare/0.4.0...0.5.0
 [0.4.0]: https://github.com/SeijinD/stringsmith/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/SeijinD/stringsmith/compare/0.2.0...0.3.0
 [0.2.0]: https://github.com/SeijinD/stringsmith/compare/0.1.2...0.2.0
