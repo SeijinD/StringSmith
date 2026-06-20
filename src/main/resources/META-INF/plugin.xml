@@ -3,26 +3,60 @@
     <name>StringSmith - Android Strings Toolkit</name>
     <vendor email="seijindemon@protonmail.com" url="https://github.com/SeijinD">SeijinD</vendor>
     <description><![CDATA[
-        <p><b>StringSmith</b> is a toolkit for managing Android <code>strings.xml</code> resources.</p>
+        <p><b>StringSmith</b> turns <code>strings.xml</code> management from a chore into a smooth workflow.
+        Extract hardcoded literals with context-aware replacement, rename keys and update every reference in one
+        undoable action, copy resources across locales, and flag duplicate or dead entries — all without leaving the
+        editor. Works in Android and Kotlin / Compose Multiplatform projects, in both K1 and K2 modes.</p>
+
+        <p><b>Getting started:</b> put the caret on a hardcoded string and press <code>Ctrl+Alt+X</code> (or
+        <code>Alt+Enter</code> &rarr; <b>Extract to strings.xml</b>). Pick a key — done.</p>
+
         <p><b>Extract</b></p>
         <ul>
-            <li>Context-aware replacement (<code>stringResource</code>, <code>getString</code>, <code>@string/</code>)</li>
-            <li>Kotlin Multiplatform / Compose Multiplatform: <code>stringResource(Res.string.key)</code> with auto-imported generated <code>Res</code></li>
+            <li>Context-aware replacement: <code>stringResource</code> in Composables, <code>getString</code> in
+                Activity/Fragment/View, <code>R.string</code> in other Kotlin, <code>@string/</code> in XML layouts</li>
+            <li>Kotlin Multiplatform / Compose Multiplatform: <code>stringResource(Res.string.key)</code> with
+                auto-imported generated <code>Res</code> (package auto-detected, overridable in settings)</li>
             <li>Auto-import for Compose <code>stringResource</code> with sorted imports</li>
-            <li>Duplicate key detection &amp; value reuse</li>
-            <li>Multi-locale propagation across <code>values-*</code></li>
-            <li>Quick-fix intention on hardcoded literals (Alt+Enter)</li>
-            <li>Quick Extract (skip dialog when unambiguous) and Batch Extract (whole file)</li>
-            <li>Kotlin template expressions extracted as <code>%1$s</code> format args</li>
-            <li>Duplicate a string resource to a new key across all locales (<code>Ctrl+Alt+D</code>)</li>
-            <li><code>@Preview</code> composables excluded by default</li>
+            <li>Duplicate-value detection during extract — reuse an existing key instead of adding a copy</li>
+            <li>Multi-locale propagation across <code>values-*</code> folders</li>
+            <li>Kotlin template expressions extracted as format args (<code>"Hello $name"</code> &rarr;
+                <code>%1$s</code> + argument)</li>
+            <li>Quick-fix intention on hardcoded literals (<code>Alt+Enter</code>)</li>
+            <li>Quick Extract — skips the dialog when the target is unambiguous (<code>Ctrl+Alt+Shift+X</code>)</li>
+            <li>Batch Extract — extract every string in a file in one pass, with colour-coded per-row status and a
+                one-click <b>Fix collisions</b> action (<code>Ctrl+Alt+Shift+B</code>)</li>
+            <li>Key suggestions romanize Greek/Cyrillic and strip Latin accents
+                (<code>Καλημέρα</code> &rarr; <code>kalimera</code>)</li>
+            <li><code>@Preview</code> composables excluded by default (configurable)</li>
         </ul>
+
+        <p><b>Edit</b></p>
+        <ul>
+            <li>Rename a string key and edit its default + per-locale values in one undoable step
+                (<code>Ctrl+Alt+E</code> or <code>Alt+Enter</code>)</li>
+            <li>Renames every <code>R.string.key</code>, <code>Res.string.key</code>, and <code>@string/key</code>
+                reference, scoped to the declaring module and its dependents — and reports how many were updated</li>
+        </ul>
+
+        <p><b>Duplicate</b></p>
+        <ul>
+            <li>Copy a resource to a new key across <code>res/values/strings.xml</code> and every <code>values-*</code>
+                locale in one undoable step (<code>Ctrl+Alt+D</code> or <code>Alt+Enter</code>)</li>
+            <li>Reuses each locale's existing translation; untranslated locales are skipped, not filled with the default</li>
+            <li>Optionally redirects the reference under the caret to the new key</li>
+        </ul>
+
         <p><b>Inspect</b></p>
         <ul>
             <li>Hardcoded string highlight (opt-in)</li>
-            <li>Duplicate value in <code>strings.xml</code></li>
-            <li>Unused string resource</li>
+            <li>Duplicate value in <code>strings.xml</code> (same text, different keys)</li>
+            <li>Unused string resource (no reference anywhere)</li>
         </ul>
+
+        <p><b>Settings:</b> key prefix and naming convention, replacement style per context, locale defaults,
+            format-arg detection, inspection toggles, exclusion patterns, custom Composable wrapper names, and a live
+            key preview.</p>
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>

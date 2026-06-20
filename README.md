@@ -18,6 +18,7 @@ IntelliJ IDEA / Android Studio plugin for managing Android `strings.xml` resourc
 - [Usage](#usage)
 - [Shortcuts](#shortcuts)
 - [Compatibility](#compatibility)
+- [FAQ](#faq)
 - [Development](#development)
 - [License](#license)
 
@@ -191,6 +192,33 @@ Strings inside `@Preview` composables are skipped by default (typically dummy da
 - Android Studio (compatible IntelliJ 242+ platform, i.e. Ladybug 2024.2 and newer)
 - Kotlin plugin K1 and K2 modes
 - Android `res/values/` and Compose Multiplatform `composeResources/values/` resource layouts
+
+## FAQ
+
+**Nothing happens when I run Extract / the action is greyed out.**
+The caret must be inside a hardcoded string literal (Kotlin) or an XML attribute value. It won't trigger on an
+already-extracted reference such as `R.string.key`. For Duplicate/Edit, place the caret on a string *reference* or a
+`<string>` entry instead.
+
+**Extract can't find `strings.xml` / writes to the wrong module.**
+The target is the resource folder of the module owning the file. Multi-module projects pick the module in the dialog.
+Make sure the module has a `res/values/strings.xml` (Android) or `composeResources/values/` (CMP) source set.
+
+**Compose Multiplatform: it generates `R.string` instead of `Res.string`.**
+CMP references are produced only for files under a `composeResources/values/` layout. If the generated `Res` package
+is mis-detected, set an override under **Settings → Tools → StringSmith → Kotlin Multiplatform**.
+
+**Edit reports "0 references updated".**
+The key is referenced only dynamically (e.g. built by string concatenation or resource-name lookup), which can't be
+resolved statically. The rename and value edits still apply — only the auto-update of references is skipped.
+
+**Strings inside a custom Composable wrapper get `getString` instead of `stringResource`.**
+Add the wrapper's name under **Settings → Tools → StringSmith → Custom Composable Wrappers** so StringSmith treats
+its trailing lambda as a `@Composable` scope.
+
+**My `@Preview` strings aren't extracted.**
+That's intentional — `@Preview` composables are skipped by default (usually dummy data). Toggle it under
+**Settings → Tools → StringSmith → Compose Previews**.
 
 ## Development
 
