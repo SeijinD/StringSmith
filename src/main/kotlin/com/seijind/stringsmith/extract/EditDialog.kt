@@ -75,7 +75,7 @@ class EditDialog(
     private fun buildLocalePanel(): JComponent {
         if (localeRows.isEmpty()) return JPanel()
         return panel {
-            group(LocaleUi.header(localeRows.size)) {
+            group(LocaleUi.header(localeRows.size + 1)) {
                 row(StringSmithBundle.message("label.locales.default")) {
                     label(StringSmithBundle.message("label.locales.defaultHint")).applyToComponent { foreground = JBColor.GRAY }
                 }
