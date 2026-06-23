@@ -17,7 +17,8 @@ abstract class BaseExtractAction : AnAction() {
         val project = e.project
         val editor = e.getData(CommonDataKeys.EDITOR)
         val file = e.getData(CommonDataKeys.PSI_FILE)
-        e.presentation.isEnabledAndVisible = project != null && editor != null && file != null
+        e.presentation.isEnabledAndVisible =
+            project != null && editor != null && file != null && isAvailableFor(file)
     }
 
     final override fun actionPerformed(e: AnActionEvent) {
@@ -26,6 +27,9 @@ abstract class BaseExtractAction : AnAction() {
         val file = e.getData(CommonDataKeys.PSI_FILE) ?: return
         perform(project, editor, file)
     }
+
+    /** Gate visibility per action. Edit/Duplicate apply everywhere; extract actions override to hide where extraction is meaningless. */
+    protected open fun isAvailableFor(file: PsiFile): Boolean = true
 
     protected abstract fun perform(project: Project, editor: Editor, file: PsiFile)
 }

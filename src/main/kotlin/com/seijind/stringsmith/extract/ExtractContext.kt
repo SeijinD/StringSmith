@@ -89,6 +89,13 @@ object ExtractContext {
         "prefixText", "suffixText", "titleText", "subtitleText"
     )
 
+    /**
+     * Files where extraction can apply at all: Kotlin sources and Android resource layouts.
+     * Never res/values* (a strings.xml is the extract *target*, not a source) or unrelated files.
+     * Used to gate the extract editor actions so they stay hidden where extraction is meaningless.
+     */
+    fun isExtractEligibleFile(file: PsiFile): Boolean = file is KtFile || isAndroidResourceXml(file)
+
     // Restrict to res/<type>/ (layout, menu, …) where @string/ is valid; excludes res/values*, manifest, unrelated XML.
     private fun isAndroidResourceXml(file: PsiFile): Boolean {
         val vf = file.virtualFile ?: return false
