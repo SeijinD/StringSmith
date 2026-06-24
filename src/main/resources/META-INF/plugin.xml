@@ -106,6 +106,8 @@
             <className>com.seijind.stringsmith.intentions.EditStringResourceIntention</className>
             <category>StringSmith</category>
         </intentionAction>
+        <gotoDeclarationHandler
+            implementation="com.seijind.stringsmith.navigation.StringResourceGotoUsagesHandler"/>
         <applicationConfigurable
             parentId="tools"
             id="com.seijind.stringsmith.settings"
