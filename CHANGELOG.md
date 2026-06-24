@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+### Added
+- **Find usages from `strings.xml`.** Ctrl+Click (Go to Declaration) on a `<string name="…">` entry now lists every place the key is referenced — `R.string.key`, `Res.string.key` (Compose Multiplatform), and `@string/key` — and jumps straight there (or shows a picker when there is more than one). Each result reads as a code snippet plus `File.kt:line`. Generated `Res` accessors under `build/generated/` are excluded, and the matches for a line are collapsed to a single entry so the popup stays readable.
+
+### Fixed
+- The locale count in the **Edit** and **Extract** dialogs now includes the default value: a string with a default plus one `values-*` translation reads **Locales (2)** instead of **(1)**.
+- **Extract**, **Quick Extract**, and **Batch Extract** are no longer offered inside `res/values*` `strings.xml` (or other non-source files), where extraction is meaningless. They stay available in Kotlin sources and Android resource layouts; **Edit** and **Duplicate** remain available on `<string>` entries.
+
 ## [0.5.1] - 2026-06-20
 
 ### Changed

@@ -47,6 +47,15 @@
             <li>Optionally redirects the reference under the caret to the new key</li>
         </ul>
 
+        <p><b>Navigate</b></p>
+        <ul>
+            <li>Ctrl+Click (Go to Declaration) on a <code>&lt;string name="…"&gt;</code> entry in
+                <code>strings.xml</code> lists every usage of the key (<code>R.string.key</code>,
+                <code>Res.string.key</code>, <code>@string/key</code>) and jumps there — or shows a picker
+                with a code snippet and <code>File.kt:line</code> when there is more than one</li>
+            <li>Generated <code>Res</code> accessors are excluded; matches on the same line collapse to one entry</li>
+        </ul>
+
         <p><b>Inspect</b></p>
         <ul>
             <li>Hardcoded string highlight (opt-in)</li>

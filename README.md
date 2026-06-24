@@ -61,6 +61,11 @@ IntelliJ IDEA / Android Studio plugin for managing Android `strings.xml` resourc
 - Reports how many references were updated (and warns when none were found, e.g. a dynamically-built key)
 - Works on any reference or a `<string>` entry, in Android and Compose Multiplatform projects
 
+### Navigate
+
+- Ctrl+Click (Go to Declaration) on a `<string name="…">` entry in `strings.xml` lists every usage of the key — `R.string.key`, `Res.string.key`, `@string/key` — and jumps there, or shows a picker when there is more than one
+- Each result shows a code snippet and `File.kt:line`; generated `Res` accessors under `build/generated/` are excluded and multiple matches on the same line collapse to one entry
+
 ### Inspect
 
 - Hardcoded string highlight in editor (opt-in) — Android resource XML (`res/<type>/`) and Kotlin only
@@ -171,6 +176,11 @@ Gradle property (e.g. in `~/.gradle/gradle.properties`) if installed elsewhere
 1. Place caret on a string reference (`R.string.key`, `Res.string.key`, `@string/key`) or a `<string>` entry in `strings.xml`.
 2. `Ctrl+Alt+E` or right-click → **Edit String Resource** (also Alt+Enter).
 3. Change the key and/or the default and per-locale values. On rename, every reference is updated and the dialog reports how many.
+
+### Find where a string is used
+
+1. Open `strings.xml` and Ctrl+Click (Go to Declaration) on a `<string name="…">` entry.
+2. One usage → jump straight there. Several → pick from the popup (snippet + `File.kt:line`).
 
 ### `@Preview` exclusion
 
