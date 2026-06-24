@@ -48,6 +48,35 @@ object DuplicateRefParser {
 
 object DuplicateContext {
 
+    /**
+     * Cheap syntactic test for whether the caret sits on a `R.string.key` / `Res.string.key` reference
+     * or a `<string name=…>` entry. Used by intention `isAvailable`, which fires on every Alt+Enter — so
+     * unlike [detect] it must NOT scan the project or parse files. The owning default file and locale
+     * values are resolved later, in [detect], from the action's `invoke`.
+     */
+    fun isOnResourceRef(file: PsiFile, editor: Editor): Boolean {
+        val offset = editor.caretModel.offset
+        return refAt(file, offset) || (offset > 0 && refAt(file, offset - 1))
+    }
+
+    private fun refAt(file: PsiFile, offset: Int): Boolean {
+        val element = file.findElementAt(offset) ?: return false
+        if (file is KtFile) return isCodeRef(element)
+        val vf = file.virtualFile ?: return false
+        if (vf.name != "strings.xml") return false
+        val tag = PsiTreeUtil.getParentOfType(element, XmlTag::class.java, false) ?: return false
+        return tag.name == "string" && tag.getAttributeValue("name") != null
+    }
+
+    private fun isCodeRef(element: PsiElement): Boolean {
+        var qualified = PsiTreeUtil.getParentOfType(element, KtDotQualifiedExpression::class.java, false)
+        while (qualified != null) {
+            if (DuplicateRefParser.parse(qualified.text) != null) return true
+            qualified = PsiTreeUtil.getParentOfType(qualified, KtDotQualifiedExpression::class.java, true)
+        }
+        return false
+    }
+
     fun detect(project: Project, file: PsiFile, editor: Editor): DuplicateSource? {
         val offset = editor.caretModel.offset
         // Try the element at the caret, then the one just before it: a caret sitting at the *end* of a

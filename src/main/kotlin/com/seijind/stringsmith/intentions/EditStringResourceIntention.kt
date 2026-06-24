@@ -24,7 +24,7 @@ class EditStringResourceIntention : IntentionAction, PriorityAction, Iconable {
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean {
         if (editor == null || file == null) return false
-        return EditRunner.isEditable(project, file, editor)
+        return EditRunner.isEditable(file, editor)
     }
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {

@@ -4,6 +4,7 @@ import com.intellij.codeInspection.InspectionManager
 import com.intellij.codeInspection.LocalInspectionTool
 import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.codeInspection.ProblemHighlightType
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.xml.XmlTag
@@ -21,6 +22,7 @@ class DuplicateStringValueInspection : LocalInspectionTool() {
 
         val byValue = mutableMapOf<String, MutableList<XmlTag>>()
         for (tag in tags) {
+            ProgressManager.checkCanceled()
             val value = tag.value.text.trim()
             if (value.isEmpty()) continue
             byValue.getOrPut(value) { mutableListOf() }.add(tag)
@@ -28,6 +30,7 @@ class DuplicateStringValueInspection : LocalInspectionTool() {
 
         val problems = mutableListOf<ProblemDescriptor>()
         for ((value, group) in byValue) {
+            ProgressManager.checkCanceled()
             if (group.size < 2) continue
             val keys = group.mapNotNull { it.getAttributeValue("name") }
             val firstKey = keys.firstOrNull() ?: continue

@@ -8,8 +8,8 @@ import com.seijind.stringsmith.StringSmithBundle
 
 object DuplicateRunner {
 
-    fun isDuplicatable(project: Project, file: PsiFile, editor: Editor): Boolean =
-        KeyRefRunner.isAvailable(project, file, editor)
+    fun isDuplicatable(file: PsiFile, editor: Editor): Boolean =
+        KeyRefRunner.isAvailable(file, editor)
 
     fun run(project: Project, editor: Editor, file: PsiFile) =
         KeyRefRunner.run(project, file, editor, "error.duplicate.notOnKey", "duplicate.dialog.title") { source ->

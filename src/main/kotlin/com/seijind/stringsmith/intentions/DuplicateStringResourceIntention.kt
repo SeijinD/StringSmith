@@ -24,7 +24,7 @@ class DuplicateStringResourceIntention : IntentionAction, PriorityAction, Iconab
 
     override fun isAvailable(project: Project, editor: Editor?, file: PsiFile?): Boolean {
         if (editor == null || file == null) return false
-        return DuplicateRunner.isDuplicatable(project, file, editor)
+        return DuplicateRunner.isDuplicatable(file, editor)
     }
 
     override fun invoke(project: Project, editor: Editor?, file: PsiFile?) {

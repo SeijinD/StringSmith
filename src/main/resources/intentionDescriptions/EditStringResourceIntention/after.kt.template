@@ -1,0 +1,4 @@
+@Composable
+fun Greeting() {
+    Text(stringResource(R.string.welcome_message))
+}

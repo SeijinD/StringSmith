@@ -89,65 +89,34 @@ class StringSmithConfigurable : Configurable {
                 }
             }
 
-            group("Locale Files") {
+            group("Extraction Behavior") {
                 row {
                     checkBox("Auto-include locale variants by default")
                         .bindSelected({ settings.autoIncludeLocales }, { settings.autoIncludeLocales = it })
                         .comment("Initial checkbox state for <code>values-*/strings.xml</code> rows in the extract dialog.")
                         .applyToComponent { toolTipText = "When on, all locale variant rows start checked; when off, they start unchecked" }
                 }
-            }
-
-            group("Custom Composable Wrappers") {
-                row {
-                    textArea()
-                        .bindText({ settings.customComposableLambdaFunctions }, { settings.customComposableLambdaFunctions = it })
-                        .align(AlignX.FILL)
-                        .applyToComponent {
-                            rows = 3
-                            toolTipText = "One function name per line, comma- or space-separated. Strings inside their trailing lambda use stringResource."
-                        }
-                        .comment("Function names whose trailing lambda is a <code>@Composable</code> scope (e.g. <code>screenViewComposable</code>). Strings inside them use <code>stringResource</code> instead of <code>getString</code>. Separate names with a newline, comma, or space.")
-                }
-            }
-
-            group("Kotlin Multiplatform") {
-                row {
-                    textField()
-                        .label("Res package override:", LabelPosition.TOP)
-                        .bindText({ settings.cmpResPackageOverride }, { settings.cmpResPackageOverride = it })
-                        .align(AlignX.FILL)
-                        .applyToComponent {
-                            toolTipText = "e.g. com.example.app.generated.resources — leave blank to auto-detect"
-                        }
-                        .comment(
-                            "Generated <code>Res</code> class package for Compose Multiplatform " +
-                                "(<code>composeResources</code>) targets. Blank = auto-detect: gradle " +
-                                "<code>packageOfResClass</code> → existing <code>*.generated.resources.Res</code> " +
-                                "imports → derived from module package."
-                        )
-                }
-            }
-
-            group("Compose Previews") {
-                row {
-                    checkBox("Exclude strings inside @Preview composables")
-                        .bindSelected({ settings.excludePreviewComposables }, { settings.excludePreviewComposables = it })
-                        .comment("Skip strings inside functions annotated with <code>@Preview</code> (typically dummy data).")
-                        .applyToComponent { toolTipText = "Recommended on; previews usually contain sample text not meant for translation" }
-                }
-            }
-
-            group("Format Strings") {
                 row {
                     checkBox("Detect template expressions and extract as %1\$s placeholders")
                         .bindSelected({ settings.detectFormatArgs }, { settings.detectFormatArgs = it })
                         .comment("Converts <code>\"Hello \$name\"</code> to <code>\"Hello %1\$s\"</code> in strings.xml and passes the original expression as a format argument.")
                         .applyToComponent { toolTipText = "When off, strings with template expressions are skipped entirely" }
                 }
+                row {
+                    checkBox("Exclude strings inside @Preview composables")
+                        .bindSelected({ settings.excludePreviewComposables }, { settings.excludePreviewComposables = it })
+                        .comment("Skip strings inside functions annotated with <code>@Preview</code> (typically dummy data).")
+                        .applyToComponent { toolTipText = "Recommended on; previews usually contain sample text not meant for translation" }
+                }
+                row {
+                    checkBox("Remember last selected module across extracts")
+                        .bindSelected({ settings.rememberLastModule }, { settings.rememberLastModule = it })
+                        .comment("When the project has multiple <code>values/strings.xml</code> files, preselect the last one used.")
+                        .applyToComponent { toolTipText = "Stores the last picked strings.xml path between extracts" }
+                }
             }
 
-            group("Inspection") {
+            group("Inspections") {
                 row {
                     checkBox("Highlight hardcoded strings in editor")
                         .bindSelected({ settings.inspectionEnabled }, { settings.inspectionEnabled = it })
@@ -180,16 +149,7 @@ class StringSmithConfigurable : Configurable {
                 }
             }
 
-            group("Target Module") {
-                row {
-                    checkBox("Remember last selected module across extracts")
-                        .bindSelected({ settings.rememberLastModule }, { settings.rememberLastModule = it })
-                        .comment("When the project has multiple <code>values/strings.xml</code> files, preselect the last one used.")
-                        .applyToComponent { toolTipText = "Stores the last picked strings.xml path between extracts" }
-                }
-            }
-
-            group("strings.xml Behavior") {
+            group("strings.xml Output") {
                 row {
                     checkBox("Sort entries alphabetically after extract")
                         .bindSelected({ settings.sortAfterExtract }, { settings.sortAfterExtract = it })
@@ -212,7 +172,37 @@ class StringSmithConfigurable : Configurable {
                 }
             }
 
-            group("Exclusion Patterns") {
+            // Advanced, project-specific tuning — collapsed by default to keep the page short.
+            collapsibleGroup("Compose & Multiplatform") {
+                row {
+                    textArea()
+                        .bindText({ settings.customComposableLambdaFunctions }, { settings.customComposableLambdaFunctions = it })
+                        .label("Custom @Composable wrapper functions:", LabelPosition.TOP)
+                        .align(AlignX.FILL)
+                        .applyToComponent {
+                            rows = 3
+                            toolTipText = "One function name per line, comma- or space-separated. Strings inside their trailing lambda use stringResource."
+                        }
+                        .comment("Function names whose trailing lambda is a <code>@Composable</code> scope (e.g. <code>screenViewComposable</code>). Strings inside them use <code>stringResource</code> instead of <code>getString</code>. Separate names with a newline, comma, or space.")
+                }
+                row {
+                    textField()
+                        .label("Res package override:", LabelPosition.TOP)
+                        .bindText({ settings.cmpResPackageOverride }, { settings.cmpResPackageOverride = it })
+                        .align(AlignX.FILL)
+                        .applyToComponent {
+                            toolTipText = "e.g. com.example.app.generated.resources — leave blank to auto-detect"
+                        }
+                        .comment(
+                            "Generated <code>Res</code> class package for Compose Multiplatform " +
+                                "(<code>composeResources</code>) targets. Blank = auto-detect: gradle " +
+                                "<code>packageOfResClass</code> → existing <code>*.generated.resources.Res</code> " +
+                                "imports → derived from module package."
+                        )
+                }
+            }.expanded = false
+
+            collapsibleGroup("Exclusion Patterns") {
                 row {
                     textArea()
                         .bindText({ settings.excludePatterns }, { settings.excludePatterns = it })
@@ -232,7 +222,7 @@ class StringSmithConfigurable : Configurable {
                 row {
                     cell(regexErrorLabel)
                 }
-            }
+            }.expanded = false
 
             row {
                 button("Restore Defaults") {

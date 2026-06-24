@@ -13,8 +13,9 @@ import com.seijind.stringsmith.StringSmithBundle
  */
 object KeyRefRunner {
 
-    fun isAvailable(project: Project, file: PsiFile, editor: Editor): Boolean =
-        DuplicateContext.detect(project, file, editor) != null
+    // Cheap syntactic check only — the project scan/parse happens in [run], not on every Alt+Enter.
+    fun isAvailable(file: PsiFile, editor: Editor): Boolean =
+        DuplicateContext.isOnResourceRef(file, editor)
 
     fun run(
         project: Project,

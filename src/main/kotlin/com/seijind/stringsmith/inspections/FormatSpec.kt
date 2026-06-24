@@ -41,6 +41,8 @@ object FormatSpec {
 
     /** First mismatch between [default] and [translation], or null when their format arguments agree. */
     fun analyze(default: String, translation: String): FormatMismatch? {
+        // Most resource strings carry no format args at all; skip the regex scan for them.
+        if (!default.contains('%') && !translation.contains('%')) return null
         val defaultByPos = byPosition(specifiers(default))
         val actualByPos = byPosition(specifiers(translation))
         if (defaultByPos.keys != actualByPos.keys) {

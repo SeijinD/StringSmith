@@ -29,9 +29,18 @@ class DuplicateDialog(
 
     init {
         title = StringSmithBundle.message("duplicate.dialog.title")
-        keyField.document.addDocumentListener(LocaleUi.changeListener { refreshPreview() })
+        keyField.document.addDocumentListener(LocaleUi.changeListener { onKeyChanged() })
         refreshPreview()
         init()
+    }
+
+    private fun onKeyChanged() {
+        refreshPreview()
+        // Refresh the inline error and OK state immediately on every keystroke instead of waiting for
+        // the validation alarm, so a stale "key already exists" message clears as soon as you retype.
+        val error = validationMessage()
+        setErrorText(error, keyField)
+        isOKActionEnabled = error == null
     }
 
     private fun refreshPreview() {
@@ -81,12 +90,15 @@ class DuplicateDialog(
 
     override fun getPreferredFocusedComponent(): JComponent = keyField
 
-    override fun doValidate(): ValidationInfo? {
+    override fun doValidate(): ValidationInfo? =
+        validationMessage()?.let { ValidationInfo(it, keyField) }
+
+    private fun validationMessage(): String? {
         val key = keyField.text.trim()
-        if (key.isEmpty()) return ValidationInfo(StringSmithBundle.message("error.keyRequired"), keyField)
-        if (!KeyGenerator.isValidKey(key)) return ValidationInfo(StringSmithBundle.message("error.invalidKey"), keyField)
+        if (key.isEmpty()) return StringSmithBundle.message("error.keyRequired")
+        if (!KeyGenerator.isValidKey(key)) return StringSmithBundle.message("error.invalidKey")
         if (StringsXmlUtil.keyExists(source.defaultFile, key)) {
-            return ValidationInfo(StringSmithBundle.message("error.keyExists", key), keyField)
+            return StringSmithBundle.message("error.keyExists", key)
         }
         return null
     }

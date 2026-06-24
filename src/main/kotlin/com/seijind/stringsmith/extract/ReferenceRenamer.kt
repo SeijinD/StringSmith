@@ -2,6 +2,7 @@ package com.seijind.stringsmith.extract
 
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.module.ModuleUtilCore
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiDocumentManager
@@ -102,6 +103,7 @@ object ReferenceRenamer {
     ) {
         helper.processElementsWithWord(
             { element, _ ->
+                ProgressManager.checkCanceled()
                 val file = element.containingFile ?: return@processElementsWithWord true
                 if (file.name == "strings.xml") return@processElementsWithWord true
                 val text = element.text ?: return@processElementsWithWord true

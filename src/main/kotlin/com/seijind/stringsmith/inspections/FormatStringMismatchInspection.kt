@@ -4,6 +4,7 @@ import com.intellij.codeInspection.InspectionManager
 import com.intellij.codeInspection.LocalInspectionTool
 import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.codeInspection.ProblemHighlightType
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
@@ -36,6 +37,8 @@ class FormatStringMismatchInspection : LocalInspectionTool() {
 
         val problems = mutableListOf<ProblemDescriptor>()
         for (tag in tags) {
+            // Bail out promptly when the daemon cancels (e.g. the user keeps typing in a large file).
+            ProgressManager.checkCanceled()
             val key = tag.getAttributeValue("name") ?: continue
             val defaultValue = defaults[key] ?: continue
             val mismatch = FormatSpec.analyze(defaultValue, tag.value.text) ?: continue

@@ -8,9 +8,19 @@
 - **Find usages from `strings.xml`.** Ctrl+Click (Go to Declaration) on a `<string name="…">` entry now lists every place the key is referenced — `R.string.key`, `Res.string.key` (Compose Multiplatform), and `@string/key` — and jumps straight there (or shows a picker when there is more than one). Each result reads as a code snippet plus `File.kt:line`. Generated `Res` accessors under `build/generated/` are excluded, and the matches for a line are collapsed to a single entry so the popup stays readable.
 - **Format-string mismatch inspection.** Flags a locale `<string>` whose `%s`/`%d`/`%1$s` format arguments don't match the default `values/strings.xml` entry — a dropped or retyped argument that would crash at runtime with `IllegalFormatException`. Reports both argument-count and argument-type differences, and covers Compose Multiplatform `composeResources/values*` layouts, which Android Lint does not check. `%%` and `%n` are handled so ordinary text like `50% off` is never flagged. Toggle under **Settings → Tools → StringSmith → Inspection**.
 
+### Changed
+- Reorganized the **Settings** page into fewer, clearer groups: extraction toggles under **Extraction Behavior**, output toggles under **strings.xml Output**, and the advanced **Compose & Multiplatform** and **Exclusion Patterns** sections are now collapsible (collapsed by default) — less scrolling to reach the common options. Text fields such as **Res package override** now place their label above a full-width input instead of detached to the left.
+
 ### Fixed
 - The locale count in the **Edit** and **Extract** dialogs now includes the default value: a string with a default plus one `values-*` translation reads **Locales (2)** instead of **(1)**.
 - **Extract**, **Quick Extract**, and **Batch Extract** are no longer offered inside `res/values*` `strings.xml` (or other non-source files), where extraction is meaningless. They stay available in Kotlin sources and Android resource layouts; **Edit** and **Duplicate** remain available on `<string>` entries.
+- The **Duplicate String Resource** dialog now refreshes its key validation on every keystroke: clearing or retyping the key updates the inline error and the OK button immediately, instead of leaving a stale "key already exists" message and a disabled OK until the next validation tick.
+- The **Edit String Resource** intention now ships a description and before/after preview, so it no longer appears blank in **Settings → Editor → Intentions**.
+
+### Performance
+- The **Edit** and **Duplicate** Alt+Enter intentions no longer scan the whole project and parse every locale file just to decide whether to offer themselves. Availability is now a cheap, local syntactic check (is the caret on a `R.string`/`Res.string` reference or a `<string>` entry?); the owning `strings.xml` and locale values are resolved only when the action actually runs. Removes a per-Alt+Enter freeze on large, multi-module projects.
+- Inspections and the rename reference-search now check for cancellation between items, so editing a large `strings.xml` (or renaming a key) no longer blocks the editor on a stale scan when you keep typing — the outdated pass is abandoned instead of run to completion. Covers the format-mismatch, duplicate-value, and unused-string inspections and the project-wide rename search.
+- The format-mismatch inspection skips its regex scan entirely for strings with no `%` at all (the vast majority), so it adds almost no cost while you type in large translated files.
 
 ## [0.5.1] - 2026-06-20
 
