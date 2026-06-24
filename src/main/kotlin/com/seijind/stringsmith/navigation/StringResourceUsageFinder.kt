@@ -3,7 +3,6 @@ package com.seijind.stringsmith.navigation
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.roots.GeneratedSourcesFilter
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
@@ -40,10 +39,7 @@ object StringResourceUsageFinder {
                 val owner = element.containingFile ?: return@processElementsWithWord true
                 if (owner.name == "strings.xml") return@processElementsWithWord true
                 val vFile = owner.virtualFile
-                if (vFile != null &&
-                    (vFile.path.contains(GENERATED_PATH_MARKER) ||
-                        GeneratedSourcesFilter.isGeneratedSourceByAnyFilter(vFile, project))
-                ) {
+                if (vFile != null && vFile.path.contains(GENERATED_PATH_MARKER)) {
                     return@processElementsWithWord true
                 }
                 val text = element.text ?: return@processElementsWithWord true
@@ -109,7 +105,7 @@ object StringResourceUsageFinder {
     private const val LOOK_AHEAD = 2
     private const val MAX_SNIPPET = 100
 
-    // Compose Multiplatform writes its `Res`/`StringResource` accessors under build/generated/... .
-    // GeneratedSourcesFilter doesn't always flag that root, so exclude the path outright.
+    // Compose Multiplatform writes its `Res`/`StringResource` accessors under build/generated/... ;
+    // exclude that path so usages list real call sites, not the generated accessor declarations.
     private const val GENERATED_PATH_MARKER = "/build/generated/"
 }
