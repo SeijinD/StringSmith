@@ -133,5 +133,8 @@ class StringSmithSettingsTest {
         assertTrue(s.trimWhitespace)
         assertFalse(s.sortAfterExtract)
         assertEquals("", s.cmpResPackageOverride)
+        assertTrue(s.duplicateValueInspectionEnabled)
+        assertTrue(s.unusedStringInspectionEnabled)
+        assertTrue(s.formatMismatchInspectionEnabled)
     }
 }

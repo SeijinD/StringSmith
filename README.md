@@ -71,6 +71,7 @@ IntelliJ IDEA / Android Studio plugin for managing Android `strings.xml` resourc
 - Hardcoded string highlight in editor (opt-in) — Android resource XML (`res/<type>/`) and Kotlin only
 - Duplicate value in `strings.xml` (same text, different keys)
 - Unused string resource (no `R.string.key`, `Res.string.key`, or `@string/key` references)
+- Format-string mismatch across locales — a locale whose `%s`/`%d`/`%1$s` arguments don't match the default entry (count or type), which would crash at runtime. Covers Compose Multiplatform, which Android Lint doesn't check
 
 ### Settings
 

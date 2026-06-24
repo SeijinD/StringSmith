@@ -61,6 +61,9 @@
             <li>Hardcoded string highlight (opt-in)</li>
             <li>Duplicate value in <code>strings.xml</code> (same text, different keys)</li>
             <li>Unused string resource (no reference anywhere)</li>
+            <li>Format-string mismatch across locales — a locale whose <code>%s</code>/<code>%d</code>
+                arguments don't match the default entry (crashes at runtime); covers Compose Multiplatform,
+                which Android Lint doesn't check</li>
         </ul>
 
         <p><b>Settings:</b> key prefix and naming convention, replacement style per context, locale defaults,
@@ -103,6 +106,15 @@
             enabledByDefault="true"
             level="WEAK WARNING"
             implementationClass="com.seijind.stringsmith.inspections.UnusedStringResourceInspection"/>
+        <localInspection
+            language="XML"
+            shortName="StringSmithFormatMismatch"
+            bundle="messages.StringSmithBundle"
+            key="inspection.formatMismatch.displayName"
+            groupName="StringSmith"
+            enabledByDefault="true"
+            level="WARNING"
+            implementationClass="com.seijind.stringsmith.inspections.FormatStringMismatchInspection"/>
         <intentionAction>
             <className>com.seijind.stringsmith.intentions.ExtractStringResourceIntention</className>
             <category>StringSmith</category>

@@ -1,0 +1,33 @@
+<html>
+<body>
+<p>
+    Reports a <code>&lt;string&gt;</code> in a locale file (<code>values-*/strings.xml</code>) whose
+    format specifiers (<code>%s</code>, <code>%d</code>, <code>%1$s</code>, &hellip;) do not match the
+    default <code>values/strings.xml</code> entry for the same key.
+</p>
+<p>
+    A dropped, added, or retyped argument crashes at runtime with
+    <code>IllegalFormatException</code> as soon as that locale is shown.
+</p>
+<p><b>Example</b></p>
+<pre><code>&lt;!-- values/strings.xml --&gt;
+&lt;string name="greeting"&gt;Hello %1$s, you have %2$d messages&lt;/string&gt;
+
+&lt;!-- values-de/strings.xml --&gt;
+&lt;string name="greeting"&gt;Hallo %1$s&lt;/string&gt;        &lt;!-- flagged: 2 args expected, 1 here --&gt;
+&lt;string name="greeting"&gt;Hallo %1$s, %2$s Nachrichten&lt;/string&gt;  &lt;!-- flagged: arg 2 is %d, not %s --&gt;
+</code></pre>
+<p>
+    Works for both Android <code>res/values*</code> and Compose Multiplatform
+    <code>composeResources/values*</code> layouts. For Compose Multiplatform, Android Lint provides no
+    equivalent check.
+</p>
+<p>
+    <code>%%</code> is treated as an escaped percent and <code>%n</code> as a no-argument line
+    separator, so ordinary text such as <code>50% off</code> is never flagged.
+</p>
+<p>
+    Toggle in <b>Settings | Tools | StringSmith &rarr; Inspection</b>.
+</p>
+</body>
+</html>

@@ -13,6 +13,7 @@ import com.intellij.ui.dsl.builder.bindIntText
 import com.intellij.ui.dsl.builder.bindItem
 import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.bindText
+import com.intellij.ui.dsl.builder.LabelPosition
 import com.intellij.ui.dsl.builder.panel
 import javax.swing.JComponent
 import javax.swing.JTextArea
@@ -111,8 +112,9 @@ class StringSmithConfigurable : Configurable {
             }
 
             group("Kotlin Multiplatform") {
-                row("Res package override:") {
+                row {
                     textField()
+                        .label("Res package override:", LabelPosition.TOP)
                         .bindText({ settings.cmpResPackageOverride }, { settings.cmpResPackageOverride = it })
                         .align(AlignX.FILL)
                         .applyToComponent {
@@ -169,6 +171,12 @@ class StringSmithConfigurable : Configurable {
                         .bindSelected({ settings.unusedStringInspectionEnabled }, { settings.unusedStringInspectionEnabled = it })
                         .comment("Reports keys in <code>strings.xml</code> with no <code>R.string.key</code>, <code>Res.string.key</code> (Compose Multiplatform), or <code>@string/key</code> reference in the project.")
                         .applyToComponent { toolTipText = "Text-based search; dynamic key construction (e.g. \"key_\$type\") may report false positives" }
+                }
+                row {
+                    checkBox("Flag format-string mismatches across locales")
+                        .bindSelected({ settings.formatMismatchInspectionEnabled }, { settings.formatMismatchInspectionEnabled = it })
+                        .comment("Reports a locale <code>&lt;string&gt;</code> whose <code>%s</code>/<code>%d</code> format arguments don't match the default value — a runtime <code>IllegalFormatException</code> waiting to happen. Covers Compose Multiplatform, which Android Lint doesn't check.")
+                        .applyToComponent { toolTipText = "Compares each locale's format specifiers against values/strings.xml" }
                 }
             }
 

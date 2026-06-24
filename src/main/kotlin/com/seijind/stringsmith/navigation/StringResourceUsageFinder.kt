@@ -81,18 +81,15 @@ object StringResourceUsageFinder {
 
     private fun Match.toItem(): StringResourceUsageItem {
         val file = element.containingFile
-        val fileName = file?.name ?: "?"
-        val location = if (line >= 0) "$fileName:${line + 1}" else fileName
         return StringResourceUsageItem(
             origin = element,
             snippet = snippetOf(doc, line),
-            location = location,
+            location = "${file?.name ?: "?"}:${line + 1}",
             fileIcon = file?.getIcon(0)
         )
     }
 
     private fun snippetOf(doc: Document, line: Int): String {
-        if (line < 0) return "…"
         val raw = doc.getText(TextRange(doc.getLineStartOffset(line), doc.getLineEndOffset(line)))
         val collapsed = raw.replace(WHITESPACE, " ").trim()
         return if (collapsed.length > MAX_SNIPPET) collapsed.take(MAX_SNIPPET - 1) + "…" else collapsed

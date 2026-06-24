@@ -6,6 +6,7 @@
 
 ### Added
 - **Find usages from `strings.xml`.** Ctrl+Click (Go to Declaration) on a `<string name="…">` entry now lists every place the key is referenced — `R.string.key`, `Res.string.key` (Compose Multiplatform), and `@string/key` — and jumps straight there (or shows a picker when there is more than one). Each result reads as a code snippet plus `File.kt:line`. Generated `Res` accessors under `build/generated/` are excluded, and the matches for a line are collapsed to a single entry so the popup stays readable.
+- **Format-string mismatch inspection.** Flags a locale `<string>` whose `%s`/`%d`/`%1$s` format arguments don't match the default `values/strings.xml` entry — a dropped or retyped argument that would crash at runtime with `IllegalFormatException`. Reports both argument-count and argument-type differences, and covers Compose Multiplatform `composeResources/values*` layouts, which Android Lint does not check. `%%` and `%n` are handled so ordinary text like `50% off` is never flagged. Toggle under **Settings → Tools → StringSmith → Inspection**.
 
 ### Fixed
 - The locale count in the **Edit** and **Extract** dialogs now includes the default value: a string with a default plus one `values-*` translation reads **Locales (2)** instead of **(1)**.

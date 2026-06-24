@@ -42,6 +42,7 @@ class StringSmithSettings : PersistentStateComponent<StringSmithSettings.State> 
         var detectFormatArgs: Boolean = true,
         var duplicateValueInspectionEnabled: Boolean = true,
         var unusedStringInspectionEnabled: Boolean = true,
+        var formatMismatchInspectionEnabled: Boolean = true,
         var namingConvention: NamingConvention = NamingConvention.SNAKE_CASE,
         var maxKeyLength: Int = 40,
         var minStringLength: Int = 2,
@@ -101,6 +102,10 @@ class StringSmithSettings : PersistentStateComponent<StringSmithSettings.State> 
     var unusedStringInspectionEnabled: Boolean
         get() = state.unusedStringInspectionEnabled
         set(value) { state.unusedStringInspectionEnabled = value }
+
+    var formatMismatchInspectionEnabled: Boolean
+        get() = state.formatMismatchInspectionEnabled
+        set(value) { state.formatMismatchInspectionEnabled = value }
 
     var namingConvention: NamingConvention
         get() = state.namingConvention
