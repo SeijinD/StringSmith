@@ -49,10 +49,12 @@
 
         <p><b>Navigate</b></p>
         <ul>
-            <li>Ctrl+Click (Go to Declaration) on a <code>&lt;string name="…"&gt;</code> entry in
-                <code>strings.xml</code> lists every usage of the key (<code>R.string.key</code>,
-                <code>Res.string.key</code>, <code>@string/key</code>) and jumps there — or shows a picker
-                with a code snippet and <code>File.kt:line</code> when there is more than one</li>
+            <li>Alt+Click on a <code>&lt;string name="…"&gt;</code> entry in <code>strings.xml</code> lists
+                every usage of the key (<code>R.string.key</code>, <code>Res.string.key</code>,
+                <code>@string/key</code>) and jumps there — or shows a picker with a code snippet and
+                <code>File.kt:line</code> when there is more than one. Works in Android and Compose Multiplatform.</li>
+            <li>Ctrl+Click jumps to the same key in the other <code>values-*</code> locale files. On Android this
+                is the IDE's native gesture; StringSmith adds it for Compose Multiplatform, where it is missing.</li>
             <li>Generated <code>Res</code> accessors are excluded; matches on the same line collapse to one entry</li>
         </ul>
 
@@ -128,7 +130,7 @@
             <category>StringSmith</category>
         </intentionAction>
         <gotoDeclarationHandler
-            implementation="com.seijind.stringsmith.navigation.StringResourceGotoUsagesHandler"/>
+            implementation="com.seijind.stringsmith.navigation.StringLocaleGotoHandler"/>
         <applicationConfigurable
             parentId="tools"
             id="com.seijind.stringsmith.settings"
@@ -181,6 +183,13 @@
             <add-to-group group-id="EditorPopupMenu" anchor="first"/>
             <add-to-group group-id="RefactoringMenu" anchor="last"/>
             <keyboard-shortcut keymap="$default" first-keystroke="control alt E"/>
+        </action>
+        <action id="com.seijind.stringsmith.GotoStringUsagesAction"
+                class="com.seijind.stringsmith.navigation.StringResourceGotoUsagesAction"
+                text="Navigate to String Resource Usages"
+                description="Show usages (R.string/Res.string/@string) of the string resource under the caret">
+            <add-to-group group-id="EditorPopupMenu" anchor="first"/>
+            <mouse-shortcut keymap="$default" keystroke="alt button1"/>
         </action>
     </actions>
 </idea-plugin>

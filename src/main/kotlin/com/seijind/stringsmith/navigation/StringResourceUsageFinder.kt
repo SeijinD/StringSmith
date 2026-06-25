@@ -17,7 +17,7 @@ import kotlin.experimental.or
  * `R.string.key`, `Res.string.key` (CMP) or `@string/key`.
  *
  * Shares the project-wide word-index strategy used by the unused-string inspection, but collects the
- * matching PSI elements instead of a boolean — so Ctrl+Click can navigate straight to them. Results are
+ * matching PSI elements instead of a boolean — so Alt+Click can navigate straight to them. Results are
  * wrapped as [StringResourceUsageItem]s so the navigation popup reads "<snippet>  (File.kt:line)".
  */
 object StringResourceUsageFinder {

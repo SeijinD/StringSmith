@@ -8,7 +8,7 @@ import com.intellij.psi.impl.FakePsiElement
 import javax.swing.Icon
 
 /**
- * Navigation target wrapping a real usage [origin] of a string resource. In the Ctrl+Click popup it
+ * Navigation target wrapping a real usage [origin] of a string resource. In the usages popup it
  * presents as "<code snippet>   (File.kt:line)" instead of the raw multi-line element text, while
  * navigation is delegated to [origin] so the caret still lands on the actual reference.
  */

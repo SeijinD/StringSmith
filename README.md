@@ -63,8 +63,9 @@ IntelliJ IDEA / Android Studio plugin for managing Android `strings.xml` resourc
 
 ### Navigate
 
-- Ctrl+Click (Go to Declaration) on a `<string name="…">` entry in `strings.xml` lists every usage of the key — `R.string.key`, `Res.string.key`, `@string/key` — and jumps there, or shows a picker when there is more than one
+- **Alt+Click** (or editor right-click) on a `<string name="…">` entry in `strings.xml` lists every usage of the key — `R.string.key`, `Res.string.key`, `@string/key` — and jumps there, or shows a picker when there is more than one. Works in Android and Compose Multiplatform
 - Each result shows a code snippet and `File.kt:line`; generated `Res` accessors under `build/generated/` are excluded and multiple matches on the same line collapse to one entry
+- **Ctrl+Click** on a `<string name="…">` entry jumps to the same key in the other `values-*/strings.xml` locale files. Android Studio provides this natively for `res/values`; StringSmith adds it for Compose Multiplatform `composeResources`, where the IDE had no equivalent
 
 ### Inspect
 
@@ -180,8 +181,10 @@ Gradle property (e.g. in `~/.gradle/gradle.properties`) if installed elsewhere
 
 ### Find where a string is used
 
-1. Open `strings.xml` and Ctrl+Click (Go to Declaration) on a `<string name="…">` entry.
+1. Open `strings.xml` and Alt+Click on a `<string name="…">` entry (or right-click → **Navigate to String Resource Usages**).
 2. One usage → jump straight there. Several → pick from the popup (snippet + `File.kt:line`).
+
+Ctrl+Click on the same entry instead jumps between locales — the matching key in the other `values-*/strings.xml` files (native on Android; added by StringSmith for Compose Multiplatform).
 
 ### `@Preview` exclusion
 
