@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-06-25
+
+### Changed
+- **Find usages moved to Alt+Click.** Listing every place a `<string name="…">` key is referenced is now bound to **Alt+Click** (and the editor right-click menu) instead of Ctrl+Click, freeing Ctrl+Click for locale navigation (below). Works the same in Android and Compose Multiplatform.
+
+### Added
+- **Ctrl+Click between locales in Compose Multiplatform.** Ctrl+Click on a `<string name="…">` entry now jumps to the same key in the other `values-*/strings.xml` files. Android Studio already provides this for `res/values`; StringSmith adds it for `composeResources`, where the IDE had no equivalent.
+
 ## [0.6.0] - 2026-06-24
 
 ### Added
