@@ -5,7 +5,6 @@ import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
-import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.project.DumbService
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
@@ -47,10 +46,10 @@ class StringResourceGotoUsagesAction : AnAction() {
         val editor = e.getData(CommonDataKeys.EDITOR) ?: return null
         val file = e.getData(CommonDataKeys.PSI_FILE) ?: return null
         if (!StringsXmlFileFilter.isStringsXml(file)) return null
-        return ReadAction.compute<String?, RuntimeException> {
-            val element = file.findElementAt(editor.caretModel.offset) ?: return@compute null
-            keyOf(element)
-        }
+        // update() runs under a read lock (ActionUpdateThread.BGT); actionPerformed() runs on EDT — both
+        // hold read access, so no explicit ReadAction wrapper is needed.
+        val element = file.findElementAt(editor.caretModel.offset) ?: return null
+        return keyOf(element)
     }
 
     private fun keyOf(element: PsiElement): String? {
