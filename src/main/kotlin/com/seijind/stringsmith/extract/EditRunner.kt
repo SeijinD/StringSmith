@@ -10,7 +10,7 @@ object EditRunner {
         KeyRefRunner.isAvailable(file, editor)
 
     fun run(project: Project, editor: Editor, file: PsiFile) =
-        KeyRefRunner.run(project, file, editor, "error.edit.notOnKey", "edit.dialog.title") { source ->
+        KeyRefRunner.run(project, file, editor, "error.duplicate.notOnKey", "edit.dialog.title") { source ->
             val dialog = EditDialog(project, source)
             if (dialog.showAndGet()) EditWriter.write(project, source, dialog.result())
         }

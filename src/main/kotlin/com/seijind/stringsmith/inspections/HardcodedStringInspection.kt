@@ -2,6 +2,7 @@ package com.seijind.stringsmith.inspections
 
 import com.intellij.codeInspection.IntentionWrapper
 import com.intellij.codeInspection.LocalInspectionTool
+import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
@@ -57,7 +58,7 @@ class HardcodedStringInspection : LocalInspectionTool() {
                 holder.registerProblem(
                     anchor,
                     StringSmithBundle.message("inspection.hardcodedString.message"),
-                    com.intellij.codeInspection.ProblemHighlightType.GENERIC_ERROR_OR_WARNING,
+                    ProblemHighlightType.GENERIC_ERROR_OR_WARNING,
                     IntentionWrapper(ExtractStringResourceCoreIntention())
                 )
             }

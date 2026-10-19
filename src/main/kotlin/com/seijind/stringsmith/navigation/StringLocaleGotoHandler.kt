@@ -5,11 +5,8 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.DumbService
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiManager
-import com.intellij.psi.util.PsiTreeUtil
-import com.intellij.psi.xml.XmlAttribute
 import com.intellij.psi.xml.XmlAttributeValue
 import com.intellij.psi.xml.XmlFile
-import com.intellij.psi.xml.XmlTag
 import com.seijind.stringsmith.extract.ResourceSystem
 import com.seijind.stringsmith.extract.StringsXmlUtil
 import com.seijind.stringsmith.inspections.StringsXmlFileFilter
@@ -30,7 +27,7 @@ class StringLocaleGotoHandler : GotoDeclarationHandler {
         if (ResourceSystem.of(vFile) != ResourceSystem.COMPOSE_MULTIPLATFORM) return null
         if (DumbService.isDumb(file.project)) return null
 
-        val key = keyUnderCaret(element) ?: return null
+        val key = StringsXmlFileFilter.keyAt(element) ?: return null
         val project = file.project
         val default = StringsXmlUtil.findDefaultStringsXml(project, vFile) ?: return null
         val siblings = (listOf(default) + StringsXmlUtil.findLocaleVariants(default)).filter { it != vFile }
@@ -51,15 +48,5 @@ class StringLocaleGotoHandler : GotoDeclarationHandler {
             if (attr.value == key) return attr.valueElement
         }
         return null
-    }
-
-    /** Resource key when [element] sits on the `name` attribute value of a `<string>` tag, else null. */
-    private fun keyUnderCaret(element: PsiElement): String? {
-        val attrValue = PsiTreeUtil.getParentOfType(element, XmlAttributeValue::class.java, false) ?: return null
-        val attr = attrValue.parent as? XmlAttribute ?: return null
-        if (attr.name != "name") return null
-        val tag = PsiTreeUtil.getParentOfType(attr, XmlTag::class.java) ?: return null
-        if (tag.name != "string") return null
-        return attr.value?.takeIf { it.isNotEmpty() }
     }
 }

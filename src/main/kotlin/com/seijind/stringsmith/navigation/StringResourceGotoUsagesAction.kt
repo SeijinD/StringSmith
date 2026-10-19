@@ -6,11 +6,6 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.project.DumbService
-import com.intellij.psi.PsiElement
-import com.intellij.psi.util.PsiTreeUtil
-import com.intellij.psi.xml.XmlAttribute
-import com.intellij.psi.xml.XmlAttributeValue
-import com.intellij.psi.xml.XmlTag
 import com.seijind.stringsmith.inspections.StringsXmlFileFilter
 
 /**
@@ -49,15 +44,6 @@ class StringResourceGotoUsagesAction : AnAction() {
         // update() runs under a read lock (ActionUpdateThread.BGT); actionPerformed() runs on EDT — both
         // hold read access, so no explicit ReadAction wrapper is needed.
         val element = file.findElementAt(editor.caretModel.offset) ?: return null
-        return keyOf(element)
-    }
-
-    private fun keyOf(element: PsiElement): String? {
-        val attrValue = PsiTreeUtil.getParentOfType(element, XmlAttributeValue::class.java, false) ?: return null
-        val attr = attrValue.parent as? XmlAttribute ?: return null
-        if (attr.name != "name") return null
-        val tag = PsiTreeUtil.getParentOfType(attr, XmlTag::class.java) ?: return null
-        if (tag.name != "string") return null
-        return attr.value?.takeIf { it.isNotEmpty() }
+        return StringsXmlFileFilter.keyAt(element)
     }
 }

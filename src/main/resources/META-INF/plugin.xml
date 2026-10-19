@@ -136,8 +136,6 @@
             id="com.seijind.stringsmith.settings"
             displayName="StringSmith - Android Strings Toolkit"
             instance="com.seijind.stringsmith.settings.StringSmithConfigurable"/>
-        <applicationService
-            serviceImplementation="com.seijind.stringsmith.settings.StringSmithSettings"/>
         <notificationGroup id="StringSmith" displayType="BALLOON"/>
     </extensions>
 

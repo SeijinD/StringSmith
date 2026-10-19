@@ -6,11 +6,13 @@ import java.text.Normalizer
 object KeyGenerator {
 
     private val KEY_PATTERN = Regex("[a-zA-Z][a-zA-Z0-9_]*")
+    private val NON_ALNUM = Regex("[^A-Za-z0-9]+")
+    private val COMBINING_MARKS = Regex("\\p{M}+")
 
     fun isValidKey(key: String): Boolean = key.matches(KEY_PATTERN)
 
     fun suggest(value: String, prefix: String, naming: NamingConvention, maxLength: Int): String {
-        val ascii = transliterate(value).replace(Regex("[^A-Za-z0-9]+"), " ").trim()
+        val ascii = transliterate(value).replace(NON_ALNUM, " ").trim()
         // Non-Latin text (Greek, Cyrillic, CJK, emoji-only, …) strips to empty. Fall back to a stable
         // per-value token so distinct strings get distinct keys instead of all collapsing to "label".
         val cleaned = ascii.ifEmpty { fallbackToken(value) }
@@ -42,7 +44,7 @@ object KeyGenerator {
     // Greek and Cyrillic letters to Latin (Καλημέρα -> kalimera). Scripts without a mapping (CJK,
     // Arabic, emoji) pass through unchanged and are handled by the empty-result fallback.
     private fun transliterate(value: String): String {
-        val noMarks = Normalizer.normalize(value, Normalizer.Form.NFD).replace(Regex("\\p{M}+"), "")
+        val noMarks = Normalizer.normalize(value, Normalizer.Form.NFD).replace(COMBINING_MARKS, "")
         val sb = StringBuilder(noMarks.length)
         for (ch in noMarks) {
             val mapped = ROMANIZE[ch.lowercaseChar()]

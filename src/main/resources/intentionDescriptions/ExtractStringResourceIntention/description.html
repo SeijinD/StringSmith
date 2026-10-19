@@ -21,9 +21,15 @@
 <pre><code>Text(stringResource(R.string.hello_world))</code></pre>
 
 <p>
-    Skips: short literals, exclusion regexes, <code>@Preview</code> composables,
-    templates with <code>${'$'}</code>-expressions, XML refs starting with
-    <code>@</code> / <code>?</code>.
+    Templates with <code>$</code>-expressions become format arguments
+    (<code>"Hi $name"</code> &rarr; <code>Hi %1$s</code> plus <code>name</code> as an argument) in
+    <code>@Composable</code> and <code>Activity</code> / <code>Fragment</code> code, when
+    <b>Detect format args</b> is on. Elsewhere they are skipped.
+</p>
+
+<p>
+    Skips: short literals, exclusion regexes, <code>@Preview</code> composables, XML refs
+    starting with <code>@</code> / <code>?</code>.
 </p>
 
 <p>

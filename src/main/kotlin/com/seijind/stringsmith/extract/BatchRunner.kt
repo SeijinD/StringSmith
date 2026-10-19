@@ -22,7 +22,7 @@ object BatchRunner {
             return
         }
 
-        val initialTarget = chooseInitialTarget(project, file, allTargets, settings)
+        val initialTarget = ModuleResolver.chooseInitialTarget(project, file, allTargets, settings)
 
         // Seed each row with a suggested key only; BatchDialog recomputes existing-key reuse and status
         // for the chosen target in its init (refreshAllStatuses), so duplicating that here is redundant.
@@ -38,7 +38,7 @@ object BatchRunner {
             )
         }
 
-        val dialog = BatchDialog(project, rows, initialTarget, allTargets)
+        val dialog = BatchDialog(project, rows, initialTarget)
         if (!dialog.showAndGet()) return
 
         val result = dialog.result()
@@ -51,14 +51,6 @@ object BatchRunner {
         if (offset < 0) return 0
         return editor.document.getLineNumber(offset) + 1
     }
-
-    private fun chooseInitialTarget(
-        project: Project,
-        file: PsiFile,
-        allTargets: List<com.intellij.openapi.vfs.VirtualFile>,
-        settings: StringSmithSettings
-    ): com.intellij.openapi.vfs.VirtualFile =
-        ModuleResolver.chooseInitialTarget(project, file, allTargets, settings)
 
     private fun showError(project: Project, message: String) {
         Messages.showErrorDialog(project, message, StringSmithBundle.message("batch.dialog.title"))

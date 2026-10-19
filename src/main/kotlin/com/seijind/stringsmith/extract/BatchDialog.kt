@@ -51,8 +51,7 @@ data class BatchDialogResult(
 class BatchDialog(
     project: Project,
     private val initialRows: List<BatchRow>,
-    initialTarget: VirtualFile,
-    private val allTargets: List<VirtualFile>
+    private val initialTarget: VirtualFile
 ) : DialogWrapper(project, true) {
 
     private val proj: Project = project
@@ -73,7 +72,6 @@ class BatchDialog(
         preferredScrollableViewportSize = java.awt.Dimension(700, rowHeight * 18)
     }
 
-    private val resolvedTarget: VirtualFile = initialTarget
     private val moduleLabel: JBLabel = JBLabel(describeTarget(initialTarget)).apply {
         icon = AllIcons.Nodes.Module
         iconTextGap = 6
@@ -116,12 +114,12 @@ class BatchDialog(
             cell(JBScrollPane(table)).align(AlignX.FILL).resizableColumn()
         }.resizableRow()
         row {
-            link(StringSmithBundle.message("batch.link.selectAll")) {
+            link(StringSmithBundle.message("link.selectAll")) {
                 rows.forEachIndexed { i, _ -> rows[i] = rows[i].copy(include = true) }
                 tableModel.fireTableDataChanged()
                 refreshSummary()
             }
-            link(StringSmithBundle.message("batch.link.selectNone")) {
+            link(StringSmithBundle.message("link.selectNone")) {
                 rows.forEachIndexed { i, _ -> rows[i] = rows[i].copy(include = false) }
                 tableModel.fireTableDataChanged()
                 refreshSummary()
@@ -141,10 +139,9 @@ class BatchDialog(
 
     /** Auto-suffixes every colliding key (`key`, `key_2`, …) until it no longer clashes with the file or another included row. */
     private fun fixCollisions() {
-        val xml = currentStringsXml()
         rows.forEachIndexed { i, r ->
             if (r.status == BatchRowStatus.COLLISION) {
-                rows[i] = r.copy(key = uniqueKey(r.key, xml, i))
+                rows[i] = r.copy(key = uniqueKey(r.key, initialTarget, i))
             }
         }
         recomputeStatusesPreservingKeys()
@@ -194,7 +191,6 @@ class BatchDialog(
         localeRows = variants.map { LocaleRow(it, JCheckBox("", defaultInclude)) }
     }
 
-    private fun currentStringsXml(): VirtualFile = resolvedTarget
 
     private fun describeTarget(file: VirtualFile): String {
         val moduleRoot = ModuleRootUtil.findModuleRoot(file)
@@ -203,22 +199,20 @@ class BatchDialog(
     }
 
     private fun refreshAllStatuses() {
-        val xml = currentStringsXml()
         rows.forEachIndexed { i, r ->
-            val existing = StringsXmlUtil.findExistingKey(xml, r.value)
+            val existing = StringsXmlUtil.findExistingKey(initialTarget, r.value)
             val effectiveKey = existing ?: r.key
             rows[i] = r.copy(
                 existingKey = existing,
                 key = effectiveKey,
-                status = computeStatus(effectiveKey, r.value, xml, existing, i)
+                status = computeStatus(effectiveKey, r.value, initialTarget, existing, i)
             )
         }
     }
 
     private fun recomputeStatusesPreservingKeys() {
-        val xml = currentStringsXml()
         rows.forEachIndexed { i, r ->
-            rows[i] = r.copy(status = computeStatus(r.key, r.value, xml, r.existingKey, i))
+            rows[i] = r.copy(status = computeStatus(r.key, r.value, initialTarget, r.existingKey, i))
         }
     }
 
@@ -248,7 +242,7 @@ class BatchDialog(
 
     fun result(): BatchDialogResult = BatchDialogResult(
         rows = rows.toList(),
-        targetStringsXml = currentStringsXml(),
+        targetStringsXml = initialTarget,
         localeSelections = localeRows.map { BatchLocaleSelection(it.variant, it.include.isSelected) }
     )
 

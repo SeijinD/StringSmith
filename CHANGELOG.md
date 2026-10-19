@@ -6,6 +6,8 @@
 
 ### Fixed
 - **IntelliJ Platform 2026.3 compatibility.** Resolved the Plugin Verifier findings against IntelliJ IDEA 2026.3 (263): the usages popup no longer calls the override-only `Navigatable.navigate()` directly, and the message bundle no longer uses the deprecated `DynamicBundle(String)` constructor. No behavior change.
+- Intention and inspection descriptions (**Settings → Editor → Intentions / Inspections**) showed a literal `${'$'}` instead of `$`.
+- Corrected intention and inspection descriptions: **Extract** explains that `$`-templates become format arguments instead of claiming they are skipped; **Edit** and **Duplicate** no longer list layout `@string/key` as a supported caret position; **Duplicate** states that each locale keeps its own translation; **Unused string** lists `Res.string.key` among the counted references.
 
 ## [0.6.1] - 2026-06-25
 
