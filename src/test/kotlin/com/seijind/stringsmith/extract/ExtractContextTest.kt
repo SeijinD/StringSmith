@@ -148,7 +148,7 @@ class ExtractContextTest : BasePlatformTestCase() {
         assertNull(target)
     }
 
-    fun testClassifierWorksForWorkerSuffix() {
+    fun testWorkerIsGenericKotlin() {
         val target = detectAt(
             """
             class SyncWorker : ListenableWorker() {
@@ -160,7 +160,67 @@ class ExtractContextTest : BasePlatformTestCase() {
             "SyncWorker.kt"
         )
         assertNotNull(target)
-        assertEquals(ExtractContextKind.ANDROID_CLASS, target!!.kind)
+        assertEquals(ExtractContextKind.KOTLIN_GENERIC, target!!.kind)
+    }
+
+    fun testCustomViewIsGenericKotlin() {
+        val target = detectAt(
+            """
+            class Badge : LinearLayout() {
+                fun foo() {
+                    val x = "Ne<caret>w"
+                }
+            }
+            """.trimIndent(),
+            "Badge.kt"
+        )
+        assertNotNull(target)
+        assertEquals(ExtractContextKind.KOTLIN_GENERIC, target!!.kind)
+    }
+
+    fun testOnClickInsideComposableFunctionIsNotComposable() {
+        val target = detectAt(
+            """
+            import androidx.compose.runtime.Composable
+            @Composable
+            fun Screen() {
+                Button(onClick = { toast("Hel<caret>lo") }) {}
+            }
+            """.trimIndent(),
+            "Screen.kt"
+        )
+        assertNotNull(target)
+        assertEquals(ExtractContextKind.KOTLIN_GENERIC, target!!.kind)
+    }
+
+    fun testLaunchedEffectInsideComposableFunctionIsNotComposable() {
+        val target = detectAt(
+            """
+            import androidx.compose.runtime.Composable
+            @Composable
+            fun Screen() {
+                LaunchedEffect(Unit) { show("Hel<caret>lo") }
+            }
+            """.trimIndent(),
+            "Screen.kt"
+        )
+        assertNotNull(target)
+        assertEquals(ExtractContextKind.KOTLIN_GENERIC, target!!.kind)
+    }
+
+    fun testColumnInsideComposableFunctionIsComposable() {
+        val target = detectAt(
+            """
+            import androidx.compose.runtime.Composable
+            @Composable
+            fun Screen() {
+                Column { Text("Hel<caret>lo") }
+            }
+            """.trimIndent(),
+            "Screen.kt"
+        )
+        assertNotNull(target)
+        assertEquals(ExtractContextKind.COMPOSABLE, target!!.kind)
     }
 
     fun testIsInsidePreviewComposable_true() {
@@ -392,6 +452,34 @@ class ExtractContextTest : BasePlatformTestCase() {
         assertNotNull(target)
         assertEquals(ExtractContextKind.XML_LAYOUT, target!!.kind)
         assertEquals("Welcome", target.rawValue)
+    }
+
+    fun testKotlinQuoteEscapesAreUnescapedAndNewlineKept() {
+        val target = detectAt(
+            """
+            import androidx.compose.runtime.Composable
+            @Composable
+            fun Greeting() {
+                val x = "Say \"h<caret>i\" it\'s \${'$'}5\nnow"
+            }
+            """.trimIndent(),
+            "Greeting.kt"
+        )
+        assertNotNull(target)
+        assertEquals("Say \"hi\" it's ${'$'}5\\nnow", target!!.rawValue)
+    }
+
+    fun testXmlAttributeEntitiesAreDecoded() {
+        val target = detectInResXml(
+            "res/layout/layout.xml",
+            """
+            <LinearLayout>
+                <TextView android:text="Tom &amp; Je<caret>rry" />
+            </LinearLayout>
+            """.trimIndent()
+        )
+        assertNotNull(target)
+        assertEquals("Tom & Jerry", target!!.rawValue)
     }
 
     fun testDetectsXmlHintAttribute() {

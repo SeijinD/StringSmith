@@ -26,6 +26,10 @@ object Replacement {
         return if (injectsArgs(system, target.kind)) insertArgsBeforeClose(base, target.formatArgs) else base
     }
 
+    /** True when the reference for [system] has no place for the template's arguments, so they would be lost. */
+    fun dropsFormatArgs(target: ExtractTarget, system: ResourceSystem): Boolean =
+        target.formatArgs.isNotEmpty() && !injectsArgs(system, target.kind)
+
     private fun injectsArgs(system: ResourceSystem, kind: ExtractContextKind): Boolean = when (system) {
         ResourceSystem.ANDROID ->
             kind == ExtractContextKind.COMPOSABLE || kind == ExtractContextKind.ANDROID_CLASS

@@ -235,6 +235,9 @@ class ExtractDialog(
     override fun doValidate(): ValidationInfo? {
         keyError()?.let { return ValidationInfo(it, keyField) }
         valueError()?.let { return ValidationInfo(it, valueField) }
+        if (Replacement.dropsFormatArgs(target, ResourceSystem.of(currentStringsXml()))) {
+            return ValidationInfo(StringSmithBundle.message("error.formatArgsOutsideComposable"), moduleCombo)
+        }
         return null
     }
 

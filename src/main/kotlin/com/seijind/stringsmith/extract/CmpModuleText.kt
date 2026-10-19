@@ -27,11 +27,18 @@ object CmpModuleText {
 
     fun resolveResPackage(
         gradleText: String?,
+        moduleResImportPackages: List<String>,
         existingResImportPackages: List<String>,
         filePackage: String,
         moduleNamespace: String?
     ): String? {
         gradleText?.let { parsePackageOfResClass(it) }?.let { return it }
+
+        // The module's own code already imports its Res; its package need not match the code package
+        // (the CMP wizard puts Res in `<project>.<module>.generated.resources`).
+        if (moduleResImportPackages.isNotEmpty()) {
+            return pickResImportByFilePackage(moduleResImportPackages, filePackage) ?: moduleResImportPackages.first()
+        }
 
         pickResImportByFilePackage(existingResImportPackages, filePackage)?.let { return it }
 

@@ -11,10 +11,19 @@ import com.intellij.psi.search.FilenameIndex
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.util.containers.ContainerUtil
 
-data class StringsXmlEntry(val key: String, val value: String)
+/** [value] is the decoded text shown to the user; [rawValue] is the inner XML exactly as written. */
+data class StringsXmlEntry(val key: String, val value: String, val rawValue: String)
 
-/** A `<string>` to be written, with an optional preceding comment (e.g. `from File.kt:42`). */
-data class StringEntryDraft(val key: String, val value: String, val comment: String? = null)
+/**
+ * A `<string>` to be written, with an optional preceding comment (e.g. `from File.kt:42`). [isRawXml]
+ * values are copied verbatim instead of being XML-escaped.
+ */
+data class StringEntryDraft(
+    val key: String,
+    val value: String,
+    val comment: String? = null,
+    val isRawXml: Boolean = false
+)
 
 object StringsXmlUtil {
 
@@ -115,8 +124,19 @@ object StringsXmlUtil {
     fun findValueOfKey(file: VirtualFile, key: String): String? =
         readEntries(file).firstOrNull { it.key == key }?.value
 
-    fun appendEntry(file: VirtualFile, key: String, value: String, comment: String? = null, sortAlpha: Boolean = false): Boolean =
-        appendEntries(file, listOf(StringEntryDraft(key, value, comment)), sortAlpha)
+    fun findRawValueOfKey(file: VirtualFile, key: String): String? =
+        readEntries(file).firstOrNull { it.key == key }?.rawValue
+
+    fun hasDocument(file: VirtualFile): Boolean = FileDocumentManager.getInstance().getDocument(file) != null
+
+    fun appendEntry(
+        file: VirtualFile,
+        key: String,
+        value: String,
+        comment: String? = null,
+        sortAlpha: Boolean = false,
+        isRawXml: Boolean = false
+    ): Boolean = appendEntries(file, listOf(StringEntryDraft(key, value, comment, isRawXml)), sortAlpha)
 
     /**
      * Writes [key] → each locale's value into every locale file that doesn't already declare [key].
@@ -127,12 +147,13 @@ object StringsXmlUtil {
         locales: List<Pair<VirtualFile, String>>,
         key: String,
         comment: String?,
-        sortAlpha: Boolean
+        sortAlpha: Boolean,
+        isRawXml: Boolean = false
     ): List<VirtualFile> {
         val failed = mutableListOf<VirtualFile>()
         for ((file, value) in locales) {
             if (keyExists(file, key)) continue
-            if (!appendEntry(file, key, value, comment, sortAlpha)) failed += file
+            if (!appendEntry(file, key, value, comment, sortAlpha, isRawXml)) failed += file
         }
         return failed
     }

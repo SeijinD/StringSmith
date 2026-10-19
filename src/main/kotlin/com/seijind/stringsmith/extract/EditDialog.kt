@@ -132,7 +132,9 @@ class EditDialog(
         if (key.isBlank()) return StringSmithBundle.message("error.keyRequired")
         if (!KeyGenerator.isValidKey(key)) return StringSmithBundle.message("error.invalidKey")
         // The unchanged key is allowed; only a collision with a *different* existing key is an error.
-        if (key != source.key && StringsXmlUtil.keyExists(source.defaultFile, key)) {
+        if (key != source.key && (StringsXmlUtil.keyExists(source.defaultFile, key) ||
+                localeRows.any { StringsXmlUtil.keyExists(it.variant, key) })
+        ) {
             return StringSmithBundle.message("error.keyExists", key)
         }
         return null

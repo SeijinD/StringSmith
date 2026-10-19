@@ -6,8 +6,19 @@
 
 ### Fixed
 - **IntelliJ Platform 2026.3 compatibility.** Resolved the Plugin Verifier findings against IntelliJ IDEA 2026.3 (263): the usages popup no longer calls the override-only `Navigatable.navigate()` directly, and the message bundle no longer uses the deprecated `DynamicBundle(String)` constructor. No behavior change.
+- **Batch Extract** no longer corrupts code when a string template contains another string literal (e.g. `"Hello ${name ?: "Guest"}"`); only the outer string is extracted.
 - Intention and inspection descriptions (**Settings → Editor → Intentions / Inspections**) showed a literal `${'$'}` instead of `$`.
 - Corrected intention and inspection descriptions: **Extract** explains that `$`-templates become format arguments instead of claiming they are skipped; **Edit** and **Duplicate** no longer list layout `@string/key` as a supported caret position; **Duplicate** states that each locale keeps its own translation; **Unused string** lists `Res.string.key` among the counted references.
+- Extracting a Kotlin string with escaped quotes (`"Say \"hi\""`) or a layout attribute with XML entities (`Tom &amp; Jerry`) no longer double-escapes the value in `strings.xml`.
+- Strings inside event or effect lambdas of a `@Composable` (`onClick = { }`, `LaunchedEffect { }`, `remember { }`) are no longer replaced with `stringResource(...)`, which does not compile there; they get `R.string.key`.
+- Strings in custom `View`s, `BroadcastReceiver`s, `ContentProvider`s and `Worker`s are no longer replaced with `getString(R.string.key)`, which those classes do not have; they get `R.string.key`.
+- Compose Multiplatform: extracting `"Hello $name"` outside a `@Composable` no longer drops `name` silently (the reference became plain `Res.string.key`). The Extract dialog now explains why it cannot be extracted there, and Batch Extract leaves such strings out.
+- Compose Multiplatform: the generated `Res` import now prefers the package the module's own code already imports, so projects from the CMP wizard (`Res` in `<project>.<module>.generated.resources`, code in `org.example.project`) no longer get an unresolved `org.example.project.generated.resources.Res` import.
+- **Edit** (key rename) no longer rewrites `android.R.string.<key>` platform references or `R.string.<key>` text inside string literals and comments, and now also renames `@string/<key>` aliases inside `strings.xml`.
+- **Unused string** inspection now works for Compose Multiplatform after a build (the generated `Res` accessors under `build/generated/` no longer count as usages), counts `@string/<key>` aliases inside `strings.xml` as usages, and ignores `android.R.string.<key>`.
+- **Find usages** (Alt+Click) no longer lists `android.R.string.<key>` platform references, and now lists `@string/<key>` aliases inside `strings.xml`.
+- **Duplicate** copies each value exactly as written, so markup (`<b>`), entities (`&#169;`, `&quot;`) and Android quoting are no longer escaped into visible text.
+- **Edit** only rewrites values you actually changed (unchanged values with markup or entities stay intact), rejects a new key that already exists in any locale file, and no longer renames code references when the default `strings.xml` cannot be written.
 
 ## [0.6.1] - 2026-06-25
 

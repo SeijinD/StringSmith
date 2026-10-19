@@ -34,7 +34,8 @@ object ExtractRunner {
             prepared.existingKey == null &&
             !collision &&
             variants.isEmpty() &&
-            KeyGenerator.isValidKey(prepared.suggested)
+            KeyGenerator.isValidKey(prepared.suggested) &&
+            !Replacement.dropsFormatArgs(prepared.target, ResourceSystem.of(prepared.initialTarget))
 
         if (!canSkip) {
             runWithDialog(project, editor, prepared, settings)

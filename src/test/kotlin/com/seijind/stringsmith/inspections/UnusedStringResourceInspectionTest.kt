@@ -25,6 +25,59 @@ class UnusedStringResourceInspectionTest : BasePlatformTestCase() {
         assertTrue(problems[0].descriptionTemplate.contains("never_used"))
     }
 
+    fun testFlagsCmpKeyReferencedOnlyByGeneratedAccessor() {
+        myFixture.addFileToProject(
+            "composeApp/build/generated/compose/resourceGenerator/kotlin/String0.commonMain.kt",
+            """
+            package com.example.app.generated.resources
+            val Res.string.welcome: StringResource get() = TODO()
+            """.trimIndent()
+        )
+        val file = stringsXml(
+            """
+            <resources>
+                <string name="welcome">Welcome</string>
+            </resources>
+            """.trimIndent()
+        )
+        val problems = UnusedStringResourceInspection().checkFile(file, InspectionManager.getInstance(project), false)
+        assertEquals(1, problems?.size)
+    }
+
+    fun testDoesNotFlagKeyUsedByAliasInStringsXml() {
+        val file = stringsXml(
+            """
+            <resources>
+                <string name="app_name">Demo</string>
+                <string name="title">@string/app_name</string>
+            </resources>
+            """.trimIndent()
+        )
+        val problems = UnusedStringResourceInspection().checkFile(file, InspectionManager.getInstance(project), false)
+        val flagged = problems.orEmpty().map { it.descriptionTemplate }
+        assertTrue(flagged.none { it.contains("app_name") })
+    }
+
+    fun testFlagsKeyReferencedOnlyAsPlatformAndroidR() {
+        myFixture.addFileToProject(
+            "src/MyActivity.kt",
+            """
+            class MyActivity {
+                fun foo() { val x = android.R.string.cancel }
+            }
+            """.trimIndent()
+        )
+        val file = stringsXml(
+            """
+            <resources>
+                <string name="cancel">Cancel</string>
+            </resources>
+            """.trimIndent()
+        )
+        val problems = UnusedStringResourceInspection().checkFile(file, InspectionManager.getInstance(project), false)
+        assertEquals(1, problems?.size)
+    }
+
     fun testDoesNotFlagWhenReferencedInKotlin() {
         myFixture.addFileToProject(
             "src/MyActivity.kt",

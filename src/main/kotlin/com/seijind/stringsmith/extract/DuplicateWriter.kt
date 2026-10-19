@@ -15,14 +15,22 @@ object DuplicateWriter {
     ) {
         val failed = mutableListOf<String>()
         WriteCommandAction.runWriteCommandAction(project, "Duplicate String Resource", null, {
+            // Copy the raw XML so markup (`<b>`), entities and Android quoting survive the copy unchanged.
+            val defaultRaw = StringsXmlUtil.findRawValueOfKey(source.defaultFile, source.key)
             // Abort if the new key never lands in the default file: switching the caret reference to a
             // non-existent key would break the build with only a warning.
-            if (!StringsXmlUtil.appendEntry(source.defaultFile, result.newKey, source.defaultValue, null, settings.sortAfterExtract)) {
+            if (defaultRaw == null || !StringsXmlUtil.appendEntry(
+                    source.defaultFile, result.newKey, defaultRaw, null, settings.sortAfterExtract, isRawXml = true
+                )
+            ) {
                 failed += DisplayPath.projectRelative(project, source.defaultFile)
                 return@runWriteCommandAction
             }
+            val localeRaws = source.localeValues.keys.mapNotNull { file ->
+                StringsXmlUtil.findRawValueOfKey(file, source.key)?.let { file to it }
+            }
             StringsXmlUtil.mirrorKeyToLocales(
-                source.localeValues.toList(), result.newKey, null, settings.sortAfterExtract
+                localeRaws, result.newKey, null, settings.sortAfterExtract, isRawXml = true
             ).forEach { failed += DisplayPath.projectRelative(project, it) }
             if (result.updateReference && source.codeRef != null) {
                 switchReference(source.codeRef, result.newKey, source.system)

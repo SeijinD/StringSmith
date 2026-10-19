@@ -69,7 +69,9 @@ object ExtractContext {
         if (!isExtractableTextAttribute(attribute)) return null
         val value = attr.value
         if (value.startsWith("@") || value.startsWith("?")) return null
-        return ExtractTarget(xml = attr, rawValue = value, kind = ExtractContextKind.XML_LAYOUT, containingFile = file)
+        // attr.value keeps entities encoded (`A &amp; B`); the written entry re-encodes them.
+        val decoded = attribute.displayValue ?: value
+        return ExtractTarget(xml = attr, rawValue = decoded, kind = ExtractContextKind.XML_LAYOUT, containingFile = file)
     }
 
     // Only user-facing text attributes are extractable. Enum/dimension/reference attributes
@@ -108,7 +110,7 @@ object ExtractContext {
         val kind = classifyKotlin(expr)
         val hasExpressions = expr.entries.any { it is KtStringTemplateEntryWithExpression }
         if (!hasExpressions) {
-            val value = expr.entries.joinToString("") { it.text }
+            val value = expr.entries.joinToString("") { if (it is KtEscapeStringTemplateEntry) androidText(it) else it.text }
             return ExtractTarget(kotlin = expr, rawValue = value, kind = kind, containingFile = file)
         }
         if (!StringSmithSettings.getInstance().detectFormatArgs) return null
@@ -118,7 +120,7 @@ object ExtractContext {
         for (entry in expr.entries) {
             when (entry) {
                 is KtLiteralStringTemplateEntry -> sb.append(entry.text.replace("%", "%%"))
-                is KtEscapeStringTemplateEntry -> sb.append(entry.text.replace("%", "%%"))
+                is KtEscapeStringTemplateEntry -> sb.append(androidText(entry).replace("%", "%%"))
                 is KtSimpleNameStringTemplateEntry -> {
                     args.add(entry.expression?.text ?: entry.text.removePrefix("$"))
                     sb.append("%${args.size}\$s")
@@ -138,11 +140,22 @@ object ExtractContext {
         )
     }
 
-    private fun classifyKotlin(expr: KtStringTemplateExpression): ExtractContextKind {
-        if (isInsideComposableLambda(expr)) return ExtractContextKind.COMPOSABLE
+    // rawValue holds Android string-resource text. Kotlin's `\n`, `\t`, `\\` mean the same there and are
+    // kept; quote and `\$` escapes are unescaped because encodeXml escapes quotes itself.
+    private fun androidText(entry: KtEscapeStringTemplateEntry): String =
+        if (entry.text in KOTLIN_ONLY_ESCAPES || entry.text.startsWith("\\u")) entry.unescapedValue else entry.text
 
-        val fn = PsiTreeUtil.getParentOfType(expr, KtNamedFunction::class.java, true)
-        if (fn != null && hasComposable(fn)) return ExtractContextKind.COMPOSABLE
+    private val KOTLIN_ONLY_ESCAPES = setOf("\\\"", "\\'", "\\$")
+
+    private fun classifyKotlin(expr: KtStringTemplateExpression): ExtractContextKind {
+        val lambdaScope = lambdaScopeOf(expr)
+        if (lambdaScope == LambdaScope.COMPOSABLE) return ExtractContextKind.COMPOSABLE
+
+        // Inside an event or effect lambda the enclosing @Composable doesn't make the string composable.
+        if (lambdaScope == LambdaScope.NONE) {
+            val fn = PsiTreeUtil.getParentOfType(expr, KtNamedFunction::class.java, true)
+            if (fn != null && hasComposable(fn)) return ExtractContextKind.COMPOSABLE
+        }
 
         val cls = PsiTreeUtil.getParentOfType(expr, KtClass::class.java, true)
         if (cls != null) {
@@ -153,21 +166,34 @@ object ExtractContext {
         return ExtractContextKind.KOTLIN_GENERIC
     }
 
-    private fun isInsideComposableLambda(expr: KtStringTemplateExpression): Boolean {
+    private enum class LambdaScope { COMPOSABLE, NON_COMPOSABLE, NONE }
+
+    private fun lambdaScopeOf(expr: KtStringTemplateExpression): LambdaScope {
         val customNames = StringSmithSettings.getInstance().customComposableLambdaFunctionSet()
         var lambda = PsiTreeUtil.getParentOfType(expr, KtLambdaExpression::class.java, true)
         while (lambda != null) {
-            // Only a trailing-lambda argument preserves a composable scope (Column { }, run { }, …). A
-            // value-argument lambda such as onClick = { } is an event handler that runs outside
-            // composition, so it deliberately stops the walk → getString / R.string, not stringResource.
-            val lambdaArg = lambda.parent as? KtLambdaArgument ?: return false
-            val call = lambdaArg.parent as? KtCallExpression ?: return false
-            val callee = (call.calleeExpression as? KtNameReferenceExpression)?.getReferencedName() ?: return false
-            if (callee in COMPOSABLE_ENTRY_CALLS || callee in customNames) return true
+            // Only a trailing-lambda argument can carry a composable scope (Column { }, run { }, ...). A
+            // value-argument lambda such as onClick = { } is an event handler that runs outside composition.
+            val lambdaArg = lambda.parent as? KtLambdaArgument ?: return LambdaScope.NON_COMPOSABLE
+            val call = lambdaArg.parent as? KtCallExpression ?: return LambdaScope.NON_COMPOSABLE
+            val callee = (call.calleeExpression as? KtNameReferenceExpression)?.getReferencedName()
+            if (callee in COMPOSABLE_ENTRY_CALLS || callee in customNames) return LambdaScope.COMPOSABLE
+            if (callee in NON_COMPOSABLE_LAMBDA_CALLS) return LambdaScope.NON_COMPOSABLE
             lambda = PsiTreeUtil.getParentOfType(call, KtLambdaExpression::class.java, true)
         }
-        return false
+        return LambdaScope.NONE
     }
+
+    private val NON_COMPOSABLE_LAMBDA_CALLS = setOf(
+        "LaunchedEffect",
+        "DisposableEffect",
+        "SideEffect",
+        "launch",
+        "async",
+        "remember",
+        "rememberSaveable",
+        "derivedStateOf"
+    )
 
     private val COMPOSABLE_ENTRY_CALLS = setOf(
         "setContent",
@@ -184,10 +210,7 @@ object ExtractContext {
     private val ANDROID_NAME_SUFFIXES = listOf(
         "Activity",
         "Fragment",
-        "Service",
-        "Receiver",
-        "Provider",
-        "Worker"
+        "Service"
     )
 
     private fun hasComposable(fn: KtNamedFunction): Boolean =
@@ -216,13 +239,7 @@ object ExtractContext {
         "DialogFragment",
         "BottomSheetDialogFragment",
         "PreferenceFragmentCompat",
-        "Service",
-        "BroadcastReceiver",
-        "View",
-        "ViewGroup",
-        "FrameLayout",
-        "LinearLayout",
-        "ConstraintLayout"
+        "Service"
     )
 
     fun fromKotlin(expr: KtStringTemplateExpression, file: PsiFile): ExtractTarget? =

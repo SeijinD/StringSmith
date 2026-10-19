@@ -24,10 +24,16 @@ object EditWriter {
 
         WriteCommandAction.runWriteCommandAction(project, "Edit String Resource", null, {
             val originalKey = result.originalKey
+            // Without the default file nothing below can be kept consistent, least of all the code rename.
+            if (!StringsXmlUtil.hasDocument(source.defaultFile)) {
+                failed += DisplayPath.projectRelative(project, source.defaultFile)
+                return@runWriteCommandAction
+            }
 
             // 1. Write all values under the ORIGINAL key first, so deletes/updates still find their entries.
-            if (!StringsXmlUtil.updateValue(source.defaultFile, originalKey, result.newDefaultValue)) {
-                failed += DisplayPath.projectRelative(project, source.defaultFile)
+            // Unchanged values are left alone: re-encoding the decoded text would mangle markup and entities.
+            if (result.newDefaultValue != source.defaultValue) {
+                StringsXmlUtil.updateValue(source.defaultFile, originalKey, result.newDefaultValue)
             }
             result.localeEdits.forEach { edit ->
                 applyLocaleEdit(project, edit, originalKey, settings, failed)
@@ -69,6 +75,7 @@ object EditWriter {
         val newValue = edit.newValue
         val ok = when {
             newValue.isBlank() -> if (existed) StringsXmlUtil.deleteKey(edit.file, key) else true
+            newValue == edit.originalValue -> true
             existed -> StringsXmlUtil.updateValue(edit.file, key, newValue)
             else -> StringsXmlUtil.appendEntry(edit.file, key, newValue, null, settings.sortAfterExtract)
         }

@@ -19,7 +19,19 @@ object BatchScanner {
                 is ExtractValidator.Result.Ok -> r.target
                 is ExtractValidator.Result.Rejected -> null
             }
-        }.distinctBy { startOffsetOf(it) }
+        }.distinctBy { startOffsetOf(it) }.let(::dropNested)
+    }
+
+    // A literal nested in another candidate's template (`"Hi ${name ?: "Guest"}"`) would be replaced
+    // first and leave the outer candidate's range stale, so only the outer one is kept.
+    private fun dropNested(targets: List<ExtractTarget>): List<ExtractTarget> {
+        val candidates = targets.mapNotNull { it.kotlin }.toSet()
+        return targets.filter { target ->
+            val expr = target.kotlin ?: return@filter true
+            generateSequence(PsiTreeUtil.getParentOfType(expr, KtStringTemplateExpression::class.java, true)) {
+                PsiTreeUtil.getParentOfType(it, KtStringTemplateExpression::class.java, true)
+            }.none { it in candidates }
+        }
     }
 
     private fun scanKotlin(file: KtFile): List<ExtractTarget> =

@@ -77,6 +77,22 @@ class BatchScannerTest : BasePlatformTestCase() {
         assertFalse(values.contains("PreviewDummy"))
     }
 
+    fun testScanKeepsOnlyOuterTemplateWhenLiteralIsNested() {
+        val file = myFixture.configureByText(
+            "Foo.kt",
+            """
+            import androidx.compose.runtime.Composable
+            @Composable
+            fun Greet(name: String?) {
+                val a = "Hello ${'$'}{name ?: "Guest"}"
+            }
+            """.trimIndent()
+        )
+        val results = BatchScanner.scan(file, StringSmithSettings())
+        val values = results.map { it.rawValue }
+        assertEquals(listOf("Hello %1${'$'}s"), values)
+    }
+
     fun testScanReturnsEmptyForFileWithoutLiterals() {
         val file = myFixture.configureByText(
             "Empty.kt",

@@ -32,7 +32,7 @@ object StringsXmlText {
 
     fun parseEntries(text: String): List<StringsXmlEntry> =
         liveEntryMatches(text).map { m ->
-            StringsXmlEntry(m.groupValues[2], decodeXml(m.groupValues[3]))
+            StringsXmlEntry(m.groupValues[2], decodeXml(m.groupValues[3]), m.groupValues[3])
         }
 
     /**
@@ -54,10 +54,11 @@ object StringsXmlText {
     ): String {
         if (drafts.isEmpty()) return text
         val block = buildString {
-            for ((key, value, comment) in drafts) {
+            for (draft in drafts) {
+                val comment = draft.comment
                 if (!comment.isNullOrBlank()) append("    <!-- ").append(sanitizeComment(comment)).append(" -->\n")
-                append("    <string name=\"").append(key).append("\">")
-                append(encodeXml(value))
+                append("    <string name=\"").append(draft.key).append("\">")
+                append(if (draft.isRawXml) draft.value else encodeXml(draft.value))
                 append("</string>\n")
             }
         }

@@ -10,12 +10,6 @@ import com.seijind.stringsmith.settings.StringSmithSettings
 object BatchRunner {
 
     fun run(project: Project, editor: Editor, file: PsiFile, settings: StringSmithSettings = StringSmithSettings.getInstance()) {
-        val candidates = BatchScanner.scan(file, settings)
-        if (candidates.isEmpty()) {
-            showError(project, StringSmithBundle.message("batch.error.noCandidates"))
-            return
-        }
-
         val allTargets = StringsXmlUtil.findAllDefaultStringsXml(project)
         if (allTargets.isEmpty()) {
             showError(project, StringSmithBundle.message("error.noStringsXml"))
@@ -23,6 +17,12 @@ object BatchRunner {
         }
 
         val initialTarget = ModuleResolver.chooseInitialTarget(project, file, allTargets, settings)
+        val system = ResourceSystem.of(initialTarget)
+        val candidates = BatchScanner.scan(file, settings).filterNot { Replacement.dropsFormatArgs(it, system) }
+        if (candidates.isEmpty()) {
+            showError(project, StringSmithBundle.message("batch.error.noCandidates"))
+            return
+        }
 
         // Seed each row with a suggested key only; BatchDialog recomputes existing-key reuse and status
         // for the chosen target in its init (refreshAllStatuses), so duplicating that here is redundant.

@@ -29,8 +29,8 @@ IntelliJ IDEA / Android Studio plugin for managing Android `strings.xml` resourc
 - Context-aware replacement
   - Inside `@Composable` → `stringResource(R.string.key)`
   - Inside composable entry-point lambdas (`setContent`, `composable`, `navigation`, `dialog`, `bottomSheet`, `composed`) and nested layout lambdas → `stringResource(R.string.key)`
-  - Inside `Activity` / `Fragment` / `View` → `getString(R.string.key)`
-  - Other Kotlin code → `R.string.key`
+  - Inside `Activity` / `Fragment` / `Service` → `getString(R.string.key)`
+  - Other Kotlin code, including event and effect lambdas inside a `@Composable` (`onClick = { }`, `LaunchedEffect { }`) → `R.string.key`
   - XML layout attribute → `@string/key`
 - **Kotlin Multiplatform / Compose Multiplatform** — targets under `composeResources/values/` produce CMP references with auto-imported generated `Res`:
   - `@Composable` → `stringResource(Res.string.key)`
@@ -39,7 +39,7 @@ IntelliJ IDEA / Android Studio plugin for managing Android `strings.xml` resourc
 - Auto-import for Compose `stringResource` (sorted with existing imports)
 - Duplicate value detection during extract — reuse existing key
 - Multi-locale propagation across `values-*` folders
-- Kotlin template expressions extracted as `%1$s` format args (e.g. `"Hello $name"` → `stringResource(R.string.hello_s, name)`)
+- Kotlin template expressions extracted as `%1$s` format args (e.g. `"Hello $name"` → `stringResource(R.string.hello_s, name)`). In Compose Multiplatform this works only inside a `@Composable`, since `Res.string.key` alone has no place for the arguments
 - Quick-fix intention on hardcoded literals (Alt+Enter)
 - Quick extract: skip dialog when target is unambiguous (inline hint confirms the chosen key)
 - Batch extract: extract all strings in a file in one pass — colour-coded per-row status with per-status counts, a one-click **Fix collisions** action, and status/summary updating live while you edit keys

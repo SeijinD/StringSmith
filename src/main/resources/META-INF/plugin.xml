@@ -14,7 +14,7 @@
         <p><b>Extract</b></p>
         <ul>
             <li>Context-aware replacement: <code>stringResource</code> in Composables, <code>getString</code> in
-                Activity/Fragment/View, <code>R.string</code> in other Kotlin, <code>@string/</code> in XML layouts</li>
+                Activity/Fragment/Service, <code>R.string</code> in other Kotlin, <code>@string/</code> in XML layouts</li>
             <li>Kotlin Multiplatform / Compose Multiplatform: <code>stringResource(Res.string.key)</code> with
                 auto-imported generated <code>Res</code> (package auto-detected, overridable in settings)</li>
             <li>Auto-import for Compose <code>stringResource</code> with sorted imports</li>

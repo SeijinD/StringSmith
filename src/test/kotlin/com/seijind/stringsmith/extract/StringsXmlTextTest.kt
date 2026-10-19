@@ -20,6 +20,21 @@ class StringsXmlTextTest {
     }
 
     @Test
+    fun parseEntries_keepsRawValue() {
+        val entries = StringsXmlText.parseEntries("<resources><string name=\"a\"><b>Hi</b> &amp; you</string></resources>")
+        assertEquals("<b>Hi</b> &amp; you", entries.single().rawValue)
+    }
+
+    @Test
+    fun appendEntries_rawXmlIsNotEscaped() {
+        val result = StringsXmlText.appendEntries(
+            "<resources>\n</resources>",
+            listOf(StringEntryDraft("a", "<b>Hi</b> &amp;", isRawXml = true))
+        )
+        assertTrue(result.contains("<string name=\"a\"><b>Hi</b> &amp;</string>"))
+    }
+
+    @Test
     fun parseEntries_multipleEntries() {
         val xml = """
             <resources>

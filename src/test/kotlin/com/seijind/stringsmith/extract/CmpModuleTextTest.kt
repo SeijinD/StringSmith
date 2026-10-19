@@ -37,6 +37,7 @@ class CmpModuleTextTest {
     fun resolve_gradleOverridesEverything() {
         val pkg = CmpModuleText.resolveResPackage(
             gradleText = """packageOfResClass = "com.declared.res"""",
+            moduleResImportPackages = emptyList(),
             existingResImportPackages = listOf("com.scanned.generated.resources"),
             filePackage = "com.scanned.feature",
             moduleNamespace = "com.namespace"
@@ -48,6 +49,7 @@ class CmpModuleTextTest {
     fun resolve_picksImportMatchingFilePackage() {
         val pkg = CmpModuleText.resolveResPackage(
             gradleText = null,
+            moduleResImportPackages = emptyList(),
             existingResImportPackages = listOf(
                 "com.other.generated.resources",
                 "com.example.app.generated.resources"
@@ -63,6 +65,7 @@ class CmpModuleTextTest {
         // No prefix match: prefer deriving from THIS file's package over an arbitrary other module's import.
         val pkg = CmpModuleText.resolveResPackage(
             gradleText = null,
+            moduleResImportPackages = emptyList(),
             existingResImportPackages = listOf("com.only.generated.resources"),
             filePackage = "org.unrelated.code",
             moduleNamespace = null
@@ -71,10 +74,24 @@ class CmpModuleTextTest {
     }
 
     @Test
+    fun resolve_prefersSameModuleImportOverDerivedPackage() {
+        // CMP wizard layout: Res lives in <project>.<module>.generated.resources, code in org.example.project.
+        val pkg = CmpModuleText.resolveResPackage(
+            gradleText = null,
+            moduleResImportPackages = listOf("kotlinproject.composeapp.generated.resources"),
+            existingResImportPackages = listOf("kotlinproject.composeapp.generated.resources"),
+            filePackage = "org.example.project",
+            moduleNamespace = "org.example.project"
+        )
+        assertEquals("kotlinproject.composeapp.generated.resources", pkg)
+    }
+
+    @Test
     fun resolve_fallsBackToFirstImportOnlyWhenNoModuleInfo() {
         // True last resort: no gradle, no prefix match, no namespace, no file package.
         val pkg = CmpModuleText.resolveResPackage(
             gradleText = null,
+            moduleResImportPackages = emptyList(),
             existingResImportPackages = listOf("com.only.generated.resources"),
             filePackage = "",
             moduleNamespace = null
@@ -86,6 +103,7 @@ class CmpModuleTextTest {
     fun resolve_derivesFromNamespaceWhenNoImports() {
         val pkg = CmpModuleText.resolveResPackage(
             gradleText = "android { namespace = \"com.example.app\" }",
+            moduleResImportPackages = emptyList(),
             existingResImportPackages = emptyList(),
             filePackage = "com.example.app.ui",
             moduleNamespace = "com.example.app"
@@ -97,6 +115,7 @@ class CmpModuleTextTest {
     fun resolve_derivesFromFilePackageWhenNoNamespace() {
         val pkg = CmpModuleText.resolveResPackage(
             gradleText = null,
+            moduleResImportPackages = emptyList(),
             existingResImportPackages = emptyList(),
             filePackage = "com.example.app.ui",
             moduleNamespace = null
@@ -108,6 +127,7 @@ class CmpModuleTextTest {
     fun resolve_returnsNullWhenNothingAvailable() {
         val pkg = CmpModuleText.resolveResPackage(
             gradleText = null,
+            moduleResImportPackages = emptyList(),
             existingResImportPackages = emptyList(),
             filePackage = "",
             moduleNamespace = null
