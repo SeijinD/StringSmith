@@ -9,6 +9,8 @@ import com.seijind.stringsmith.extract.DuplicateRunner
 class DuplicateStringResourceAction : BaseExtractAction() {
     override fun isAvailableFor(file: PsiFile): Boolean = DuplicateContext.isKeyRefFile(file)
 
+    override fun isApplicableAt(file: PsiFile, editor: Editor): Boolean = DuplicateContext.isOnResourceRef(file, editor)
+
     override fun perform(project: Project, editor: Editor, file: PsiFile) =
         DuplicateRunner.run(project, editor, file)
 }

@@ -31,8 +31,12 @@ object CmpModuleUtil {
 
         return CmpModuleText.resolveResPackage(
             gradleText = gradleText,
-            moduleResImportPackages = imports.filter { modulePrefix != null && it.filePath.startsWith(modulePrefix) }
-                .map { it.resPackage }.distinct(),
+            // A module may also import a dependency's Res (e.g. `:core`); only its own counts here.
+            moduleResImportPackages = imports
+                .filter { modulePrefix != null && it.filePath.startsWith(modulePrefix) }
+                .map { it.resPackage }
+                .distinct()
+                .filter { moduleRoot != null && CmpModuleText.isModuleResPackage(it, moduleRoot.name) },
             existingResImportPackages = imports.map { it.resPackage }.distinct(),
             filePackage = filePackage,
             moduleNamespace = moduleNamespace

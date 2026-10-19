@@ -13,6 +13,7 @@ import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.SearchScope
 import com.intellij.psi.search.UsageSearchContext
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.psi.xml.XmlFile
 import org.jetbrains.kotlin.psi.KtFile
 import kotlin.experimental.or
 
@@ -30,7 +31,10 @@ object ReferenceRenamer {
         val system: ResourceSystem,
         internal val edits: Map<Document, List<RangeMarker>>,
         internal val cmpResPackages: Map<KtFile, String>
-    )
+    ) {
+        /** Releases the range markers when the plan is dropped without [applyPlan]. */
+        fun dispose() = edits.values.flatten().forEach { it.dispose() }
+    }
 
     /**
      * Searches for in-scope references and returns a [RenamePlan]. Run this OUTSIDE the write command:
@@ -64,13 +68,16 @@ object ReferenceRenamer {
         KeyReferences.forEach(
             project, scope, oldKey, listOf(codePrefix),
             UsageSearchContext.IN_CODE or UsageSearchContext.IN_FOREIGN_LANGUAGES
-        ) { file, keyStart -> isInCommentOrString(file, keyStart) || collect(file, keyStart) }
+        ) { file, keyStart -> isInComment(file, keyStart) || isInCodeString(file, keyStart) || collect(file, keyStart) }
         // `@string/` lives in XML attribute values and values (Android only); those are indexed as foreign-language/strings.
+        // In code a `"@string/old"` literal is text, not a reference.
         if (system == ResourceSystem.ANDROID) {
             KeyReferences.forEach(
                 project, scope, oldKey, listOf(ResourceSystem.XML_REF_PREFIX),
-                UsageSearchContext.IN_FOREIGN_LANGUAGES or UsageSearchContext.IN_STRINGS, collect
-            )
+                UsageSearchContext.IN_FOREIGN_LANGUAGES or UsageSearchContext.IN_STRINGS
+            ) { file, keyStart ->
+                isInComment(file, keyStart) || (file !is XmlFile && isInCodeString(file, keyStart)) || collect(file, keyStart)
+            }
         }
         val cmpResPackages = if (system == ResourceSystem.COMPOSE_MULTIPLATFORM) {
             touchedKtFiles.mapNotNull { file -> KtImportUtil.cmpResPackage(file)?.let { file to it } }.toMap()
@@ -96,11 +103,14 @@ object ReferenceRenamer {
         return renamed
     }
 
-    private fun isInCommentOrString(file: PsiFile, offset: Int): Boolean {
+    private fun isInComment(file: PsiFile, offset: Int): Boolean =
+        PsiTreeUtil.getParentOfType(file.findElementAt(offset), PsiComment::class.java, false) != null
+
+    // Kotlin lists the string token itself as a literal element, Java its parent literal expression.
+    private fun isInCodeString(file: PsiFile, offset: Int): Boolean {
         val leaf = file.findElementAt(offset) ?: return false
-        if (PsiTreeUtil.getParentOfType(leaf, PsiComment::class.java, false) != null) return true
-        val stringTokens = LanguageParserDefinitions.INSTANCE.forLanguage(leaf.language)?.stringLiteralElements ?: return false
-        return leaf.node.elementType in stringTokens
+        val stringTypes = LanguageParserDefinitions.INSTANCE.forLanguage(leaf.language)?.stringLiteralElements ?: return false
+        return leaf.node.elementType in stringTypes || leaf.parent?.node?.elementType in stringTypes
     }
 
     private fun ownerScope(project: Project, declaringFile: VirtualFile): SearchScope {

@@ -11,6 +11,9 @@ import com.seijind.stringsmith.StringSmithBundle
 import com.seijind.stringsmith.extract.ExtractContext
 import com.seijind.stringsmith.extract.ExtractTarget
 import com.seijind.stringsmith.extract.ExtractValidator
+import com.seijind.stringsmith.extract.Replacement
+import com.seijind.stringsmith.extract.ResourceSystem
+import com.seijind.stringsmith.extract.StringsXmlUtil
 import com.seijind.stringsmith.intentions.ExtractStringResourceIntention
 import com.seijind.stringsmith.settings.StringSmithSettings
 import org.jetbrains.kotlin.psi.KtStringTemplateEntryWithExpression
@@ -52,6 +55,7 @@ class HardcodedStringInspection : LocalInspectionTool() {
 
             private fun reportIfExtractable(target: ExtractTarget, anchor: PsiElement, settings: StringSmithSettings) {
                 if (ExtractValidator.validate(target, settings) !is ExtractValidator.Result.Ok) return
+                if (losesFormatArgs(target)) return
                 holder.registerProblem(
                     anchor,
                     StringSmithBundle.message("inspection.hardcodedString.message"),
@@ -60,6 +64,14 @@ class HardcodedStringInspection : LocalInspectionTool() {
                 )
             }
         }
+    }
+
+    // Only templates with arguments can lose them; resolving the target strings.xml is skipped otherwise.
+    private fun losesFormatArgs(target: ExtractTarget): Boolean {
+        if (target.formatArgs.isEmpty()) return false
+        val file = target.containingFile
+        val stringsXml = StringsXmlUtil.findDefaultStringsXml(file.project, file.virtualFile) ?: return false
+        return Replacement.dropsFormatArgs(target, ResourceSystem.of(stringsXml))
     }
 }
 

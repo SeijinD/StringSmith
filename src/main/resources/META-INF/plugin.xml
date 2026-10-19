@@ -69,7 +69,7 @@
         </ul>
 
         <p><b>Settings:</b> key prefix and naming convention, replacement style per context, locale defaults,
-            format-arg detection, inspection toggles, exclusion patterns, custom Composable wrapper names, and a live
+            format-arg detection, logging-string filtering, exclusion patterns, custom Composable wrapper names, and a live
             key preview.</p>
     ]]></description>
 

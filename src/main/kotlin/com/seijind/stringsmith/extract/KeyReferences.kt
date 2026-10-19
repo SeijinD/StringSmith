@@ -73,7 +73,11 @@ object KeyReferences {
         val before = text.getOrNull(prefixStart - 1) ?: return true
         if (before.isIdentifierChar()) return false
         if (before != '.') return true
-        return !text.subSequence(0, prefixStart).endsWith("android.")
+        // Only a bare `android.` qualifier is the platform; `com.acme.android.R` is the project's own R.
+        val qualifierStart = prefixStart - "android.".length
+        if (!text.subSequence(0, prefixStart).endsWith("android.")) return true
+        val beforeQualifier = text.getOrNull(qualifierStart - 1) ?: return false
+        return beforeQualifier.isIdentifierChar() || beforeQualifier == '.'
     }
 
     private fun Char.isIdentifierChar(): Boolean = isLetterOrDigit() || this == '_'

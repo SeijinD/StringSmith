@@ -22,6 +22,11 @@ class KeyReferencesTest {
     }
 
     @Test
+    fun matchesProjectRInPackageEndingWithAndroid() {
+        assertEquals("R.string.", prefixIn("com.acme.android.R.string.cancel", "cancel"))
+    }
+
+    @Test
     fun rejectsPlatformAndroidR() {
         assertNull(prefixIn("android.R.string.cancel", "cancel"))
     }

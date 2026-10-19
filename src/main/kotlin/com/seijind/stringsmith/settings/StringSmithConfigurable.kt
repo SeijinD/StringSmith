@@ -31,6 +31,8 @@ class StringSmithConfigurable : Configurable {
     private var prefixField: JBTextField? = null
     private var namingCombo: ComboBox<NamingConvention>? = null
     private var maxKeyLengthField: JBTextField? = null
+    private var excludePatternsArea: JTextArea? = null
+    private val previewListener = LocaleUi.changeListener { refreshPreview() }
 
     override fun getDisplayName(): String = "StringSmith - Android Strings Toolkit"
 
@@ -227,9 +229,6 @@ class StringSmithConfigurable : Configurable {
         refreshRegexError()
         return builder
     }
-
-    private val previewListener = LocaleUi.changeListener { refreshPreview() }
-    private var excludePatternsArea: JTextArea? = null
 
     private fun regexError(): String? {
         val text = excludePatternsArea?.text ?: return null

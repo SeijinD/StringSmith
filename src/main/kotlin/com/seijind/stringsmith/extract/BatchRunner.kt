@@ -18,7 +18,7 @@ object BatchRunner {
 
         val initialTarget = ModuleResolver.chooseInitialTarget(project, file, allTargets, settings)
         val system = ResourceSystem.of(initialTarget)
-        val candidates = BatchScanner.scan(file, settings).filterNot { Replacement.dropsFormatArgs(it, system) }
+        val candidates = BatchScanner.scan(file, settings, system)
         if (candidates.isEmpty()) {
             showError(project, StringSmithBundle.message("batch.error.noCandidates"))
             return

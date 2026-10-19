@@ -2,7 +2,9 @@ package com.seijind.stringsmith.extract
 
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.Messages
 import com.intellij.psi.PsiDocumentManager
+import com.seijind.stringsmith.StringSmithBundle
 import com.seijind.stringsmith.settings.StringSmithSettings
 
 object DuplicateWriter {
@@ -13,16 +15,29 @@ object DuplicateWriter {
         result: DuplicateDialogResult,
         settings: StringSmithSettings = StringSmithSettings.getInstance()
     ) {
+        // Copy the raw XML so markup (`<b>`), entities and Android quoting survive the copy unchanged.
+        val defaultRaw = StringsXmlUtil.findRawValueOfKey(source.defaultFile, source.key)
+        if (defaultRaw == null) {
+            Messages.showErrorDialog(
+                project,
+                StringSmithBundle.message("duplicate.error.keyMissing", source.key, DisplayPath.projectRelative(project, source.defaultFile)),
+                StringSmithBundle.message("duplicate.dialog.title")
+            )
+            return
+        }
         val failed = mutableListOf<String>()
-        val cmpResPackage = source.codeRef
-            ?.takeIf { result.updateReference && source.system == ResourceSystem.COMPOSE_MULTIPLATFORM }
-            ?.let { KtImportUtil.cmpResPackage(it.ktFile) }
+        var cmpResPackage: String? = null
+        val ref = source.codeRef?.takeIf { result.updateReference && source.system == ResourceSystem.COMPOSE_MULTIPLATFORM }
+        if (ref != null) {
+            val completed = SmartRead.withProgress(project, StringSmithBundle.message("progress.resolveImports")) {
+                cmpResPackage = KtImportUtil.cmpResPackage(ref.ktFile)
+            }
+            if (!completed) return
+        }
         WriteCommandAction.runWriteCommandAction(project, "Duplicate String Resource", null, {
-            // Copy the raw XML so markup (`<b>`), entities and Android quoting survive the copy unchanged.
-            val defaultRaw = StringsXmlUtil.findRawValueOfKey(source.defaultFile, source.key)
             // Abort if the new key never lands in the default file: switching the caret reference to a
             // non-existent key would break the build with only a warning.
-            if (defaultRaw == null || !StringsXmlUtil.appendEntry(
+            if (!StringsXmlUtil.appendEntry(
                     source.defaultFile, result.newKey, defaultRaw, null, settings.sortAfterExtract, isRawXml = true
                 )
             ) {

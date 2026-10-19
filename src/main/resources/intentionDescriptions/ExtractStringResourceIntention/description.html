@@ -9,7 +9,7 @@
 <table border="0" cellpadding="3" cellspacing="0">
     <tr><td><b>Context</b></td><td><b>Replacement</b></td></tr>
     <tr><td><code>@Composable</code></td><td><code>stringResource(R.string.key)</code></td></tr>
-    <tr><td><code>Activity</code> / <code>Fragment</code></td><td><code>getString(R.string.key)</code></td></tr>
+    <tr><td><code>Activity</code> / <code>Fragment</code> / <code>Service</code></td><td><code>getString(R.string.key)</code></td></tr>
     <tr><td>Other Kotlin</td><td><code>R.string.key</code></td></tr>
     <tr><td>XML layout</td><td><code>@string/key</code></td></tr>
 </table>
@@ -23,8 +23,9 @@
 <p>
     Templates with <code>$</code>-expressions become format arguments
     (<code>"Hi $name"</code> &rarr; <code>Hi %1$s</code> plus <code>name</code> as an argument) in
-    <code>@Composable</code> and <code>Activity</code> / <code>Fragment</code> code, when
-    <b>Detect format args</b> is on. Elsewhere they are skipped.
+    <code>@Composable</code> and <code>Activity</code> / <code>Fragment</code> / <code>Service</code>
+    code, when <b>Detect format args</b> is on. Elsewhere they are skipped. For Compose
+    Multiplatform this works only inside <code>@Composable</code>.
 </p>
 
 <p>

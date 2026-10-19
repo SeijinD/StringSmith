@@ -4,43 +4,27 @@
 
 ## [Unreleased]
 
+### Changed
+- **Inspections are controlled only from the inspection profile** (**Settings → Editor → Inspections → StringSmith**). The duplicate checkboxes in StringSmith settings are gone. Hardcoded strings stay off by default; if you had changed any of the four inspections in StringSmith settings, set them again in the inspection profile.
+- Removed the unused optional dependency on the Android plugin. Works the same in IntelliJ IDEA and Android Studio.
+
 ### Fixed
-- **IntelliJ Platform 2026.3 compatibility.** Resolved the Plugin Verifier findings against IntelliJ IDEA 2026.3 (263): the usages popup no longer calls the override-only `Navigatable.navigate()` directly, and the message bundle no longer uses the deprecated `DynamicBundle(String)` constructor. No behavior change.
-- **Batch Extract** no longer corrupts code when a string template contains another string literal (e.g. `"Hello ${name ?: "Guest"}"`); only the outer string is extracted.
-- Intention and inspection descriptions (**Settings → Editor → Intentions / Inspections**) showed a literal `${'$'}` instead of `$`.
-- Corrected intention and inspection descriptions: **Extract** explains that `$`-templates become format arguments instead of claiming they are skipped; **Edit** and **Duplicate** no longer list layout `@string/key` as a supported caret position; **Duplicate** states that each locale keeps its own translation; **Unused string** lists `Res.string.key` among the counted references.
-- Extracting a Kotlin string with escaped quotes (`"Say \"hi\""`) or a layout attribute with XML entities (`Tom &amp; Jerry`) no longer double-escapes the value in `strings.xml`.
-- Strings inside event or effect lambdas of a `@Composable` (`onClick = { }`, `LaunchedEffect { }`, `remember { }`) are no longer replaced with `stringResource(...)`, which does not compile there; they get `R.string.key`.
-- Strings in custom `View`s, `BroadcastReceiver`s, `ContentProvider`s and `Worker`s are no longer replaced with `getString(R.string.key)`, which those classes do not have; they get `R.string.key`.
-- Compose Multiplatform: extracting `"Hello $name"` outside a `@Composable` no longer drops `name` silently (the reference became plain `Res.string.key`). The Extract dialog now explains why it cannot be extracted there, and Batch Extract leaves such strings out.
-- Compose Multiplatform: the generated `Res` import now prefers the package the module's own code already imports, so projects from the CMP wizard (`Res` in `<project>.<module>.generated.resources`, code in `org.example.project`) no longer get an unresolved `org.example.project.generated.resources.Res` import.
-- **Edit** (key rename) no longer rewrites `android.R.string.<key>` platform references or `R.string.<key>` text inside string literals and comments, and now also renames `@string/<key>` aliases inside `strings.xml`.
-- **Unused string** inspection now works for Compose Multiplatform after a build (the generated `Res` accessors under `build/generated/` no longer count as usages), counts `@string/<key>` aliases inside `strings.xml` as usages, and ignores `android.R.string.<key>`.
-- **Find usages** (Alt+Click) no longer lists `android.R.string.<key>` platform references, and now lists `@string/<key>` aliases inside `strings.xml`.
-- **Duplicate** copies each value exactly as written, so markup (`<b>`), entities (`&#169;`, `&quot;`) and Android quoting are no longer escaped into visible text.
-- **Edit** only rewrites values you actually changed (unchanged values with markup or entities stay intact), rejects a new key that already exists in any locale file, and no longer renames code references when the default `strings.xml` cannot be written.
-- **Extract** dialog: ticking a locale checkbox (or using **Select all / Select none**) now enables or disables its value field right away.
-- **Batch Extract**: an unticked row no longer marks other rows as **Duplicate value**, and pressing Escape while editing a key restores the previous key.
-- **Extract to strings.xml** (Alt+Enter) is offered again when the hardcoded-string inspection is enabled in StringSmith settings but not actually reporting, e.g. disabled in the inspection profile, suppressed, or for strings it ignores (logging calls, annotations). Alt+Enter still shows a single entry when both apply.
-- **Edit** and **Duplicate String Resource** no longer appear in the editor context menu of files where they can never apply (only Kotlin files and `strings.xml`).
-- Extract, Batch Extract, Edit and Duplicate shortcuts pressed right after typing no longer act on stale code positions.
-- Cancelling a background operation no longer falls back to a full disk scan for `strings.xml` files.
-- Writing into a `strings.xml` that contains only `<resources/>` no longer produces a second `<resources>` root (invalid XML).
-- With **Sort entries** and **Add source comment** both on, the `<!-- from File.kt:42 -->` comment now moves together with its entry instead of staying behind and labelling another key.
-- Projects located under a directory named `build` (e.g. `/srv/build/app`) no longer report "No strings.xml found".
-- **Format string mismatch** inspection: skips strings marked `formatted="false"`, reports arguments at different positions (`%1$s %2$s` vs `%1$s %3$s`) with a dedicated message instead of "expects 2, has 2", and says formatting *may* fail at runtime (fewer arguments in a translation do not crash).
-- **Settings**: the key preview now follows Prefix, Naming and Max key length as you type instead of only after Apply, and Apply refuses out-of-range numbers (e.g. max key length 0) and invalid exclusion regexes instead of saving them.
-- Extract, Batch Extract, Duplicate and Edit no longer run the import optimizer on your file, which also removed unrelated unused imports you were still working with. New imports are inserted in sorted position instead.
-- **Find usages** (Alt+Click) on a key without usages now shows a "No usages found" hint instead of doing nothing.
+- **Extract** picks the right reference in more places: strings in `onClick`, `LaunchedEffect`, `remember` and other non-composable lambdas inside a `@Composable` no longer get `stringResource(...)`, and custom `View`s, receivers, providers and workers no longer get a `getString(...)` they don't have.
+- **Extract** no longer double-escapes values: escaped quotes in Kotlin (`"Say \"hi\""`) and XML entities in layouts (`Tom &amp; Jerry`) are written correctly.
+- **Compose Multiplatform**: the `Res` import uses the module's own generated package (also in CMP wizard projects and in modules that import another module's `Res`), and `"Hello $name"` outside a `@Composable` is no longer extracted with `name` silently dropped.
+- **Batch Extract** no longer corrupts code when a string template contains another literal (`"Hello ${name ?: "Guest"}"`), an unticked row no longer marks others as duplicates, and Escape restores the key being edited.
+- **Edit**: renaming a key no longer touches `android.R.string.*` or text inside strings and comments, also renames `@string/` aliases in `strings.xml`, and rejects a key that already exists in a locale. Values you didn't change are left exactly as written.
+- **Duplicate** copies values exactly as written, so markup (`<b>`) and entities are kept.
+- **Unused string** inspection works for Compose Multiplatform projects after a build, counts `@string/` aliases as usages and ignores `android.R.string.*`.
+- **Format string mismatch** inspection skips `formatted="false"` strings and reports arguments at different positions correctly.
+- **Find usages** (Alt+Click) shows a hint when there are no usages and ignores `android.R.string.*`.
+- Extract, Edit and Duplicate no longer run the import optimizer, which also removed your own unused imports.
+- **Extract to strings.xml** (Alt+Enter) is always offered on extractable strings. The editor right-click menu offers Extract / Quick Extract only on a string literal and Edit / Duplicate only on a string resource reference; keyboard shortcuts still explain when the caret is in the wrong place.
+- **Settings**: the key preview updates as you type, and invalid values are rejected on Apply instead of being saved.
+- Smaller fixes: actions used right after typing, `strings.xml` files containing only `<resources/>`, source comments drifting away from their entry when sorting, projects under a `build` directory, and several intention / inspection descriptions.
 
 ### Performance
-- **Find usages** (Alt+Click) and the reference search of an **Edit** key rename run in the background with a cancellable progress dialog instead of freezing the IDE on large projects.
-- Compose Multiplatform: the generated `Res` package is resolved before the write command, so extracting, duplicating or renaming no longer re-parses every Kotlin file of the project while holding the write lock.
-- Ctrl+Click between Compose Multiplatform locales looks up the sibling `values*/strings.xml` files directly instead of a project-wide index lookup, and works while indexing.
-
-### Changed
-- Dropped the unused optional dependency on the Android plugin. Nothing used it; the plugin works the same in IntelliJ IDEA and Android Studio, and the Plugin Verifier no longer warns that `org.jetbrains.android` cannot be resolved.
-- StringSmith inspections are now turned on and off only in **Settings → Editor → Inspections → StringSmith**. The duplicate checkboxes under **Settings → Tools → StringSmith → Inspections** are gone; before, the hardcoded-string inspection looked enabled in the inspection profile but did nothing until its StringSmith checkbox was also ticked. It stays off by default. If you had enabled it in StringSmith settings, enable it once in the inspection profile.
+- Find usages, key rename and Compose Multiplatform import resolution run in the background with a cancellable progress instead of freezing the IDE; Ctrl+Click between CMP locales no longer needs the index.
 
 ## [0.6.1] - 2026-06-25
 

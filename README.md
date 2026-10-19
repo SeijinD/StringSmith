@@ -78,7 +78,7 @@ IntelliJ IDEA / Android Studio plugin for managing Android `strings.xml` resourc
 
 Configurable prefix, naming convention, replacement style per context, locale propagation defaults, format-arg detection, logging-string filtering, exclusion patterns, and custom composable wrapper names. A live key preview reflects your settings as you type a sample string. Compose Multiplatform projects can set a generated `Res` package override under **Kotlin Multiplatform**.
 
-Custom wrappers: if your project wraps content in a helper whose trailing lambda is a `@Composable` scope (e.g. `screenViewComposable { … }`), add its name under **Settings → Tools → StringSmith → Custom Composable Wrappers** so strings inside it use `stringResource`.
+Custom wrappers: if your project wraps content in a helper whose trailing lambda is a `@Composable` scope (e.g. `screenViewComposable { … }`), add its name under **Settings → Tools → StringSmith → Compose & Multiplatform** so strings inside it use `stringResource`.
 
 ## Screenshots
 
@@ -188,7 +188,7 @@ Ctrl+Click on the same entry instead jumps between locales — the matching key 
 
 ### `@Preview` exclusion
 
-Strings inside `@Preview` composables are skipped by default (typically dummy data). Toggle in **Settings → Tools → StringSmith → Compose Previews**.
+Strings inside `@Preview` composables are skipped by default (typically dummy data). Toggle in **Settings → Tools → StringSmith → Extraction Behavior**.
 
 ## Shortcuts
 
@@ -220,19 +220,19 @@ Make sure the module has a `res/values/strings.xml` (Android) or `composeResourc
 
 **Compose Multiplatform: it generates `R.string` instead of `Res.string`.**
 CMP references are produced only for files under a `composeResources/values/` layout. If the generated `Res` package
-is mis-detected, set an override under **Settings → Tools → StringSmith → Kotlin Multiplatform**.
+is mis-detected, set an override under **Settings → Tools → StringSmith → Compose & Multiplatform (Res package override)**.
 
 **Edit reports "0 references updated".**
 The key is referenced only dynamically (e.g. built by string concatenation or resource-name lookup), which can't be
 resolved statically. The rename and value edits still apply — only the auto-update of references is skipped.
 
 **Strings inside a custom Composable wrapper get `getString` instead of `stringResource`.**
-Add the wrapper's name under **Settings → Tools → StringSmith → Custom Composable Wrappers** so StringSmith treats
+Add the wrapper's name under **Settings → Tools → StringSmith → Compose & Multiplatform** so StringSmith treats
 its trailing lambda as a `@Composable` scope.
 
 **My `@Preview` strings aren't extracted.**
 That's intentional — `@Preview` composables are skipped by default (usually dummy data). Toggle it under
-**Settings → Tools → StringSmith → Compose Previews**.
+**Settings → Tools → StringSmith → Extraction Behavior**.
 
 ## Development
 

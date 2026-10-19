@@ -6,13 +6,11 @@ import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
-import com.intellij.openapi.application.ReadAction
-import com.intellij.openapi.progress.ProgressManager
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.seijind.stringsmith.StringSmithBundle
+import com.seijind.stringsmith.extract.SmartRead
 import com.seijind.stringsmith.inspections.StringsXmlFileFilter
-import java.util.concurrent.Callable
 
 /**
  * Alt+Click (or the bound shortcut) on a `<string name="x">` declaration in strings.xml navigates to its
@@ -37,16 +35,9 @@ class StringResourceGotoUsagesAction : AnAction() {
 
         PsiDocumentManager.getInstance(project).commitAllDocuments()
         var targets: List<PsiElement> = emptyList()
-        val completed = ProgressManager.getInstance().runProcessWithProgressSynchronously(
-            {
-                targets = ReadAction.nonBlocking(Callable { StringResourceUsageFinder.findUsages(project, key) })
-                    .inSmartMode(project)
-                    .executeSynchronously()
-            },
-            StringSmithBundle.message("progress.findUsages", key),
-            true,
-            project
-        )
+        val completed = SmartRead.withProgress(project, StringSmithBundle.message("progress.findUsages", key)) {
+            targets = StringResourceUsageFinder.findUsages(project, key)
+        }
         if (!completed) return
         if (targets.isEmpty()) {
             HintManager.getInstance().showInformationHint(editor, StringSmithBundle.message("usages.none", key))

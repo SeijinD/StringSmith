@@ -8,8 +8,7 @@ import com.seijind.stringsmith.StringSmithBundle
 
 /**
  * Shared detect-then-act flow for actions that operate on the string reference under the caret
- * (Duplicate, Edit). Both resolve the same [DuplicateSource]; only the dialog/writer and the
- * not-on-key error messages differ, which the caller supplies.
+ * (Duplicate, Edit). Both resolve the same [DuplicateSource]; only the dialog/writer differs.
  */
 object KeyRefRunner {
 
@@ -17,7 +16,6 @@ object KeyRefRunner {
         project: Project,
         file: PsiFile,
         editor: Editor,
-        errorKey: String,
         titleKey: String,
         onSource: (DuplicateSource) -> Unit
     ) {
@@ -25,7 +23,7 @@ object KeyRefRunner {
         if (source == null) {
             Messages.showErrorDialog(
                 project,
-                StringSmithBundle.message(errorKey),
+                StringSmithBundle.message("error.notOnKey"),
                 StringSmithBundle.message(titleKey)
             )
             return

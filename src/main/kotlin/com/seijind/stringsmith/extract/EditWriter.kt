@@ -1,12 +1,9 @@
 package com.seijind.stringsmith.extract
 
-import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.command.WriteCommandAction
-import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.seijind.stringsmith.StringSmithBundle
 import com.seijind.stringsmith.settings.StringSmithSettings
-import java.util.concurrent.Callable
 
 object EditWriter {
 
@@ -23,16 +20,9 @@ object EditWriter {
         // Plan the reference rename before taking the write lock, off the EDT (see ReferenceRenamer.planRename).
         var renamePlan: ReferenceRenamer.RenamePlan? = null
         if (keyChanged) {
-            val completed = ProgressManager.getInstance().runProcessWithProgressSynchronously(
-                {
-                    renamePlan = ReadAction.nonBlocking(Callable {
-                        ReferenceRenamer.planRename(project, source.defaultFile, result.originalKey, result.newKey, source.system)
-                    }).inSmartMode(project).executeSynchronously()
-                },
-                StringSmithBundle.message("progress.findReferences", result.originalKey),
-                true,
-                project
-            )
+            val completed = SmartRead.withProgress(project, StringSmithBundle.message("progress.findReferences", result.originalKey)) {
+                renamePlan = ReferenceRenamer.planRename(project, source.defaultFile, result.originalKey, result.newKey, source.system)
+            }
             if (!completed) return
         }
 
@@ -41,6 +31,7 @@ object EditWriter {
             // Without the default file nothing below can be kept consistent, least of all the code rename.
             if (!StringsXmlUtil.hasDocument(source.defaultFile)) {
                 failed += DisplayPath.projectRelative(project, source.defaultFile)
+                renamePlan?.dispose()
                 return@runWriteCommandAction
             }
 

@@ -3,6 +3,7 @@ package com.seijind.stringsmith.extract
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
+import com.seijind.stringsmith.StringSmithBundle
 import com.seijind.stringsmith.settings.StringSmithSettings
 
 object ExtractWriter {
@@ -16,7 +17,7 @@ object ExtractWriter {
     ) {
         val comment = if (settings.addSourceComment) buildSourceComment(target, editor) else null
         val system = ResourceSystem.of(result.targetStringsXml)
-        val packages = Replacement.importPackagesFor(target, system)
+        val packages = importPackagesWithProgress(project, target, system) ?: return
 
         val failed = mutableListOf<String>()
         WriteCommandAction.runWriteCommandAction(project, "Extract String Resource", null, {
@@ -41,10 +42,18 @@ object ExtractWriter {
     }
 
     fun writeReplaceOnly(project: Project, editor: Editor, target: ExtractTarget, key: String, system: ResourceSystem) {
-        val packages = Replacement.importPackagesFor(target, system)
+        val packages = importPackagesWithProgress(project, target, system) ?: return
         WriteCommandAction.runWriteCommandAction(project, "Replace With String Resource", null, {
             Replacement.apply(editor, target, key, system, packages)
         })
+    }
+
+    private fun importPackagesWithProgress(project: Project, target: ExtractTarget, system: ResourceSystem): Replacement.ImportPackages? {
+        var packages: Replacement.ImportPackages? = null
+        val completed = SmartRead.withProgress(project, StringSmithBundle.message("progress.resolveImports")) {
+            packages = Replacement.importPackagesFor(target, system)
+        }
+        return if (completed) packages else null
     }
 
     private fun buildSourceComment(target: ExtractTarget, editor: Editor): String {

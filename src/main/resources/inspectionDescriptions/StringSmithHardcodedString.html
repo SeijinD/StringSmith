@@ -77,7 +77,9 @@ fun Greeting() {
     <li>Shorter than the configured minimum length</li>
     <li>Matching any user-defined exclusion regex</li>
     <li>Inside a <code>@Preview</code> composable (when that setting is on)</li>
-    <li>Kotlin templates with <code>$</code>-expressions</li>
+    <li>Kotlin templates with <code>$</code>-expressions outside <code>@Composable</code> and
+        <code>Activity</code> / <code>Fragment</code> / <code>Service</code> code, or everywhere when
+        <b>Detect format args</b> is off (Compose Multiplatform: everywhere outside <code>@Composable</code>)</li>
     <li>XML values starting with <code>@</code> or <code>?</code> (already references)</li>
 </ul>
 
@@ -85,9 +87,9 @@ fun Greeting() {
 <p>
     This inspection is off by default. Enable it in
     <b>Settings | Editor | Inspections | StringSmith</b>.
-    Configure key prefix, naming convention, replacement style per context, locale
-    propagation defaults, exclusion patterns, and Compose <code>@Preview</code>
-    exclusion in the same panel.
+    Key prefix, naming convention, replacement style per context, locale propagation defaults,
+    exclusion patterns and Compose <code>@Preview</code> exclusion are configured in
+    <b>Settings | Tools | StringSmith</b>.
 </p>
 
 </body>

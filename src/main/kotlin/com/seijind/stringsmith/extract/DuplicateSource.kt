@@ -48,15 +48,15 @@ object DuplicateRefParser {
 
 object DuplicateContext {
 
+    /** Files where a key reference can sit at all: Kotlin sources and `strings.xml`. */
+    fun isKeyRefFile(file: PsiFile): Boolean = file is KtFile || file.virtualFile?.name == "strings.xml"
+
     /**
      * Cheap syntactic test for whether the caret sits on a `R.string.key` / `Res.string.key` reference
      * or a `<string name=…>` entry. Used by intention `isAvailable`, which fires on every Alt+Enter, so
      * unlike [detect] it must NOT scan the project or parse files. The owning default file and locale
      * values are resolved later, in [detect], from the action's `invoke`.
      */
-    /** Files where a key reference can sit at all: Kotlin sources and `strings.xml`. */
-    fun isKeyRefFile(file: PsiFile): Boolean = file is KtFile || file.virtualFile?.name == "strings.xml"
-
     fun isOnResourceRef(file: PsiFile, editor: Editor): Boolean {
         val offset = editor.caretModel.offset
         return refAt(file, offset) || (offset > 0 && refAt(file, offset - 1))

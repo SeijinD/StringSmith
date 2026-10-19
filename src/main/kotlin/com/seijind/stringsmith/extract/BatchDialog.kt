@@ -209,7 +209,6 @@ class BatchDialog(
         localeRows = variants.map { LocaleRow(it, JCheckBox("", defaultInclude)) }
     }
 
-
     private fun refreshAllStatuses() {
         rows.forEachIndexed { i, r ->
             val existing = StringsXmlUtil.findExistingKey(initialTarget, r.value)

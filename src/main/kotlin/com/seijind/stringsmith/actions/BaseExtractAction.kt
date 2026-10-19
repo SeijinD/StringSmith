@@ -18,8 +18,11 @@ abstract class BaseExtractAction : AnAction() {
         val project = e.project
         val editor = e.getData(CommonDataKeys.EDITOR)
         val file = e.getData(CommonDataKeys.PSI_FILE)
+        // Shortcuts stay enabled anywhere in the file so a wrong caret position explains itself with an
+        // error; the right-click menu only lists what applies at the caret.
         e.presentation.isEnabledAndVisible =
-            project != null && editor != null && file != null && isAvailableFor(file)
+            project != null && editor != null && file != null && isAvailableFor(file) &&
+                (!e.isFromContextMenu || isApplicableAt(file, editor))
     }
 
     final override fun actionPerformed(e: AnActionEvent) {
@@ -33,6 +36,9 @@ abstract class BaseExtractAction : AnAction() {
 
     /** Hides the action in files where it can never apply. */
     protected abstract fun isAvailableFor(file: PsiFile): Boolean
+
+    /** Cheap caret check for the context menu; actions working on the whole file keep the default. */
+    protected open fun isApplicableAt(file: PsiFile, editor: Editor): Boolean = true
 
     protected abstract fun perform(project: Project, editor: Editor, file: PsiFile)
 }

@@ -28,6 +28,23 @@ class ReferenceRenamerTest : BasePlatformTestCase() {
             """.trimIndent()
         ).virtualFile
 
+        val java = myFixture.addFileToProject(
+            "src/Legacy.java",
+            """
+            class Legacy {
+                int own = R.string.cancel;
+                String text = "R.string.cancel missing";
+            }
+            """.trimIndent()
+        ).virtualFile
+        val layout = myFixture.addFileToProject(
+            "res/layout/screen.xml",
+            """
+            <!-- was @string/cancel -->
+            <TextView android:text="@string/cancel" />
+            """.trimIndent()
+        ).virtualFile
+
         val plan = ReferenceRenamer.planRename(project, stringsXml, "cancel", "abort", ResourceSystem.ANDROID)
         WriteCommandAction.runWriteCommandAction(project) {
             StringsXmlUtil.renameKey(stringsXml, "cancel", "abort")
@@ -43,5 +60,11 @@ class ReferenceRenamerTest : BasePlatformTestCase() {
         assertTrue(code.contains("val platform = android.R.string.cancel"))
         assertTrue(code.contains("log(\"R.string.cancel missing\")"))
         assertTrue(code.contains("// R.string.cancel in a comment"))
+        val javaCode = docs.getDocument(java)!!.text
+        assertTrue(javaCode, javaCode.contains("int own = R.string.abort;"))
+        assertTrue(javaCode, javaCode.contains("String text = \"R.string.cancel missing\";"))
+        val layoutText = docs.getDocument(layout)!!.text
+        assertTrue(layoutText, layoutText.contains("<!-- was @string/cancel -->"))
+        assertTrue(layoutText, layoutText.contains("android:text=\"@string/abort\""))
     }
 }

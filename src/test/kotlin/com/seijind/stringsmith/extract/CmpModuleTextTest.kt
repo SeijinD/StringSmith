@@ -1,7 +1,9 @@
 package com.seijind.stringsmith.extract
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CmpModuleTextTest {
@@ -133,5 +135,16 @@ class CmpModuleTextTest {
             moduleNamespace = null
         )
         assertNull(pkg)
+    }
+
+    @Test
+    fun isModuleResPackage_matchesModuleNameIgnoringCaseAndSeparators() {
+        assertTrue(CmpModuleText.isModuleResPackage("kotlinproject.composeapp.generated.resources", "composeApp"))
+        assertTrue(CmpModuleText.isModuleResPackage("com.app.feature_login.generated.resources", "feature-login"))
+    }
+
+    @Test
+    fun isModuleResPackage_rejectsDependencyModule() {
+        assertFalse(CmpModuleText.isModuleResPackage("com.app.core.generated.resources", "feature"))
     }
 }

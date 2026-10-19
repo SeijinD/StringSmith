@@ -9,7 +9,12 @@ import org.jetbrains.kotlin.psi.KtStringTemplateExpression
 
 object BatchScanner {
 
-    fun scan(file: PsiFile, settings: StringSmithSettings = StringSmithSettings.getInstance()): List<ExtractTarget> {
+    /** [system] is the target's resource system; templates whose arguments it cannot carry are left out. */
+    fun scan(
+        file: PsiFile,
+        settings: StringSmithSettings = StringSmithSettings.getInstance(),
+        system: ResourceSystem = ResourceSystem.ANDROID
+    ): List<ExtractTarget> {
         val raw = when (file) {
             is KtFile -> scanKotlin(file)
             else -> scanXml(file)
@@ -19,7 +24,9 @@ object BatchScanner {
                 is ExtractValidator.Result.Ok -> r.target
                 is ExtractValidator.Result.Rejected -> null
             }
-        }.distinctBy { startOffsetOf(it) }.let(::dropNested)
+        }.filterNot { Replacement.dropsFormatArgs(it, system) }
+            // Dropped lossy templates no longer hide the literals nested in them.
+            .distinctBy { startOffsetOf(it) }.let(::dropNested)
     }
 
     // A literal nested in another candidate's template (`"Hi ${name ?: "Guest"}"`) would be replaced

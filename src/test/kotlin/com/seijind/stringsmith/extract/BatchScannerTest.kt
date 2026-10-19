@@ -93,6 +93,21 @@ class BatchScannerTest : BasePlatformTestCase() {
         assertEquals(listOf("Hello %1${'$'}s"), values)
     }
 
+    fun testCmpKeepsNestedLiteralWhenOuterTemplateWouldLoseArgs() {
+        val file = myFixture.configureByText(
+            "MainActivity.kt",
+            """
+            class MainActivity : AppCompatActivity() {
+                fun greet(name: String?) {
+                    val a = "Hello ${'$'}{name ?: "Guest"}"
+                }
+            }
+            """.trimIndent()
+        )
+        val results = BatchScanner.scan(file, StringSmithSettings(), ResourceSystem.COMPOSE_MULTIPLATFORM)
+        assertEquals(listOf("Guest"), results.map { it.rawValue })
+    }
+
     fun testScanReturnsEmptyForFileWithoutLiterals() {
         val file = myFixture.configureByText(
             "Empty.kt",

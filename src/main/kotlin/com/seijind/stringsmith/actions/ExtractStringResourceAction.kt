@@ -9,6 +9,8 @@ import com.seijind.stringsmith.extract.ExtractRunner
 class ExtractStringResourceAction : BaseExtractAction() {
     override fun isAvailableFor(file: PsiFile): Boolean = ExtractContext.isExtractEligibleFile(file)
 
+    override fun isApplicableAt(file: PsiFile, editor: Editor): Boolean = ExtractRunner.isExtractable(file, editor)
+
     override fun perform(project: Project, editor: Editor, file: PsiFile) =
         ExtractRunner.run(project, editor, file)
 }

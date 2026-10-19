@@ -4,6 +4,7 @@ import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
+import com.seijind.stringsmith.StringSmithBundle
 import com.seijind.stringsmith.settings.StringSmithSettings
 import org.jetbrains.kotlin.psi.KtFile
 
@@ -28,12 +29,16 @@ object BatchWriter {
 
         val system = ResourceSystem.of(result.targetStringsXml)
         val ktFile = included.firstOrNull()?.target?.containingFile as? KtFile
-        val androidRPackage = if (system == ResourceSystem.ANDROID) {
-            ktFile?.virtualFile?.let { AndroidModuleUtil.findRPackage(it, ktFile) }
-        } else null
-        val cmpResPackage = if (system == ResourceSystem.COMPOSE_MULTIPLATFORM) {
-            ktFile?.let { it.virtualFile?.let { vf -> CmpModuleUtil.findResPackage(it.project, vf, it) } }
-        } else null
+        var androidRPackage: String? = null
+        var cmpResPackage: String? = null
+        val completed = SmartRead.withProgress(project, StringSmithBundle.message("progress.resolveImports")) {
+            val vf = ktFile?.virtualFile
+            androidRPackage = if (system == ResourceSystem.ANDROID && vf != null) AndroidModuleUtil.findRPackage(vf, ktFile) else null
+            cmpResPackage = if (system == ResourceSystem.COMPOSE_MULTIPLATFORM && vf != null) {
+                CmpModuleUtil.findResPackage(project, vf, ktFile)
+            } else null
+        }
+        if (!completed) return
 
         val edits = buildEdits(included, system)
         val sourceFileName = included.firstOrNull()?.target?.containingFile?.name

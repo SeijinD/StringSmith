@@ -25,6 +25,18 @@ object CmpModuleText {
             .maxByOrNull { it.length }
     }
 
+    /**
+     * Whether [resPackage] is the Res package CMP generates for [moduleName] by default
+     * (`<group>.<module>.generated.resources`, module name lowercased with separators dropped).
+     */
+    fun isModuleResPackage(resPackage: String, moduleName: String): Boolean {
+        if (!resPackage.endsWith(GENERATED_SUFFIX)) return false
+        val segment = resPackage.removeSuffix(GENERATED_SUFFIX).substringAfterLast('.')
+        return normalized(segment) == normalized(moduleName)
+    }
+
+    private fun normalized(name: String): String = name.lowercase().filter { it.isLetterOrDigit() }
+
     fun resolveResPackage(
         gradleText: String?,
         moduleResImportPackages: List<String>,
@@ -34,7 +46,7 @@ object CmpModuleText {
     ): String? {
         gradleText?.let { parsePackageOfResClass(it) }?.let { return it }
 
-        // The module's own code already imports its Res; its package need not match the code package
+        // The module's own Res, already imported by its code; its package need not match the code package
         // (the CMP wizard puts Res in `<project>.<module>.generated.resources`).
         if (moduleResImportPackages.isNotEmpty()) {
             return pickResImportByFilePackage(moduleResImportPackages, filePackage) ?: moduleResImportPackages.first()

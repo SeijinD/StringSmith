@@ -9,7 +9,7 @@ import com.seijind.stringsmith.StringSmithBundle
 object DuplicateRunner {
 
     fun run(project: Project, editor: Editor, file: PsiFile) =
-        KeyRefRunner.run(project, file, editor, "error.duplicate.notOnKey", "duplicate.dialog.title") { source ->
+        KeyRefRunner.run(project, file, editor, "duplicate.dialog.title") { source ->
             val dialog = DuplicateDialog(project, source)
             if (dialog.showAndGet()) {
                 val result = dialog.result()
