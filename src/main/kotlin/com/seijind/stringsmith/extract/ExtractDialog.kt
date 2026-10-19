@@ -162,7 +162,8 @@ class ExtractDialog(
         localeRows = variants.map { variant ->
             LocaleRow(
                 variant = variant,
-                include = JCheckBox("", defaultInclude),
+                // Item (not action) listener: Select all/none toggle the boxes programmatically too.
+                include = JCheckBox("", defaultInclude).apply { addItemListener { refreshAll() } },
                 value = JBTextField(valueField.text).apply { columns = 25 }
             )
         }

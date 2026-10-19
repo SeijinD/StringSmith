@@ -1,9 +1,12 @@
 package com.seijind.stringsmith.extract
 
+import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.seijind.stringsmith.StringSmithBundle
 import com.seijind.stringsmith.settings.StringSmithSettings
+import java.util.concurrent.Callable
 
 object EditWriter {
 
@@ -17,10 +20,21 @@ object EditWriter {
         val keyChanged = result.newKey != result.originalKey
         var renamedRefs = 0
 
-        // Plan the reference rename before taking the write lock (see ReferenceRenamer.planRename).
-        val renamePlan = if (keyChanged) {
-            ReferenceRenamer.planRename(project, source.defaultFile, result.originalKey, result.newKey, source.system)
-        } else null
+        // Plan the reference rename before taking the write lock, off the EDT (see ReferenceRenamer.planRename).
+        var renamePlan: ReferenceRenamer.RenamePlan? = null
+        if (keyChanged) {
+            val completed = ProgressManager.getInstance().runProcessWithProgressSynchronously(
+                {
+                    renamePlan = ReadAction.nonBlocking(Callable {
+                        ReferenceRenamer.planRename(project, source.defaultFile, result.originalKey, result.newKey, source.system)
+                    }).inSmartMode(project).executeSynchronously()
+                },
+                StringSmithBundle.message("progress.findReferences", result.originalKey),
+                true,
+                project
+            )
+            if (!completed) return
+        }
 
         WriteCommandAction.runWriteCommandAction(project, "Edit String Resource", null, {
             val originalKey = result.originalKey
@@ -40,10 +54,10 @@ object EditWriter {
             }
 
             // 2. Rename the key everywhere only after the values are in place.
-            if (renamePlan != null) {
+            renamePlan?.let { plan ->
                 StringsXmlUtil.renameKey(source.defaultFile, originalKey, result.newKey)
                 result.localeEdits.forEach { StringsXmlUtil.renameKey(it.file, originalKey, result.newKey) }
-                renamedRefs = ReferenceRenamer.applyPlan(project, renamePlan)
+                renamedRefs = ReferenceRenamer.applyPlan(project, plan)
             }
         })
 

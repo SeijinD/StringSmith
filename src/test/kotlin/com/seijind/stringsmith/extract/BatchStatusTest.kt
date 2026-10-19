@@ -59,6 +59,12 @@ class BatchStatusTest {
     }
 
     @Test
+    fun noDuplicate_whenSameValueRowIsExcluded() {
+        val rows = listOf(row("greeting", "Hello"), row("salutation", "Hello", include = false))
+        assertEquals(BatchRowStatus.NEW, status(rows, selfIndex = 0))
+    }
+
+    @Test
     fun duplicate_whenOtherRowCarriesSameValue() {
         val rows = listOf(row("greeting", "Hello"), row("salutation", "Hello"))
         assertEquals(BatchRowStatus.DUPLICATE, status(rows, selfIndex = 0))

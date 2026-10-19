@@ -19,6 +19,24 @@
 - **Find usages** (Alt+Click) no longer lists `android.R.string.<key>` platform references, and now lists `@string/<key>` aliases inside `strings.xml`.
 - **Duplicate** copies each value exactly as written, so markup (`<b>`), entities (`&#169;`, `&quot;`) and Android quoting are no longer escaped into visible text.
 - **Edit** only rewrites values you actually changed (unchanged values with markup or entities stay intact), rejects a new key that already exists in any locale file, and no longer renames code references when the default `strings.xml` cannot be written.
+- **Extract** dialog: ticking a locale checkbox (or using **Select all / Select none**) now enables or disables its value field right away.
+- **Batch Extract**: an unticked row no longer marks other rows as **Duplicate value**, and pressing Escape while editing a key restores the previous key.
+- **Extract to strings.xml** (Alt+Enter) is offered again when the hardcoded-string inspection is enabled in StringSmith settings but not actually reporting, e.g. disabled in the inspection profile, suppressed, or for strings it ignores (logging calls, annotations). Alt+Enter still shows a single entry when both apply.
+- **Edit** and **Duplicate String Resource** no longer appear in the editor context menu of files where they can never apply (only Kotlin files and `strings.xml`).
+- Extract, Batch Extract, Edit and Duplicate shortcuts pressed right after typing no longer act on stale code positions.
+- Cancelling a background operation no longer falls back to a full disk scan for `strings.xml` files.
+- Writing into a `strings.xml` that contains only `<resources/>` no longer produces a second `<resources>` root (invalid XML).
+- With **Sort entries** and **Add source comment** both on, the `<!-- from File.kt:42 -->` comment now moves together with its entry instead of staying behind and labelling another key.
+- Projects located under a directory named `build` (e.g. `/srv/build/app`) no longer report "No strings.xml found".
+- **Format string mismatch** inspection: skips strings marked `formatted="false"`, reports arguments at different positions (`%1$s %2$s` vs `%1$s %3$s`) with a dedicated message instead of "expects 2, has 2", and says formatting *may* fail at runtime (fewer arguments in a translation do not crash).
+- **Settings**: the key preview now follows Prefix, Naming and Max key length as you type instead of only after Apply, and Apply refuses out-of-range numbers (e.g. max key length 0) and invalid exclusion regexes instead of saving them.
+- Extract, Batch Extract, Duplicate and Edit no longer run the import optimizer on your file, which also removed unrelated unused imports you were still working with. New imports are inserted in sorted position instead.
+- **Find usages** (Alt+Click) on a key without usages now shows a "No usages found" hint instead of doing nothing.
+
+### Performance
+- **Find usages** (Alt+Click) and the reference search of an **Edit** key rename run in the background with a cancellable progress dialog instead of freezing the IDE on large projects.
+- Compose Multiplatform: the generated `Res` package is resolved before the write command, so extracting, duplicating or renaming no longer re-parses every Kotlin file of the project while holding the write lock.
+- Ctrl+Click between Compose Multiplatform locales looks up the sibling `values*/strings.xml` files directly instead of a project-wide index lookup, and works while indexing.
 
 ## [0.6.1] - 2026-06-25
 

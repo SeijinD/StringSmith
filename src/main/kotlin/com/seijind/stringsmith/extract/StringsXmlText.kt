@@ -10,6 +10,11 @@ object StringsXmlText {
     // A `<string>` inside a comment is dead: never parse or sort it as a live entry.
     private val COMMENT_REGEX = Regex("""<!--[\s\S]*?-->""")
 
+    private val SELF_CLOSED_ROOT = Regex("""<resources(\b[^>]*?)\s*/>""")
+
+    // The `<!-- from File.kt:42 -->` line written by "Add source comment" belongs to the entry below it.
+    private const val SOURCE_COMMENT_PREFIX = "<!-- from "
+
     // Runs of two or more hyphens, illegal inside an XML comment (`--` ends/breaks a comment).
     private val DOUBLE_HYPHEN_REGEX = Regex("-{2,}")
 
@@ -43,16 +48,17 @@ object StringsXmlText {
     fun offsetOfKey(text: String, key: String): Int =
         liveEntryMatches(text).firstOrNull { it.groupValues[2] == key }?.groups?.get(2)?.range?.first ?: -1
 
-    fun appendEntry(text: String, key: String, value: String, comment: String? = null, sortAlpha: Boolean = false): String =
-        appendEntries(text, listOf(StringEntryDraft(key, value, comment)), sortAlpha)
-
     /** Inserts all [drafts] before `</resources>`, sorting once at the end if asked. */
     fun appendEntries(
-        text: String,
+        original: String,
         drafts: List<StringEntryDraft>,
         sortAlpha: Boolean = false
     ): String {
-        if (drafts.isEmpty()) return text
+        if (drafts.isEmpty()) return original
+        // An empty file may hold a self-closed `<resources/>`; open it so the entries land inside it.
+        val text = SELF_CLOSED_ROOT.find(original)
+            ?.let { original.replaceRange(it.range, "<resources${it.groupValues[1]}>\n</resources>") }
+            ?: original
         val block = buildString {
             for (draft in drafts) {
                 val comment = draft.comment
@@ -113,22 +119,38 @@ object StringsXmlText {
 
     /**
      * Sorts live `<string>` entries alphabetically in place: each block moves into a slot the blocks
-     * already occupy; everything else (comments, commented-out entries, plurals, arrays, whitespace)
-     * stays byte-for-byte untouched.
+     * already occupy. A source comment directly above an entry moves with it; everything else (other
+     * comments, commented-out entries, plurals, arrays, whitespace) stays byte-for-byte untouched.
      */
     fun sortStringEntries(xml: String): String {
         val matches = liveEntryMatches(xml)
         if (matches.size < 2) return xml
-        val sortedBlocks = matches.sortedBy { it.groupValues[2] }.map { it.value }
+        var previousEnd = 0
+        val slots = matches.map { m ->
+            val start = sourceCommentStart(xml, m.range.first, previousEnd) ?: m.range.first
+            previousEnd = m.range.last + 1
+            start until previousEnd
+        }
+        val sortedBlocks = matches.indices.sortedBy { matches[it].groupValues[2] }.map { xml.substring(slots[it]) }
         val sb = StringBuilder(xml.length)
         var last = 0
-        matches.forEachIndexed { i, m ->
-            sb.append(xml, last, m.range.first)
+        slots.forEachIndexed { i, slot ->
+            sb.append(xml, last, slot.first)
             sb.append(sortedBlocks[i])
-            last = m.range.last + 1
+            last = slot.last + 1
         }
         sb.append(xml, last, xml.length)
         return sb.toString()
+    }
+
+    /** Start of a source comment separated from the entry at [entryStart] only by whitespace, else null. */
+    private fun sourceCommentStart(xml: String, entryStart: Int, notBefore: Int): Int? {
+        var end = entryStart
+        while (end > notBefore && xml[end - 1].isWhitespace()) end--
+        if (!xml.startsWith("-->", end - 3)) return null
+        val start = xml.lastIndexOf("<!--", end - 3)
+        if (start < notBefore || !xml.startsWith(SOURCE_COMMENT_PREFIX, start)) return null
+        return start
     }
 
     /**

@@ -7,6 +7,7 @@ import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiManager
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.xml.XmlTag
 import com.seijind.stringsmith.StringSmithBundle
@@ -15,8 +16,8 @@ import com.seijind.stringsmith.settings.StringSmithSettings
 
 /**
  * Flags a `<string>` in a locale `strings.xml` whose format specifiers (`%s`, `%d`, `%1$s`, …) don't
- * match the default (`values/strings.xml`) entry for the same key — a dropped or retyped argument that
- * crashes at runtime with `IllegalFormatException`. Works for both Android `res/values*` and Compose
+ * match the default (`values/strings.xml`) entry for the same key: a dropped or retyped argument that
+ * can crash at runtime with `IllegalFormatException`. Works for both Android `res/values*` and Compose
  * Multiplatform `composeResources/values*` layouts; for CMP, Android Lint provides no equivalent check.
  */
 class FormatStringMismatchInspection : LocalInspectionTool() {
@@ -31,15 +32,20 @@ class FormatStringMismatchInspection : LocalInspectionTool() {
 
         val defaults = StringsXmlUtil.readEntries(defaultFile).associate { it.key to it.value }
         if (defaults.isEmpty()) return null
+        val unformattedDefaults = PsiManager.getInstance(file.project).findFile(defaultFile)
+            ?.let { stringTags(it) }.orEmpty()
+            .filter { isUnformatted(it) }
+            .mapNotNullTo(HashSet()) { it.getAttributeValue("name") }
 
-        val tags = PsiTreeUtil.findChildrenOfType(file, XmlTag::class.java)
-            .filter { it.name == "string" && it.getAttributeValue("name") != null }
+        // formatted="false" marks a literal `%` text that is never passed to String.format.
+        val tags = stringTags(file).filterNot { isUnformatted(it) }
 
         val problems = mutableListOf<ProblemDescriptor>()
         for (tag in tags) {
             // Bail out promptly when the daemon cancels (e.g. the user keeps typing in a large file).
             ProgressManager.checkCanceled()
             val key = tag.getAttributeValue("name") ?: continue
+            if (key in unformattedDefaults) continue
             val defaultValue = defaults[key] ?: continue
             val mismatch = FormatSpec.analyze(defaultValue, tag.value.text) ?: continue
             val anchor = tag.getAttribute("name")?.valueElement ?: tag
@@ -57,9 +63,18 @@ class FormatStringMismatchInspection : LocalInspectionTool() {
     private fun messageFor(key: String, mismatch: FormatMismatch): String = when (mismatch) {
         is FormatMismatch.Count ->
             StringSmithBundle.message("inspection.formatMismatch.count", key, mismatch.defaultCount, mismatch.actualCount)
+        is FormatMismatch.Positions -> StringSmithBundle.message(
+            "inspection.formatMismatch.positions", key, mismatch.default.joinToString(", "), mismatch.actual.joinToString(", ")
+        )
         is FormatMismatch.Type ->
             StringSmithBundle.message("inspection.formatMismatch.type", key, mismatch.position, mismatch.default, mismatch.actual)
     }
+
+    private fun stringTags(file: PsiFile): List<XmlTag> =
+        PsiTreeUtil.findChildrenOfType(file, XmlTag::class.java)
+            .filter { it.name == "string" && it.getAttributeValue("name") != null }
+
+    private fun isUnformatted(tag: XmlTag): Boolean = tag.getAttributeValue("formatted") == "false"
 
     /** The default `values/strings.xml` sitting beside a `values-*` locale file (same `res`/`composeResources` dir). */
     private fun defaultSibling(localeFile: VirtualFile): VirtualFile? =

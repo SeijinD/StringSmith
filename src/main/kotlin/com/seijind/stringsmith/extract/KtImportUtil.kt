@@ -1,38 +1,43 @@
 package com.seijind.stringsmith.extract
 
-import com.intellij.lang.LanguageImportStatements
-import com.intellij.openapi.project.Project
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtPsiFactory
 
 /** Shared Kotlin import helpers used by single and batch extract writers. */
 object KtImportUtil {
 
-    /** Adds an `import` for [fqName] if absent. Returns true if it was added. */
+    /**
+     * Adds an `import` for [fqName] in sorted position if absent. Returns true if it was added. The import
+     * optimizer is deliberately not run: it would also remove the user's own unused imports.
+     */
     fun ensureImport(file: KtFile, fqName: String): Boolean {
-        val imports = file.importList ?: return false
-        val already = imports.imports.any { it.importedFqName?.asString() == fqName }
-        if (already) return false
+        val importList = file.importList ?: return false
+        val existing = importList.imports
+        if (existing.any { it.importedFqName?.asString() == fqName }) return false
         val factory = KtPsiFactory(file.project)
-        val parsed = factory.createFile("import $fqName")
-        val newImport = parsed.importDirectives.firstOrNull() ?: return false
-        imports.add(newImport)
+        val newImport = factory.createFile("import $fqName").importDirectives.firstOrNull() ?: return false
+        val next = existing.firstOrNull { (it.importedFqName?.asString() ?: "") > fqName }
+        when {
+            next != null -> {
+                importList.addBefore(newImport, next)
+                importList.addBefore(factory.createNewLine(), next)
+            }
+            existing.isNotEmpty() -> {
+                val added = importList.addAfter(newImport, existing.last())
+                importList.addBefore(factory.createNewLine(), added)
+            }
+            else -> importList.add(newImport)
+        }
         return true
     }
 
-    fun optimizeImports(file: KtFile) {
-        val optimizer = LanguageImportStatements.INSTANCE.forFile(file).firstOrNull() ?: return
-        optimizer.processFile(file).run()
-    }
+    /** Resolves the generated `Res` package for [ktFile]; call it outside the write command (see [Replacement.importPackagesFor]). */
+    fun cmpResPackage(ktFile: KtFile): String? =
+        ktFile.virtualFile?.let { CmpModuleUtil.findResPackage(ktFile.project, it, ktFile) }
 
-    /**
-     * Imports the Compose Multiplatform `Res.string.<key>` accessor: resolves the generated `Res`
-     * package for [ktFile] and adds `<pkg>.<key>`, optimizing only if something was added. Shared by the
-     * reference renamer and the duplicate writer so the CMP-import step can't drift between them.
-     */
-    fun addCmpKeyImport(project: Project, ktFile: KtFile, key: String) {
-        val resPkg = ktFile.virtualFile?.let { CmpModuleUtil.findResPackage(project, it, ktFile) } ?: return
-        if (ensureImport(ktFile, "$resPkg.$key")) optimizeImports(ktFile)
+    /** Imports the Compose Multiplatform `Res.string.<key>` accessor from [resPackage]. */
+    fun addCmpKeyImport(ktFile: KtFile, resPackage: String, key: String) {
+        ensureImport(ktFile, "$resPackage.$key")
     }
 
     const val ANDROID_COMPOSE_IMPORT = "androidx.compose.ui.res.stringResource"
@@ -66,7 +71,7 @@ object KtImportUtil {
         }
     }
 
-    /** Ensures every import from [resourceImportsFor] is present, then optimizes if anything was added. */
+    /** Ensures every import from [resourceImportsFor] is present. */
     fun addResourceImports(
         file: KtFile,
         system: ResourceSystem,
@@ -76,9 +81,7 @@ object KtImportUtil {
         androidRPackage: String?,
         cmpResPackage: String?
     ) {
-        var added = false
         resourceImportsFor(system, hasComposable, hasNonXmlReference, keys, androidRPackage, cmpResPackage)
-            .forEach { added = ensureImport(file, it) || added }
-        if (added) optimizeImports(file)
+            .forEach { ensureImport(file, it) }
     }
 }

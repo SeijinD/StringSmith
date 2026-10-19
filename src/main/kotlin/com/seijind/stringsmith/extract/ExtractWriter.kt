@@ -16,6 +16,7 @@ object ExtractWriter {
     ) {
         val comment = if (settings.addSourceComment) buildSourceComment(target, editor) else null
         val system = ResourceSystem.of(result.targetStringsXml)
+        val packages = Replacement.importPackagesFor(target, system)
 
         val failed = mutableListOf<String>()
         WriteCommandAction.runWriteCommandAction(project, "Extract String Resource", null, {
@@ -30,7 +31,7 @@ object ExtractWriter {
                 result.localeEntries.filter { it.include }.map { it.file to it.value },
                 result.key, comment, settings.sortAfterExtract
             ).forEach { failed += DisplayPath.projectRelative(project, it) }
-            Replacement.apply(editor, target, result.key, system)
+            Replacement.apply(editor, target, result.key, system, packages)
         })
 
         StringSmithNotifications.warnFailedWrites(project, failed)
@@ -40,8 +41,9 @@ object ExtractWriter {
     }
 
     fun writeReplaceOnly(project: Project, editor: Editor, target: ExtractTarget, key: String, system: ResourceSystem) {
+        val packages = Replacement.importPackagesFor(target, system)
         WriteCommandAction.runWriteCommandAction(project, "Replace With String Resource", null, {
-            Replacement.apply(editor, target, key, system)
+            Replacement.apply(editor, target, key, system, packages)
         })
     }
 

@@ -1,10 +1,13 @@
 package com.seijind.stringsmith.settings
 
 import com.intellij.openapi.options.Configurable
+import com.intellij.openapi.options.ConfigurationException
+import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.Messages
 import com.seijind.stringsmith.StringSmithBundle
 import com.seijind.stringsmith.extract.KeyGenerator
+import com.seijind.stringsmith.extract.LocaleUi
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBTextField
@@ -17,8 +20,6 @@ import com.intellij.ui.dsl.builder.LabelPosition
 import com.intellij.ui.dsl.builder.panel
 import javax.swing.JComponent
 import javax.swing.JTextArea
-import javax.swing.event.DocumentEvent
-import javax.swing.event.DocumentListener
 
 class StringSmithConfigurable : Configurable {
 
@@ -27,6 +28,9 @@ class StringSmithConfigurable : Configurable {
     private val sampleField = JBTextField(DEFAULT_SAMPLE)
     private val previewLabel = JBLabel()
     private val regexErrorLabel = JBLabel().apply { foreground = JBColor.RED }
+    private var prefixField: JBTextField? = null
+    private var namingCombo: ComboBox<NamingConvention>? = null
+    private var maxKeyLengthField: JBTextField? = null
 
     override fun getDisplayName(): String = "StringSmith - Android Strings Toolkit"
 
@@ -35,7 +39,8 @@ class StringSmithConfigurable : Configurable {
             group("Key Generation") {
                 row("Prefix:") {
                     textField()
-                        .bindText({ settings.keyPrefix }, { settings.keyPrefix = it; refreshPreview() })
+                        .bindText({ settings.keyPrefix }, { settings.keyPrefix = it })
+                        .applyToComponent { prefixField = this; document.addDocumentListener(previewListener) }
                         .comment("Prepended to every suggested key. Leave empty to disable.")
                         .align(AlignX.FILL)
                         .applyToComponent { toolTipText = "Example: \"app\" → app_welcome_screen" }
@@ -44,13 +49,15 @@ class StringSmithConfigurable : Configurable {
                     comboBox(NamingConvention.entries.toList())
                         .bindItem(
                             { settings.namingConvention },
-                            { v -> if (v != null) { settings.namingConvention = v; refreshPreview() } }
+                            { v -> if (v != null) settings.namingConvention = v }
                         )
+                        .applyToComponent { namingCombo = this; addActionListener { refreshPreview() } }
                         .applyToComponent { toolTipText = "Case style for generated keys" }
                 }
                 row("Max key length:") {
                     intTextField(1..200)
-                        .bindIntText({ settings.maxKeyLength }, { settings.maxKeyLength = it; refreshPreview() })
+                        .bindIntText({ settings.maxKeyLength }, { settings.maxKeyLength = it })
+                        .applyToComponent { maxKeyLengthField = this; document.addDocumentListener(previewListener) }
                         .comment("Truncate suggested keys to this length.")
                         .applyToComponent { toolTipText = "Hard cap on key length after prefix" }
                 }
@@ -181,7 +188,7 @@ class StringSmithConfigurable : Configurable {
                         .align(AlignX.FILL)
                         .applyToComponent {
                             rows = 3
-                            toolTipText = "One function name per line, comma- or space-separated. Strings inside their trailing lambda use stringResource."
+                            toolTipText = "Separate names with a newline, comma or space. Strings inside their trailing lambda use stringResource."
                         }
                         .comment("Function names whose trailing lambda is a <code>@Composable</code> scope (e.g. <code>screenViewComposable</code>). Strings inside them use <code>stringResource</code> instead of <code>getString</code>. Separate names with a newline, comma, or space.")
                 }
@@ -210,12 +217,8 @@ class StringSmithConfigurable : Configurable {
                         .applyToComponent {
                             rows = 4
                             toolTipText = "One Kotlin regex per line. Matching strings are skipped."
-                            document.addDocumentListener(object : DocumentListener {
-                                override fun insertUpdate(e: DocumentEvent) = refreshRegexError(this@applyToComponent)
-                                override fun removeUpdate(e: DocumentEvent) = refreshRegexError(this@applyToComponent)
-                                override fun changedUpdate(e: DocumentEvent) = refreshRegexError(this@applyToComponent)
-                            })
-                            refreshRegexError(this)
+                            excludePatternsArea = this
+                            document.addDocumentListener(LocaleUi.changeListener { refreshRegexError() })
                         }
                         .comment("One regex per line. Strings matching any pattern are skipped. Defaults skip CONSTANTS and URLs.")
                 }
@@ -240,36 +243,51 @@ class StringSmithConfigurable : Configurable {
             }
         }
         dialogPanel = builder
-        sampleField.document.addDocumentListener(object : DocumentListener {
-            override fun insertUpdate(e: DocumentEvent) = refreshPreview()
-            override fun removeUpdate(e: DocumentEvent) = refreshPreview()
-            override fun changedUpdate(e: DocumentEvent) = refreshPreview()
-        })
+        sampleField.document.addDocumentListener(previewListener)
         refreshPreview()
+        refreshRegexError()
         return builder
     }
 
-    private fun refreshRegexError(area: JTextArea) {
-        val invalid = area.text.lines()
+    private val previewListener = LocaleUi.changeListener { refreshPreview() }
+    private var excludePatternsArea: JTextArea? = null
+
+    private fun regexError(): String? {
+        val text = excludePatternsArea?.text ?: return null
+        val invalid = text.lines()
             .withIndex()
             .filter { it.value.isNotBlank() }
             .firstNotNullOfOrNull { (i, line) ->
-                runCatching { Regex(line) }.exceptionOrNull()?.let { i to it }
+                try {
+                    Regex(line)
+                    null
+                } catch (e: IllegalArgumentException) {
+                    i to e
+                }
             }
-        regexErrorLabel.text = invalid?.let { (i, e) -> "Line ${i + 1}: ${e.message ?: "invalid regex"}" } ?: ""
+        return invalid?.let { (i, e) -> "Exclusion pattern line ${i + 1}: ${e.message ?: "invalid regex"}" }
     }
 
+    private fun refreshRegexError() {
+        regexErrorLabel.text = regexError() ?: ""
+    }
+
+    // Reads the unsaved fields so the preview follows edits before Apply.
     private fun refreshPreview() {
-        // Single source of truth: use the real generator so the preview never drifts from extraction.
         val sample = sampleField.text.ifBlank { DEFAULT_SAMPLE }
-        val key = KeyGenerator.suggest(sample, settings.keyPrefix, settings.namingConvention, settings.maxKeyLength)
-        previewLabel.text = "→ $key"
+        val prefix = prefixField?.text ?: settings.keyPrefix
+        val naming = namingCombo?.selectedItem as? NamingConvention ?: settings.namingConvention
+        val maxLength = maxKeyLengthField?.text?.toIntOrNull() ?: settings.maxKeyLength
+        previewLabel.text = "→ ${KeyGenerator.suggest(sample, prefix, naming, maxLength)}"
     }
 
     override fun isModified(): Boolean = dialogPanel?.isModified() == true
 
     override fun apply() {
-        dialogPanel?.apply()
+        val panel = dialogPanel ?: return
+        panel.validateAll().firstOrNull()?.let { throw ConfigurationException(it.message) }
+        regexError()?.let { throw ConfigurationException(it) }
+        panel.apply()
         refreshPreview()
     }
 

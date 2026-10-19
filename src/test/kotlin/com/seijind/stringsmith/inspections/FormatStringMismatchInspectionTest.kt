@@ -37,6 +37,13 @@ class FormatStringMismatchInspectionTest : BasePlatformTestCase() {
         assertEquals(1, problems!!.size)
     }
 
+    fun testUnformattedStringIsSkipped() {
+        addStringsXml("res/values", """<resources><string name="pct" formatted="false">100%d done %s</string></resources>""")
+        val locale = addStringsXml("res/values-de", """<resources><string name="pct" formatted="false">100% fertig</string></resources>""")
+        val problems = check(locale)
+        assertTrue(problems == null || problems.isEmpty())
+    }
+
     fun testAndroidMatchingFormatIsClean() {
         addStringsXml("res/values", """<resources><string name="greeting">Hello %1${D}s, %2${D}d msgs</string></resources>""")
         val locale = addStringsXml("res/values-de", """<resources><string name="greeting">Hallo %1${D}s, %2${D}d Nachrichten</string></resources>""")

@@ -35,5 +35,5 @@ object BatchStatus {
 
     /** Another row already carries the same value (extract once, reuse the key). */
     private fun duplicateValueInBatch(rows: List<RowFacts>, selfIndex: Int, value: String): Boolean =
-        rows.withIndex().any { (i, other) -> i != selfIndex && other.value == value }
+        rows.withIndex().any { (i, other) -> i != selfIndex && other.include && other.value == value }
 }

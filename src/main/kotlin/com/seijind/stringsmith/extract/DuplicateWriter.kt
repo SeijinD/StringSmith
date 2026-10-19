@@ -14,6 +14,9 @@ object DuplicateWriter {
         settings: StringSmithSettings = StringSmithSettings.getInstance()
     ) {
         val failed = mutableListOf<String>()
+        val cmpResPackage = source.codeRef
+            ?.takeIf { result.updateReference && source.system == ResourceSystem.COMPOSE_MULTIPLATFORM }
+            ?.let { KtImportUtil.cmpResPackage(it.ktFile) }
         WriteCommandAction.runWriteCommandAction(project, "Duplicate String Resource", null, {
             // Copy the raw XML so markup (`<b>`), entities and Android quoting survive the copy unchanged.
             val defaultRaw = StringsXmlUtil.findRawValueOfKey(source.defaultFile, source.key)
@@ -33,7 +36,7 @@ object DuplicateWriter {
                 localeRaws, result.newKey, null, settings.sortAfterExtract, isRawXml = true
             ).forEach { failed += DisplayPath.projectRelative(project, it) }
             if (result.updateReference && source.codeRef != null) {
-                switchReference(source.codeRef, result.newKey, source.system)
+                switchReference(source.codeRef, result.newKey, cmpResPackage)
             }
         })
 
@@ -43,13 +46,11 @@ object DuplicateWriter {
         }
     }
 
-    private fun switchReference(ref: DuplicateCodeRef, newKey: String, system: ResourceSystem) {
+    private fun switchReference(ref: DuplicateCodeRef, newKey: String, cmpResPackage: String?) {
         val doc = PsiDocumentManager.getInstance(ref.ktFile.project).getDocument(ref.ktFile) ?: return
         doc.replaceString(ref.keyRangeStart, ref.keyRangeEnd, newKey)
         PsiDocumentManager.getInstance(ref.ktFile.project).commitDocument(doc)
-        if (system == ResourceSystem.COMPOSE_MULTIPLATFORM) {
-            KtImportUtil.addCmpKeyImport(ref.ktFile.project, ref.ktFile, newKey)
-        }
+        cmpResPackage?.let { KtImportUtil.addCmpKeyImport(ref.ktFile, it, newKey) }
     }
 
 }

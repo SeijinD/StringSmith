@@ -3,9 +3,11 @@ package com.seijind.stringsmith.extract
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.DumbService
+import com.intellij.openapi.project.IndexNotReadyException
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.search.FilenameIndex
 import com.intellij.psi.search.GlobalSearchScope
@@ -27,15 +29,19 @@ data class StringEntryDraft(
 
 object StringsXmlUtil {
 
-    private val IGNORED_DIRS = listOf(
-        "/build/", "\\build\\", "/.gradle/", "\\.gradle\\", "/.idea/", "\\.idea\\",
-    )
+    private val IGNORED_DIRS = setOf("build", ".gradle", ".idea")
 
-    private fun isResStringsXml(vf: VirtualFile): Boolean =
+    // Checked relative to the project dir, so a project that itself lives under e.g. /srv/build/ still works.
+    private fun isIgnored(vf: VirtualFile, base: VirtualFile?): Boolean {
+        val path = base?.let { VfsUtilCore.getRelativePath(vf, it) } ?: vf.path
+        return path.split('/').any { it in IGNORED_DIRS }
+    }
+
+    private fun isResStringsXml(vf: VirtualFile, base: VirtualFile?): Boolean =
         !vf.isDirectory &&
             vf.name == "strings.xml" &&
             vf.parent?.name?.startsWith("values") == true &&
-            IGNORED_DIRS.none { vf.path.contains(it) }
+            !isIgnored(vf, base)
 
     /**
      * Every `strings.xml` under a `res/values...` directory in the project. Uses the filename index (fast,
@@ -46,12 +52,15 @@ object StringsXmlUtil {
         val viaIndex = if (DumbService.isDumb(project)) {
             null
         } else {
-            runCatching {
+            try {
                 FilenameIndex.getVirtualFilesByName("strings.xml", GlobalSearchScope.projectScope(project))
-            }.getOrNull()
+            } catch (e: IndexNotReadyException) {
+                null
+            }
         }
         val files = viaIndex ?: scanStringsXml(project)
-        return files.filter(::isResStringsXml)
+        val base = project.guessProjectDir()
+        return files.filter { isResStringsXml(it, base) }
     }
 
     private fun scanStringsXml(project: Project): List<VirtualFile> {
@@ -59,9 +68,9 @@ object StringsXmlUtil {
         val out = mutableListOf<VirtualFile>()
         VfsUtil.iterateChildrenRecursively(
             base,
-            { vf -> IGNORED_DIRS.none { vf.path.contains(it) } },
+            { vf -> !isIgnored(vf, base) },
         ) { vf ->
-            if (isResStringsXml(vf)) out += vf
+            if (isResStringsXml(vf, base)) out += vf
             true
         }
         return out

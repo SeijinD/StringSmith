@@ -8,6 +8,9 @@ sealed interface FormatMismatch {
     /** The translation references a different number of distinct arguments than the default. */
     data class Count(val defaultCount: Int, val actualCount: Int) : FormatMismatch
 
+    /** Same number of arguments, but at different positions (`%1$s %2$s` vs `%1$s %3$s`). */
+    data class Positions(val default: List<Int>, val actual: List<Int>) : FormatMismatch
+
     /** Argument [position] has a different conversion type than the default (e.g. `%s` vs `%d`). */
     data class Type(val position: Int, val default: Char, val actual: Char) : FormatMismatch
 }
@@ -46,7 +49,11 @@ object FormatSpec {
         val defaultByPos = byPosition(specifiers(default))
         val actualByPos = byPosition(specifiers(translation))
         if (defaultByPos.keys != actualByPos.keys) {
-            return FormatMismatch.Count(defaultByPos.size, actualByPos.size)
+            return if (defaultByPos.size == actualByPos.size) {
+                FormatMismatch.Positions(defaultByPos.keys.sorted(), actualByPos.keys.sorted())
+            } else {
+                FormatMismatch.Count(defaultByPos.size, actualByPos.size)
+            }
         }
         for ((position, conversion) in defaultByPos) {
             val actual = actualByPos.getValue(position)

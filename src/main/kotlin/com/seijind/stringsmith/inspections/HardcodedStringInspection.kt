@@ -11,7 +11,7 @@ import com.seijind.stringsmith.StringSmithBundle
 import com.seijind.stringsmith.extract.ExtractContext
 import com.seijind.stringsmith.extract.ExtractTarget
 import com.seijind.stringsmith.extract.ExtractValidator
-import com.seijind.stringsmith.intentions.ExtractStringResourceCoreIntention
+import com.seijind.stringsmith.intentions.ExtractStringResourceIntention
 import com.seijind.stringsmith.settings.StringSmithSettings
 import org.jetbrains.kotlin.psi.KtStringTemplateEntryWithExpression
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression
@@ -59,7 +59,7 @@ class HardcodedStringInspection : LocalInspectionTool() {
                     anchor,
                     StringSmithBundle.message("inspection.hardcodedString.message"),
                     ProblemHighlightType.GENERIC_ERROR_OR_WARNING,
-                    IntentionWrapper(ExtractStringResourceCoreIntention())
+                    IntentionWrapper(ExtractStringResourceIntention())
                 )
             }
         }

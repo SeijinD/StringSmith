@@ -2,13 +2,11 @@ package com.seijind.stringsmith.navigation
 
 import com.intellij.codeInsight.navigation.actions.GotoDeclarationHandler
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.project.DumbService
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiManager
 import com.intellij.psi.xml.XmlAttributeValue
 import com.intellij.psi.xml.XmlFile
 import com.seijind.stringsmith.extract.ResourceSystem
-import com.seijind.stringsmith.extract.StringsXmlUtil
 import com.seijind.stringsmith.inspections.StringsXmlFileFilter
 
 /**
@@ -25,14 +23,17 @@ class StringLocaleGotoHandler : GotoDeclarationHandler {
         if (!StringsXmlFileFilter.isStringsXml(file)) return null
         val vFile = file.virtualFile ?: return null
         if (ResourceSystem.of(vFile) != ResourceSystem.COMPOSE_MULTIPLATFORM) return null
-        if (DumbService.isDumb(file.project)) return null
 
         val key = StringsXmlFileFilter.keyAt(element) ?: return null
-        val project = file.project
-        val default = StringsXmlUtil.findDefaultStringsXml(project, vFile) ?: return null
-        val siblings = (listOf(default) + StringsXmlUtil.findLocaleVariants(default)).filter { it != vFile }
+        // The other locales sit beside this file's values* dir; no project-wide lookup needed.
+        val resDir = vFile.parent?.parent ?: return null
+        val siblings = resDir.children
+            .filter { it.isDirectory && (it.name == "values" || it.name.startsWith("values-")) }
+            .sortedBy { it.name }
+            .mapNotNull { it.findChild("strings.xml") }
+            .filter { it != vFile }
 
-        val psiManager = PsiManager.getInstance(project)
+        val psiManager = PsiManager.getInstance(file.project)
         val targets = siblings.mapNotNull { locale ->
             val xml = psiManager.findFile(locale) as? XmlFile ?: return@mapNotNull null
             nameAttrValue(xml, key)

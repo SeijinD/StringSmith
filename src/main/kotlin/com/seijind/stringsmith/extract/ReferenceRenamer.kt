@@ -29,7 +29,7 @@ object ReferenceRenamer {
         val newKey: String,
         val system: ResourceSystem,
         internal val edits: Map<Document, List<RangeMarker>>,
-        internal val touchedKtFiles: List<KtFile>
+        internal val cmpResPackages: Map<KtFile, String>
     )
 
     /**
@@ -72,7 +72,10 @@ object ReferenceRenamer {
                 UsageSearchContext.IN_FOREIGN_LANGUAGES or UsageSearchContext.IN_STRINGS, collect
             )
         }
-        return RenamePlan(oldKey, newKey, system, edits, touchedKtFiles.toList())
+        val cmpResPackages = if (system == ResourceSystem.COMPOSE_MULTIPLATFORM) {
+            touchedKtFiles.mapNotNull { file -> KtImportUtil.cmpResPackage(file)?.let { file to it } }.toMap()
+        } else emptyMap()
+        return RenamePlan(oldKey, newKey, system, edits, cmpResPackages)
     }
 
     /** Applies a [RenamePlan]'s edits (call inside a write command) and returns how many sites were rewritten. */
@@ -89,9 +92,7 @@ object ReferenceRenamer {
             }
             docManager.commitDocument(doc)
         }
-        if (plan.system == ResourceSystem.COMPOSE_MULTIPLATFORM) {
-            plan.touchedKtFiles.forEach { KtImportUtil.addCmpKeyImport(project, it, plan.newKey) }
-        }
+        plan.cmpResPackages.forEach { (file, resPackage) -> KtImportUtil.addCmpKeyImport(file, resPackage, plan.newKey) }
         return renamed
     }
 

@@ -80,4 +80,10 @@ class FormatSpecTest {
         val m = FormatSpec.analyze("Welcome", "Willkommen %s")
         assertEquals(FormatMismatch.Count(0, 1), m)
     }
+
+    @Test
+    fun differentPositionsWithSameCountAreReportedAsPositions() {
+        val m = FormatSpec.analyze("%1\$s %2\$s", "%1\$s %3\$s")
+        assertEquals(FormatMismatch.Positions(listOf(1, 2), listOf(1, 3)), m)
+    }
 }

@@ -6,8 +6,9 @@
     default <code>values/strings.xml</code> entry for the same key.
 </p>
 <p>
-    A dropped, added, or retyped argument crashes at runtime with
-    <code>IllegalFormatException</code> as soon as that locale is shown.
+    A dropped, added, or retyped argument can crash at runtime with
+    <code>IllegalFormatException</code> when that locale is shown.
+    Strings marked <code>formatted="false"</code> are not checked.
 </p>
 <p><b>Example</b></p>
 <pre><code>&lt;!-- values/strings.xml --&gt;

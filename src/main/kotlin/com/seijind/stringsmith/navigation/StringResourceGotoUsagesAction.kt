@@ -1,12 +1,18 @@
 package com.seijind.stringsmith.navigation
 
+import com.intellij.codeInsight.hint.HintManager
 import com.intellij.codeInsight.navigation.PsiTargetNavigator
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
-import com.intellij.openapi.project.DumbService
+import com.intellij.openapi.application.ReadAction
+import com.intellij.openapi.progress.ProgressManager
+import com.intellij.psi.PsiDocumentManager
+import com.intellij.psi.PsiElement
+import com.seijind.stringsmith.StringSmithBundle
 import com.seijind.stringsmith.inspections.StringsXmlFileFilter
+import java.util.concurrent.Callable
 
 /**
  * Alt+Click (or the bound shortcut) on a `<string name="x">` declaration in strings.xml navigates to its
@@ -26,14 +32,28 @@ class StringResourceGotoUsagesAction : AnAction() {
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        if (DumbService.isDumb(project)) return
         val editor = e.getData(CommonDataKeys.EDITOR) ?: return
         val key = keyUnderCaret(e) ?: return
 
-        val targets = StringResourceUsageFinder.findUsages(project, key)
-        if (targets.isEmpty()) return
+        PsiDocumentManager.getInstance(project).commitAllDocuments()
+        var targets: List<PsiElement> = emptyList()
+        val completed = ProgressManager.getInstance().runProcessWithProgressSynchronously(
+            {
+                targets = ReadAction.nonBlocking(Callable { StringResourceUsageFinder.findUsages(project, key) })
+                    .inSmartMode(project)
+                    .executeSynchronously()
+            },
+            StringSmithBundle.message("progress.findUsages", key),
+            true,
+            project
+        )
+        if (!completed) return
+        if (targets.isEmpty()) {
+            HintManager.getInstance().showInformationHint(editor, StringSmithBundle.message("usages.none", key))
+            return
+        }
         // navigate() jumps straight on a single target, otherwise shows the chooser popup.
-        PsiTargetNavigator(targets.toTypedArray()).navigate(editor, "Usages of \"$key\"")
+        PsiTargetNavigator(targets.toTypedArray()).navigate(editor, StringSmithBundle.message("usages.popup.title", key))
     }
 
     /** Resource key when the caret sits on the `name` attribute value of a `<string>` tag, else null. */

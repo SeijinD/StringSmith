@@ -23,6 +23,8 @@ import javax.swing.JCheckBox
 import javax.swing.JComponent
 import javax.swing.JLabel
 import javax.swing.JTable
+import javax.swing.event.CellEditorListener
+import javax.swing.event.ChangeEvent
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 import javax.swing.table.AbstractTableModel
@@ -59,6 +61,7 @@ class BatchDialog(
     private val rows: MutableList<BatchRow> = initialRows.toMutableList()
     private val tableModel = RowModel()
     private val keyEditorField = JBTextField()
+    private var keyBeforeEdit: Pair<Int, String>? = null
     private val table: JBTable = JBTable(tableModel).apply {
         setShowGrid(true)
         rowHeight = 22
@@ -66,7 +69,23 @@ class BatchDialog(
         columnModel.getColumn(1).preferredWidth = 50
         columnModel.getColumn(2).preferredWidth = 280
         columnModel.getColumn(3).preferredWidth = 200
-        columnModel.getColumn(3).cellEditor = DefaultCellEditor(keyEditorField).apply { clickCountToStart = 1 }
+        columnModel.getColumn(3).cellEditor = DefaultCellEditor(keyEditorField).apply {
+            clickCountToStart = 1
+            addCellEditorListener(object : CellEditorListener {
+                override fun editingStopped(e: ChangeEvent) {
+                    keyBeforeEdit = null
+                }
+
+                // onKeyEdited already wrote the typed key into the row; Escape must put the old one back.
+                override fun editingCanceled(e: ChangeEvent) {
+                    keyBeforeEdit?.let { (r, key) -> if (r < rows.size) rows[r] = rows[r].copy(key = key) }
+                    keyBeforeEdit = null
+                    recomputeStatusesPreservingKeys()
+                    refreshSummary()
+                    tableModel.fireTableDataChanged()
+                }
+            })
+        }
         columnModel.getColumn(4).preferredWidth = 110
         columnModel.getColumn(4).cellRenderer = StatusCellRenderer()
         preferredScrollableViewportSize = java.awt.Dimension(700, rowHeight * 18)
@@ -100,6 +119,7 @@ class BatchDialog(
     private fun onKeyEdited() {
         val r = table.editingRow
         if (r < 0 || r >= rows.size) return
+        if (keyBeforeEdit?.first != r) keyBeforeEdit = r to rows[r].key
         rows[r] = rows[r].copy(key = keyEditorField.text.trim())
         recomputeStatusesPreservingKeys()
         refreshSummary()

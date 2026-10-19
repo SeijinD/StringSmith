@@ -6,6 +6,9 @@ import org.junit.Test
 
 class StringsXmlTextTest {
 
+    private fun appendOne(xml: String, key: String, value: String, comment: String? = null, sortAlpha: Boolean = false): String =
+        StringsXmlText.appendEntries(xml, listOf(StringEntryDraft(key, value, comment)), sortAlpha)
+
     @Test
     fun parseEntries_singleEntry() {
         val xml = """
@@ -75,7 +78,7 @@ class StringsXmlTextTest {
                 <string name="a">A</string>
             </resources>
         """.trimIndent()
-        val result = StringsXmlText.appendEntry(xml, "b", "B")
+        val result = appendOne(xml, "b", "B")
         assertTrue(result.contains("""<string name="b">B</string>"""))
         assertTrue(result.indexOf("name=\"a\"") < result.indexOf("name=\"b\""))
         assertTrue(result.indexOf("name=\"b\"") < result.indexOf("</resources>"))
@@ -84,7 +87,7 @@ class StringsXmlTextTest {
     @Test
     fun appendEntry_escapesSpecialChars() {
         val xml = "<resources></resources>"
-        val result = StringsXmlText.appendEntry(xml, "x", "A & B <tag> 'quote' \"dq\"")
+        val result = appendOne(xml, "x", "A & B <tag> 'quote' \"dq\"")
         assertTrue(result.contains("&amp;"))
         assertTrue(result.contains("&lt;tag&gt;"))
         assertTrue(result.contains("\\'quote\\'"))
@@ -94,14 +97,14 @@ class StringsXmlTextTest {
     @Test
     fun appendEntry_withComment() {
         val xml = "<resources></resources>"
-        val result = StringsXmlText.appendEntry(xml, "x", "v", comment = "from File.kt:42")
+        val result = appendOne(xml, "x", "v", comment = "from File.kt:42")
         assertTrue(result.contains("<!-- from File.kt:42 -->"))
     }
 
     @Test
     fun appendEntry_blankCommentSkipped() {
         val xml = "<resources></resources>"
-        val result = StringsXmlText.appendEntry(xml, "x", "v", comment = "  ")
+        val result = appendOne(xml, "x", "v", comment = "  ")
         assertTrue(!result.contains("<!--"))
     }
 
@@ -113,7 +116,7 @@ class StringsXmlTextTest {
                 <string name="apple">A</string>
             </resources>
         """.trimIndent()
-        val result = StringsXmlText.appendEntry(xml, "mango", "M", sortAlpha = true)
+        val result = appendOne(xml, "mango", "M", sortAlpha = true)
         val keyOrder = Regex("""name="([^"]+)"""").findAll(result).map { it.groupValues[1] }.toList()
         assertEquals(listOf("apple", "mango", "zebra"), keyOrder)
     }
@@ -121,7 +124,7 @@ class StringsXmlTextTest {
     @Test
     fun appendEntry_noResourcesTag_buildsOne() {
         val xml = ""
-        val result = StringsXmlText.appendEntry(xml, "x", "v")
+        val result = appendOne(xml, "x", "v")
         assertTrue(result.contains("<resources>"))
         assertTrue(result.contains("</resources>"))
         assertTrue(result.contains("""<string name="x">v</string>"""))
@@ -316,9 +319,40 @@ class StringsXmlTextTest {
                 <string name="apple">A</string>
             </resources>
         """.trimIndent()
-        val result = StringsXmlText.appendEntry(xml, "mango", "M", sortAlpha = true)
+        val result = appendOne(xml, "mango", "M", sortAlpha = true)
         val keyOrder = Regex("""name="([^"]+)"""").findAll(result).map { it.groupValues[1] }.toList()
         assertEquals(listOf("apple", "mango", "zebra"), keyOrder)
+    }
+
+    @Test
+    fun appendEntry_sortMovesSourceCommentWithItsEntry() {
+        val xml = """
+            <resources>
+                <string name="zebra">Z</string>
+            </resources>
+        """.trimIndent()
+        val result = appendOne(xml, "apple", "A", comment = "from A.kt:1", sortAlpha = true)
+        assertTrue(result.contains("<!-- from A.kt:1 -->\n    <string name=\"apple\">A</string>\n    <string name=\"zebra\">"))
+    }
+
+    @Test
+    fun appendEntry_sortKeepsSectionCommentInPlace() {
+        val xml = """
+            <resources>
+                <!-- Login -->
+                <string name="zebra">Z</string>
+            </resources>
+        """.trimIndent()
+        val result = appendOne(xml, "apple", "A", sortAlpha = true)
+        assertTrue(result.contains("<!-- Login -->\n    <string name=\"apple\">"))
+    }
+
+    @Test
+    fun appendEntry_expandsSelfClosedResources() {
+        val result = appendOne("<resources/>", "a", "A")
+        assertEquals(1, Regex("<resources").findAll(result).count())
+        assertTrue(result.contains("<string name=\"a\">A</string>"))
+        assertTrue(result.trimEnd().endsWith("</resources>"))
     }
 
     @Test
@@ -351,8 +385,8 @@ class StringsXmlTextTest {
     fun appendEntries_matchesRepeatedAppendEntry() {
         val xml = "<resources>\n    <string name=\"a\">A</string>\n</resources>"
         val batched = StringsXmlText.appendEntries(xml, listOf(StringEntryDraft("m", "M"), StringEntryDraft("z", "Z")), sortAlpha = true)
-        val sequential = StringsXmlText.appendEntry(
-            StringsXmlText.appendEntry(xml, "m", "M", sortAlpha = true),
+        val sequential = appendOne(
+            appendOne(xml, "m", "M", sortAlpha = true),
             "z", "Z", sortAlpha = true
         )
         assertEquals(sequential, batched)
@@ -482,7 +516,7 @@ class StringsXmlTextTest {
         // A source filename like `foo--bar.kt` must not produce `<!-- … foo--bar.kt … -->` (XML 1.0
         // forbids `--` inside a comment), which would corrupt strings.xml.
         val xml = "<resources></resources>"
-        val result = StringsXmlText.appendEntry(xml, "x", "v", comment = "from foo--bar.kt:42")
+        val result = appendOne(xml, "x", "v", comment = "from foo--bar.kt:42")
         val comment = Regex("<!--.*?-->", RegexOption.DOT_MATCHES_ALL).find(result)!!.value
         // No `--` survives inside the comment body (only the opening `<!--`/closing `-->` markers).
         val body = comment.removePrefix("<!--").removeSuffix("-->")
@@ -493,7 +527,7 @@ class StringsXmlTextTest {
     @Test
     fun appendEntry_commentTrailingHyphenPadded() {
         val xml = "<resources></resources>"
-        val result = StringsXmlText.appendEntry(xml, "x", "v", comment = "from weird-")
+        val result = appendOne(xml, "x", "v", comment = "from weird-")
         // Closing marker must not glue onto a trailing hyphen (`--->` is illegal).
         assertTrue(!result.contains("--->"))
     }

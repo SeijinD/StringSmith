@@ -44,7 +44,23 @@ object Replacement {
         return base.substring(0, lastClose) + ", " + argList + base.substring(lastClose)
     }
 
-    fun apply(editor: Editor, target: ExtractTarget, key: String, system: ResourceSystem) {
+    /** Packages for the reference's imports. */
+    class ImportPackages(val androidRPackage: String?, val cmpResPackage: String?)
+
+    /**
+     * Resolve before the write command: the CMP lookup scans project imports, and inside the command its
+     * PSI-keyed cache is always stale (the edit just changed PSI), so it would rescan under the write lock.
+     */
+    fun importPackagesFor(target: ExtractTarget, system: ResourceSystem): ImportPackages {
+        val file = target.containingFile as? KtFile ?: return ImportPackages(null, null)
+        val vf = file.virtualFile ?: return ImportPackages(null, null)
+        return when (system) {
+            ResourceSystem.ANDROID -> ImportPackages(AndroidModuleUtil.findRPackage(vf, file), null)
+            ResourceSystem.COMPOSE_MULTIPLATFORM -> ImportPackages(null, CmpModuleUtil.findResPackage(file.project, vf, file))
+        }
+    }
+
+    fun apply(editor: Editor, target: ExtractTarget, key: String, system: ResourceSystem, packages: ImportPackages) {
         val replacement = referenceFor(target, key, system)
         val doc = editor.document
         when {
@@ -60,22 +76,19 @@ object Replacement {
             }
         }
         PsiDocumentManager.getInstance(target.containingFile.project).commitDocument(doc)
-        addKotlinImports(target, key, system)
+        addKotlinImports(target, key, system, packages)
     }
 
-    private fun addKotlinImports(target: ExtractTarget, key: String, system: ResourceSystem) {
+    private fun addKotlinImports(target: ExtractTarget, key: String, system: ResourceSystem, packages: ImportPackages) {
         val file = target.containingFile as? KtFile ?: return
-        val vf = target.containingFile.virtualFile
-        val androidRPackage = if (system == ResourceSystem.ANDROID) vf?.let { AndroidModuleUtil.findRPackage(it, file) } else null
-        val cmpResPackage = if (system == ResourceSystem.COMPOSE_MULTIPLATFORM) vf?.let { CmpModuleUtil.findResPackage(file.project, it, file) } else null
         KtImportUtil.addResourceImports(
             file = file,
             system = system,
             hasComposable = target.kind == ExtractContextKind.COMPOSABLE,
             hasNonXmlReference = target.kind != ExtractContextKind.XML_LAYOUT,
             keys = listOf(key),
-            androidRPackage = androidRPackage,
-            cmpResPackage = cmpResPackage
+            androidRPackage = packages.androidRPackage,
+            cmpResPackage = packages.cmpResPackage
         )
     }
 }
