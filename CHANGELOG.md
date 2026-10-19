@@ -5,12 +5,13 @@
 ## [Unreleased]
 
 ### Changed
-- **Inspections are controlled only from the inspection profile** (**Settings → Editor → Inspections → StringSmith**). The duplicate checkboxes in StringSmith settings are gone. Hardcoded strings stay off by default; if you had changed any of the four inspections in StringSmith settings, set them again in the inspection profile.
+- **Hardcoded strings are reported by two inspections.** **Hardcoded UI string** is now on by default (weak warning) and reports only text the user sees: Compose UI, UI calls such as `Toast.makeText`, `setText` or `showSnackbar`, layout, menu and shortcut XML, and the manifest label. Keys, routes, tags, comparisons, tests, generated code, Gradle scripts, `buildSrc` / `build-logic` and benchmark modules are not reported, and strings in Activities are no longer reported just because they are in an Activity. **Hardcoded string in non-UI code** (off by default) covers everything else for audits.
+- **Inspections are controlled only from the inspection profile** (**Settings → Editor → Inspections → StringSmith**). The duplicate checkboxes in StringSmith settings are gone; if you had changed any inspection there, set it again in the inspection profile.
 - Removed the unused optional dependency on the Android plugin. Works the same in IntelliJ IDEA and Android Studio.
 
 ### Fixed
-- **Extract** picks the right reference in more places: strings in `onClick`, `LaunchedEffect`, `remember` and other non-composable lambdas inside a `@Composable` no longer get `stringResource(...)`, and custom `View`s, receivers, providers and workers no longer get a `getString(...)` they don't have.
-- **Extract** no longer double-escapes values: escaped quotes in Kotlin (`"Say \"hi\""`) and XML entities in layouts (`Tom &amp; Jerry`) are written correctly.
+- **Extract** picks the right reference in more places: strings in `onClick`, `LaunchedEffect`, `remember` and other non-composable lambdas inside a `@Composable` no longer get `stringResource(...)` (named content slots such as `label = { }` still do), and custom `View`s, receivers, providers and workers no longer get a `getString(...)` they don't have.
+- **Extract** works on the manifest `android:label` / `android:description` and app shortcut labels, and no longer double-escapes values: escaped quotes in Kotlin (`"Say \"hi\""`) and XML entities in layouts (`Tom &amp; Jerry`) are written correctly.
 - **Compose Multiplatform**: the `Res` import uses the module's own generated package (also in CMP wizard projects and in modules that import another module's `Res`), and `"Hello $name"` outside a `@Composable` is no longer extracted with `name` silently dropped.
 - **Batch Extract** no longer corrupts code when a string template contains another literal (`"Hello ${name ?: "Guest"}"`), an unticked row no longer marks others as duplicates, and Escape restores the key being edited.
 - **Edit**: renaming a key no longer touches `android.R.string.*` or text inside strings and comments, also renames `@string/` aliases in `strings.xml`, and rejects a key that already exists in a locale. Values you didn't change are left exactly as written.

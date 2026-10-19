@@ -19,25 +19,36 @@ import com.seijind.stringsmith.settings.StringSmithSettings
 import org.jetbrains.kotlin.psi.KtStringTemplateEntryWithExpression
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression
 
-class HardcodedStringInspection : LocalInspectionTool() {
+/** Hardcoded text the user sees: Compose UI, UI calls such as `Toast.makeText`, XML layouts and the manifest. */
+class HardcodedUiStringInspection : HardcodedStringInspection(StringRole.UI, "inspection.hardcodedString.message")
+
+/** Every other hardcoded Kotlin string: keys, routes, tags and text in non-UI code. Off by default. */
+class HardcodedNonUiStringInspection : HardcodedStringInspection(StringRole.NON_UI, "inspection.hardcodedNonUiString.message")
+
+/** Reports hardcoded strings of one [role] (see [HardcodedStringRules]) with the Extract quick-fix. */
+abstract class HardcodedStringInspection(
+    private val role: StringRole,
+    private val messageKey: String
+) : LocalInspectionTool() {
 
     override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor {
+        if (HardcodedStringRules.isExcludedFile(holder.file)) return PsiElementVisitor.EMPTY_VISITOR
         val settings = StringSmithSettings.getInstance()
         return object : PsiElementVisitor() {
             override fun visitElement(element: PsiElement) {
                 when (element) {
                     is KtStringTemplateExpression -> visitKotlin(element)
-                    is XmlAttributeValue -> visitXml(element)
+                    is XmlAttributeValue -> if (role == StringRole.UI) visitXml(element)
                 }
             }
 
             private fun visitKotlin(expr: KtStringTemplateExpression) {
-                if (ExtractContext.isIgnorableForInspection(expr)) return
                 // Cheap reject before the context-classification walks in fromKotlin: a literal with no
                 // interpolation whose (trimmed) text is below the minimum can't pass validate anyway.
                 if (isDefinitelyTooShort(expr)) return
                 val target = ExtractContext.fromKotlin(expr, expr.containingFile) ?: return
-                reportIfExtractable(target, expr, settings)
+                if (HardcodedStringRules.roleOf(expr, target.kind) != role) return
+                reportIfExtractable(target, expr)
             }
 
             private fun isDefinitelyTooShort(expr: KtStringTemplateExpression): Boolean {
@@ -50,15 +61,15 @@ class HardcodedStringInspection : LocalInspectionTool() {
             private fun visitXml(attr: XmlAttributeValue) {
                 val file = attr.containingFile ?: return
                 val target = ExtractContext.fromXml(attr, file) ?: return
-                reportIfExtractable(target, attr, settings)
+                reportIfExtractable(target, attr)
             }
 
-            private fun reportIfExtractable(target: ExtractTarget, anchor: PsiElement, settings: StringSmithSettings) {
+            private fun reportIfExtractable(target: ExtractTarget, anchor: PsiElement) {
                 if (ExtractValidator.validate(target, settings) !is ExtractValidator.Result.Ok) return
                 if (losesFormatArgs(target)) return
                 holder.registerProblem(
                     anchor,
-                    StringSmithBundle.message("inspection.hardcodedString.message"),
+                    StringSmithBundle.message(messageKey),
                     ProblemHighlightType.GENERIC_ERROR_OR_WARNING,
                     IntentionWrapper(ExtractStringResourceIntention())
                 )
@@ -74,4 +85,3 @@ class HardcodedStringInspection : LocalInspectionTool() {
         return Replacement.dropsFormatArgs(target, ResourceSystem.of(stringsXml))
     }
 }
-

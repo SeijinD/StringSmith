@@ -69,7 +69,7 @@ IntelliJ IDEA / Android Studio plugin for managing Android `strings.xml` resourc
 
 ### Inspect
 
-- Hardcoded string highlight in editor (opt-in) — Android resource XML (`res/<type>/`) and Kotlin only
+- Hardcoded UI text highlight, on by default: Compose UI, UI calls such as `Toast.makeText` or `setText`, layout / menu / shortcut XML and the manifest label. Keys, routes, tags, tests, generated code and Gradle scripts are not reported. A second, opt-in inspection covers hardcoded strings in non-UI code
 - Duplicate value in `strings.xml` (same text, different keys)
 - Unused string resource (no `R.string.key`, `Res.string.key`, or `@string/key` references)
 - Format-string mismatch across locales — a locale whose `%s`/`%d`/`%1$s` arguments don't match the default entry (count, position or type), which can crash at runtime. Strings with `formatted="false"` are skipped. Covers Compose Multiplatform, which Android Lint doesn't check
@@ -108,7 +108,7 @@ Copy an existing string resource to a new key across `res/values/strings.xml` an
 
 ### Inspections
 
-Duplicate and unused `strings.xml` entries are flagged inline. Turn each StringSmith inspection on or off under **Settings → Editor → Inspections → StringSmith**; the hardcoded-string highlight is off by default.
+Hardcoded UI text, duplicate and unused `strings.xml` entries are flagged inline. Turn each StringSmith inspection on or off, or change its severity, under **Settings → Editor → Inspections → StringSmith**. **Hardcoded UI string** is on by default; **Hardcoded string in non-UI code** is off and reports keys, routes and other technical strings for audits.
 
 ![Inspections](docs/inspect.png)
 

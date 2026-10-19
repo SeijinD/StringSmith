@@ -7,11 +7,9 @@ import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.xml.XmlAttribute
 import com.intellij.psi.xml.XmlAttributeValue
 import com.seijind.stringsmith.settings.StringSmithSettings
-import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.KtAnnotationEntry
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtClass
-import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtEscapeStringTemplateEntry
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtLambdaArgument
@@ -19,7 +17,6 @@ import org.jetbrains.kotlin.psi.KtLambdaExpression
 import org.jetbrains.kotlin.psi.KtLiteralStringTemplateEntry
 import org.jetbrains.kotlin.psi.KtNameReferenceExpression
 import org.jetbrains.kotlin.psi.KtNamedFunction
-import org.jetbrains.kotlin.psi.KtProperty
 import org.jetbrains.kotlin.psi.KtSimpleNameStringTemplateEntry
 import org.jetbrains.kotlin.psi.KtStringTemplateEntryWithExpression
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression
@@ -64,9 +61,13 @@ object ExtractContext {
     }
 
     fun fromXml(attr: XmlAttributeValue, file: PsiFile): ExtractTarget? {
-        if (!isAndroidResourceXml(file)) return null
         val attribute = attr.parent as? XmlAttribute ?: return null
-        if (!isExtractableTextAttribute(attribute)) return null
+        val extractable = when {
+            isAndroidResourceXml(file) -> isExtractableTextAttribute(attribute)
+            isManifest(file) -> attribute.name.substringAfterLast(':') in MANIFEST_TEXT_ATTRIBUTES
+            else -> false
+        }
+        if (!extractable) return null
         val value = attr.value
         if (value.startsWith("@") || value.startsWith("?")) return null
         // attr.value keeps entities encoded (`A &amp; B`); the written entry re-encodes them.
@@ -88,15 +89,20 @@ object ExtractContext {
         "summary", "description", "message", "tooltipText", "prompt",
         "dialogTitle", "dialogMessage", "text1", "text2",
         "queryHint", "helperText", "placeholderText", "error",
-        "prefixText", "suffixText", "titleText", "subtitleText"
+        "prefixText", "suffixText", "titleText", "subtitleText",
+        "shortcutShortLabel", "shortcutLongLabel", "shortcutDisabledMessage"
     )
 
+    private val MANIFEST_TEXT_ATTRIBUTES = setOf("label", "description")
+
     /**
-     * Files where extraction can apply at all: Kotlin sources and Android resource layouts.
+     * Files where extraction can apply at all: Kotlin sources, Android resource XML and the manifest.
      * Never res/values* (a strings.xml is the extract *target*, not a source) or unrelated files.
      * Used to gate the extract editor actions so they stay hidden where extraction is meaningless.
      */
-    fun isExtractEligibleFile(file: PsiFile): Boolean = file is KtFile || isAndroidResourceXml(file)
+    fun isExtractEligibleFile(file: PsiFile): Boolean = file is KtFile || isAndroidResourceXml(file) || isManifest(file)
+
+    private fun isManifest(file: PsiFile): Boolean = file.name == "AndroidManifest.xml"
 
     // Restrict to res/<type>/ (layout, menu, …) where @string/ is valid; excludes res/values*, manifest, unrelated XML.
     private fun isAndroidResourceXml(file: PsiFile): Boolean {
@@ -172,10 +178,16 @@ object ExtractContext {
         val customNames = StringSmithSettings.getInstance().customComposableLambdaFunctionSet()
         var lambda = PsiTreeUtil.getParentOfType(expr, KtLambdaExpression::class.java, true)
         while (lambda != null) {
-            // Only a trailing-lambda argument can carry a composable scope (Column { }, run { }, ...). A
-            // value-argument lambda such as onClick = { } is an event handler that runs outside composition.
-            val lambdaArg = lambda.parent as? KtLambdaArgument ?: return LambdaScope.NON_COMPOSABLE
-            val call = lambdaArg.parent as? KtCallExpression ?: return LambdaScope.NON_COMPOSABLE
+            // A trailing lambda (Column { }, run { }, ...) or a named slot (label = { }, confirmButton = { })
+            // can carry a composable scope. An `onX = { }` handler or a positional lambda is an event handler
+            // that runs outside composition.
+            val call = when (val parent = lambda.parent) {
+                is KtLambdaArgument -> parent.parent as? KtCallExpression
+                is KtValueArgument -> parent.getArgumentName()?.asName?.asString()
+                    ?.takeUnless { isEventHandlerName(it) }
+                    ?.let { PsiTreeUtil.getParentOfType(parent, KtCallExpression::class.java, true) }
+                else -> null
+            } ?: return LambdaScope.NON_COMPOSABLE
             val callee = (call.calleeExpression as? KtNameReferenceExpression)?.getReferencedName()
             if (callee in COMPOSABLE_ENTRY_CALLS || callee in customNames) return LambdaScope.COMPOSABLE
             if (callee in NON_COMPOSABLE_LAMBDA_CALLS) return LambdaScope.NON_COMPOSABLE
@@ -183,6 +195,9 @@ object ExtractContext {
         }
         return LambdaScope.NONE
     }
+
+    private fun isEventHandlerName(name: String): Boolean =
+        name.length > 2 && name.startsWith("on") && name[2].isUpperCase()
 
     private val NON_COMPOSABLE_LAMBDA_CALLS = setOf(
         "LaunchedEffect",
@@ -242,47 +257,11 @@ object ExtractContext {
         "Service"
     )
 
-    /**
-     * Contexts where a Kotlin string literal is technical rather than user-facing UI text, so the
-     * hardcoded-string inspection should stay quiet. Consulted ONLY by the inspection; manual extract
-     * (the action / Alt+Enter intention) still works on these, so nothing is blocked, just un-flagged.
-     *
-     * Annotation arguments (e.g. `@SerialName("user")`, `@Query("SELECT …")`) and `const` initializers
-     * are always ignored; logging-call arguments (`Log.d`, `Timber.*`, `println`, `require`/`check`)
-     * are ignored when [StringSmithSettings.ignoreLoggingStrings] is on.
-     */
-    fun isIgnorableForInspection(expr: KtStringTemplateExpression): Boolean {
-        if (PsiTreeUtil.getParentOfType(expr, KtAnnotationEntry::class.java, true) != null) return true
-
-        val prop = PsiTreeUtil.getParentOfType(expr, KtProperty::class.java, true)
-        if (prop != null &&
-            prop.hasModifier(KtTokens.CONST_KEYWORD) &&
-            prop.initializer?.let { PsiTreeUtil.isAncestor(it, expr, false) } == true
-        ) return true
-
-        return StringSmithSettings.getInstance().ignoreLoggingStrings && isLoggingArgument(expr)
-    }
-
-    private fun isLoggingArgument(expr: KtStringTemplateExpression): Boolean {
-        val call = PsiTreeUtil.getParentOfType(expr, KtCallExpression::class.java, true) ?: return false
-        val argList = call.valueArgumentList ?: return false
-        val arg = PsiTreeUtil.getParentOfType(expr, KtValueArgument::class.java, true) ?: return false
-        // Must be a plain value argument of this call, not e.g. a string inside a trailing lambda.
-        if (!PsiTreeUtil.isAncestor(argList, arg, false)) return false
-        val callee = (call.calleeExpression as? KtNameReferenceExpression)?.getReferencedName()
-        if (callee in LOGGING_CALLS) return true
-        val receiver = (call.parent as? KtDotQualifiedExpression)
-            ?.receiverExpression?.text?.substringAfterLast('.')?.trim()
-        return receiver in LOGGING_RECEIVERS
-    }
-
-    private val LOGGING_CALLS = setOf("println", "print", "error", "require", "check", "checkNotNull", "requireNotNull")
-    private val LOGGING_RECEIVERS = setOf("Log", "Timber", "Logger")
-
     fun isInsidePreviewComposable(target: ExtractTarget): Boolean {
         val expr = target.kotlin ?: return false
         val fn = PsiTreeUtil.getParentOfType(expr, KtNamedFunction::class.java, true) ?: return false
-        return fn.annotationEntries.any { it.shortName?.asString() == "Preview" }
+        // Also multipreview annotations such as @PreviewLightDark or a project's own @DevicePreviews.
+        return fn.annotationEntries.any { it.shortName?.asString()?.contains("Preview") == true }
     }
 
 }

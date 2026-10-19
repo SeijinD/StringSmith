@@ -60,7 +60,7 @@
 
         <p><b>Inspect</b></p>
         <ul>
-            <li>Hardcoded string highlight (opt-in)</li>
+            <li>Hardcoded UI text highlight in Compose, UI calls, XML layouts and the manifest, without noise from keys, routes, tests or generated code</li>
             <li>Duplicate value in <code>strings.xml</code> (same text, different keys)</li>
             <li>Unused string resource (no reference anywhere)</li>
             <li>Format-string mismatch across locales: a locale whose <code>%s</code>/<code>%d</code>
@@ -86,9 +86,18 @@
             bundle="messages.StringSmithBundle"
             key="inspection.hardcodedString.displayName"
             groupName="StringSmith"
+            enabledByDefault="true"
+            level="WEAK WARNING"
+            implementationClass="com.seijind.stringsmith.inspections.HardcodedUiStringInspection"/>
+        <localInspection
+            language=""
+            shortName="StringSmithHardcodedNonUiString"
+            bundle="messages.StringSmithBundle"
+            key="inspection.hardcodedNonUiString.displayName"
+            groupName="StringSmith"
             enabledByDefault="false"
-            level="WARNING"
-            implementationClass="com.seijind.stringsmith.inspections.HardcodedStringInspection"/>
+            level="WEAK WARNING"
+            implementationClass="com.seijind.stringsmith.inspections.HardcodedNonUiStringInspection"/>
         <localInspection
             language="XML"
             shortName="StringSmithDuplicateValue"

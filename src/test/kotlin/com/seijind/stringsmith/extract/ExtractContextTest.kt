@@ -568,89 +568,79 @@ class ExtractContextTest : BasePlatformTestCase() {
         assertNull(target)
     }
 
-    fun testIgnorableForInspection_annotationArgument() {
-        assertTrue(
-            ignorableAt(
-                """
-                @Deprecated("do not <caret>use this")
-                fun old() {}
-                """.trimIndent(),
-                "Old.kt"
-            )
+    fun testManifestLabelIsExtractable() {
+        val target = detectInResXml(
+            "app/src/main/AndroidManifest.xml",
+            """
+            <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+                <application android:label="My A<caret>pp" />
+            </manifest>
+            """.trimIndent()
         )
+        assertNotNull(target)
+        assertEquals(ExtractContextKind.XML_LAYOUT, target!!.kind)
+        assertEquals("My App", target.rawValue)
     }
 
-    fun testIgnorableForInspection_constValue() {
-        assertTrue(
-            ignorableAt(
-                """
-                object C { const val TAG = "Main<caret>Activity" }
-                """.trimIndent(),
-                "C.kt"
-            )
+    fun testManifestNameIsNotExtractable() {
+        val target = detectInResXml(
+            "app/src/main/AndroidManifest.xml",
+            """
+            <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+                <application android:name=".My<caret>App" />
+            </manifest>
+            """.trimIndent()
         )
+        assertNull(target)
     }
 
-    fun testIgnorableForInspection_loggingArgument() {
-        assertTrue(
-            ignorableAt(
-                """
-                fun f() { Log.d(TAG, "loading <caret>data") }
-                """.trimIndent(),
-                "F.kt"
-            )
+    fun testShortcutLabelIsExtractable() {
+        val target = detectInResXml(
+            "res/xml/shortcuts.xml",
+            """<shortcuts><shortcut android:shortcutShortLabel="Com<caret>pose" /></shortcuts>"""
         )
+        assertEquals("Compose", target!!.rawValue)
     }
 
-    fun testIgnorableForInspection_timberArgument() {
-        assertTrue(
-            ignorableAt(
-                """
-                fun f(e: Throwable) { Timber.e(e, "sync <caret>failed") }
-                """.trimIndent(),
-                "F.kt"
-            )
+    fun testNamedSlotLambdaInsideComposableIsComposable() {
+        val target = detectAt(
+            """
+            import androidx.compose.runtime.Composable
+            @Composable
+            fun Form() {
+                TextField(value = "", onValueChange = {}, label = { Text("Na<caret>me") })
+            }
+            """.trimIndent(),
+            "Form.kt"
         )
+        assertEquals(ExtractContextKind.COMPOSABLE, target!!.kind)
     }
 
-    fun testIgnorableForInspection_plainUiStringIsNotIgnorable() {
-        assertFalse(
-            ignorableAt(
-                """
-                fun f() { val x = "Wel<caret>come" }
-                """.trimIndent(),
-                "F.kt"
-            )
+    fun testOnPrefixedLambdaInsideComposableIsNotComposable() {
+        val target = detectAt(
+            """
+            import androidx.compose.runtime.Composable
+            @Composable
+            fun Form() {
+                TextField(value = "", onValueChange = { log("Chan<caret>ged") })
+            }
+            """.trimIndent(),
+            "Form.kt"
         )
+        assertEquals(ExtractContextKind.KOTLIN_GENERIC, target!!.kind)
     }
 
-    fun testIgnorableForInspection_loggingRespectsToggleOff() {
-        val settings = com.seijind.stringsmith.settings.StringSmithSettings.getInstance()
-        val previous = settings.ignoreLoggingStrings
-        settings.ignoreLoggingStrings = false
-        try {
-            assertFalse(
-                ignorableAt(
-                    """
-                    fun f() { Log.d(TAG, "loading <caret>data") }
-                    """.trimIndent(),
-                    "F.kt"
-                )
-            )
-        } finally {
-            settings.ignoreLoggingStrings = previous
-        }
-    }
-
-    private fun ignorableAt(content: String, fileName: String): Boolean {
-        myFixture.configureByText(fileName, content)
-        val offset = myFixture.editor.caretModel.offset
-        val expr = com.intellij.psi.util.PsiTreeUtil.getParentOfType(
-            myFixture.file.findElementAt(offset),
-            org.jetbrains.kotlin.psi.KtStringTemplateExpression::class.java,
-            false
-        )!!
-        return ExtractContext.isIgnorableForInspection(expr)
+    fun testMultipreviewAnnotationCountsAsPreview() {
+        val target = detectAt(
+            """
+            import androidx.compose.runtime.Composable
+            @PreviewLightDark
+            @Composable
+            fun Sample() { Text("Pre<caret>view text") }
+            """.trimIndent(),
+            "Sample.kt"
+        )
+        assertTrue(ExtractContext.isInsidePreviewComposable(target!!))
     }
 
     // Real project-relative path (configureByText cannot set one) so res/<type>/ detection applies.

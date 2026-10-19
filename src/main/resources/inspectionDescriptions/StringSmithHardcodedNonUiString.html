@@ -1,0 +1,28 @@
+<html>
+<body>
+
+<p>
+    Reports hardcoded strings in Kotlin code that is not UI: ViewModels, repositories, utilities,
+    intent extras, preference keys, and technical arguments inside a <code>@Composable</code> such as
+    <code>Modifier.testTag</code> or navigation routes. Offers the same Extract quick-fix as
+    <b>Hardcoded UI string</b>.
+</p>
+
+<p>
+    Off by default: most of these strings are identifiers that should not be translated. Enable it to
+    audit a module for text that reaches the UI indirectly, for example a message built in a
+    ViewModel and shown later.
+</p>
+
+<h3>What is not reported</h3>
+<ul>
+    <li>Strings reported by <b>Hardcoded UI string</b></li>
+    <li>Tests, generated code under <code>build/</code>, Gradle scripts, <code>buildSrc</code> /
+        <code>build-logic</code>, benchmark and baseline-profile modules</li>
+    <li><code>const val</code>, annotation arguments, exception messages, logging calls, previews</li>
+    <li>Strings without letters, strings shorter than the minimum length or matching an exclusion
+        pattern, and string templates outside Compose and Android classes</li>
+</ul>
+
+</body>
+</html>
