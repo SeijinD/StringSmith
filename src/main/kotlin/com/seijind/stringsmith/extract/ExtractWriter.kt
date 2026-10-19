@@ -21,7 +21,7 @@ object ExtractWriter {
         val failed = mutableListOf<String>()
         WriteCommandAction.runWriteCommandAction(project, "Extract String Resource", null, {
             // If the key never lands in the default file, don't rewrite the editor to reference a key that
-            // doesn't exist — that would silently break the build with only a warning.
+            // doesn't exist; that would silently break the build with only a warning.
             val defaultWritten = StringsXmlUtil.appendEntry(result.targetStringsXml, result.key, result.defaultValue, comment, settings.sortAfterExtract)
             if (!defaultWritten) {
                 failed += DisplayPath.projectRelative(project, result.targetStringsXml)

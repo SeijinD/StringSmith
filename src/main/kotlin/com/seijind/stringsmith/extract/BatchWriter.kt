@@ -65,12 +65,12 @@ object BatchWriter {
             Edit(start = s, end = e, replacementText = text, key = row.key, kind = t.kind)
         }.sortedByDescending { it.start }
 
-    /**
-     * Adds new keys to the default file once, then mirrors them into each included locale.
-     * Returns the project-relative paths of any files that could not be written (no editable document).
-     */
     private data class WriteOutcome(val defaultWritten: Boolean, val failed: List<String>)
 
+    /**
+     * Adds new keys to the default file once, then mirrors them into each included locale. [WriteOutcome.failed]
+     * lists the project-relative paths of files that could not be written (no editable document).
+     */
     private fun writeStringEntries(project: Project, result: BatchDialogResult, settings: StringSmithSettings, sourceFileName: String?): WriteOutcome {
         val addComment = settings.addSourceComment && sourceFileName != null
         // Set.add returns false for reuse rows, in-batch duplicates, and keys already present.

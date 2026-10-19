@@ -5,12 +5,13 @@ import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.ui.JBUI
 import com.seijind.stringsmith.StringSmithBundle
 import java.awt.Dimension
+import java.awt.Font
 import javax.swing.JComponent
 import javax.swing.ScrollPaneConstants
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 
-/** Shared building blocks for the locale sections of the Extract and Batch dialogs. */
+/** Shared building blocks for the StringSmith dialogs. */
 internal object LocaleUi {
 
     /** Group header with a variant count, e.g. "Locales (3)". */
@@ -18,6 +19,9 @@ internal object LocaleUi {
         val base = StringSmithBundle.message("label.locales.header")
         return if (count > 0) "$base ($count)" else base
     }
+
+    /** Font for the reference preview label (`R.string.key`). */
+    fun previewFont(base: Font): Font = Font(Font.MONOSPACED, Font.BOLD, base.size)
 
     /** Locale qualifier shown to the user, e.g. `values` or `values-de`. */
     fun localeLabel(file: VirtualFile): String = file.parent?.name ?: file.name

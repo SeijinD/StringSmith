@@ -19,7 +19,7 @@ import java.util.concurrent.Callable
  * usages (`R.string.x`, `Res.string.x` or `@string/x`).
  *
  * Kept separate from Ctrl+Click so the platform's native gesture (jump between locale `values-*` copies of
- * the same key) stays intact on Android. This action provides the reverse — find call sites — on both
+ * the same key) stays intact on Android. This action provides the reverse (find call sites) on both
  * Android and Compose Multiplatform resources.
  */
 class StringResourceGotoUsagesAction : AnAction() {
@@ -61,7 +61,7 @@ class StringResourceGotoUsagesAction : AnAction() {
         val editor = e.getData(CommonDataKeys.EDITOR) ?: return null
         val file = e.getData(CommonDataKeys.PSI_FILE) ?: return null
         if (!StringsXmlFileFilter.isStringsXml(file)) return null
-        // update() runs under a read lock (ActionUpdateThread.BGT); actionPerformed() runs on EDT — both
+        // update() runs under a read lock (ActionUpdateThread.BGT); actionPerformed() runs on EDT; both
         // hold read access, so no explicit ReadAction wrapper is needed.
         val element = file.findElementAt(editor.caretModel.offset) ?: return null
         return StringsXmlFileFilter.keyAt(element)

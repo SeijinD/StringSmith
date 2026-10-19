@@ -12,7 +12,6 @@ import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.xml.XmlTag
 import com.seijind.stringsmith.StringSmithBundle
 import com.seijind.stringsmith.extract.StringsXmlUtil
-import com.seijind.stringsmith.settings.StringSmithSettings
 
 /**
  * Flags a `<string>` in a locale `strings.xml` whose format specifiers (`%s`, `%d`, `%1$s`, …) don't
@@ -23,7 +22,6 @@ import com.seijind.stringsmith.settings.StringSmithSettings
 class FormatStringMismatchInspection : LocalInspectionTool() {
 
     override fun checkFile(file: PsiFile, manager: InspectionManager, isOnTheFly: Boolean): Array<ProblemDescriptor>? {
-        if (!StringSmithSettings.getInstance().formatMismatchInspectionEnabled) return null
         if (!StringsXmlFileFilter.isStringsXml(file)) return null
         val localeFile = file.virtualFile ?: return null
         val defaultFile = defaultSibling(localeFile) ?: return null

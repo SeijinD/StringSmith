@@ -28,7 +28,7 @@ object StringsXmlText {
 
     private fun liveEntryMatches(text: String): List<MatchResult> {
         val commentRanges = COMMENT_REGEX.findAll(text).map { it.range }.toList()
-        // An entry is dead if it overlaps a comment region at all — not just where it starts — so an
+        // An entry is dead if it overlaps a comment region at all, not just where it starts, so an
         // entry straddling a comment boundary is never treated as live.
         return ENTRY_REGEX.findAll(text)
             .filter { m -> commentRanges.none { c -> m.range.first <= c.last && c.first <= m.range.last } }
@@ -43,7 +43,7 @@ object StringsXmlText {
     /**
      * Offset of the live `<string name="[key]">` entry's `name` value (the key text), or -1 if absent.
      * Uses [liveEntryMatches] so it never matches a commented-out entry, a `<string-array>`/`<plurals>`,
-     * or a longer key — unlike a raw `indexOf`.
+     * or a longer key, unlike a raw `indexOf`.
      */
     fun offsetOfKey(text: String, key: String): Int =
         liveEntryMatches(text).firstOrNull { it.groupValues[2] == key }?.groups?.get(2)?.range?.first ?: -1
@@ -155,9 +155,9 @@ object StringsXmlText {
 
     /**
      * Escapes a raw string for an Android `strings.xml` value. Rules:
-     * - `"` → `\"` and `'` → `\'` — Android requires quotes/apostrophes escaped in unquoted values.
-     * - `&`/`<`/`>` → `&amp;`/`&lt;`/`&gt;` — XML entities.
-     * - a *leading* `@` or `?` → `\@`/`\?` — otherwise Android reads it as a resource/attr reference.
+     * - `"` → `\"` and `'` → `\'`: Android requires quotes/apostrophes escaped in unquoted values.
+     * - `&`/`<`/`>` → `&amp;`/`&lt;`/`&gt;`: XML entities.
+     * - a *leading* `@` or `?` → `\@`/`\?`, otherwise Android reads it as a resource/attr reference.
      */
     fun encodeXml(value: String): String {
         val sb = StringBuilder(value.length + 8)
@@ -178,7 +178,7 @@ object StringsXmlText {
 
     /** Inverse of [encodeXml]: unescapes entities and leading `\@`/`\?`, then trims whitespace. */
     fun decodeXml(value: String): String {
-        // Fast path: no escape/entity markers means nothing to unescape — skip the chained replaces.
+        // Fast path: no escape/entity markers means nothing to unescape; skip the chained replaces.
         if (value.indexOf('\\') < 0 && value.indexOf('&') < 0) return value.trim()
         val unescapedLeading = when {
             value.startsWith("\\@") -> "@" + value.substring(2)

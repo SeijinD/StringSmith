@@ -11,7 +11,7 @@ import com.seijind.stringsmith.inspections.StringsXmlFileFilter
 
 /**
  * Ctrl+Click on a `<string name="x">` in a Compose Multiplatform strings.xml jumps to the same key in the
- * other locale `values-*` copies — the gesture Android Studio already provides natively for `res/values`,
+ * other locale `values-*` copies: the gesture Android Studio already provides natively for `res/values`,
  * but which has no equivalent for `composeResources`. Restricted to CMP so Android keeps its native
  * behaviour untouched (usages live behind Alt+Click via [StringResourceGotoUsagesAction]).
  */

@@ -32,7 +32,7 @@ data class ExtractDialogResult(
 )
 
 class ExtractDialog(
-    project: Project,
+    private val project: Project,
     rawValue: String,
     private val target: ExtractTarget,
     suggestedKey: String,
@@ -41,12 +41,10 @@ class ExtractDialog(
     private val allTargets: List<VirtualFile>
 ) : DialogWrapper(project, true) {
 
-    private val proj: Project = project
-
     private val keyField: JTextField = JBTextField(suggestedKey).apply { columns = 50 }
     private val valueField: JTextField = JBTextField(rawValue).apply { columns = 50 }
     private val previewLabel = JBLabel(Replacement.referenceFor(target, suggestedKey, ResourceSystem.of(initialTarget))).apply {
-        font = java.awt.Font(java.awt.Font.MONOSPACED, java.awt.Font.BOLD, font.size)
+        font = LocaleUi.previewFont(font)
     }
     private val keyErrorLabel = JBLabel().apply { foreground = JBColor.RED }
     private val valueErrorLabel = JBLabel().apply { foreground = JBColor.RED }
@@ -64,7 +62,7 @@ class ExtractDialog(
     private val moduleCombo: ComboBox<VirtualFile> = ComboBox(moduleModel).apply {
         selectedItem = initialTarget
         setRenderer { _, value, _, _, _ ->
-            JBLabel(value?.let { describeTarget(it) } ?: "").apply {
+            JBLabel(value?.let { DisplayPath.describeTarget(project, it) } ?: "").apply {
                 icon = AllIcons.Nodes.Module
                 iconTextGap = 6
             }
@@ -168,16 +166,6 @@ class ExtractDialog(
             )
         }
     }
-
-    private fun describeTarget(file: VirtualFile): String {
-        val moduleRoot = inferModuleRootFrom(file)
-        val relative = DisplayPath.projectRelative(proj, file)
-        val tag = if (ResourceSystem.of(file) == ResourceSystem.COMPOSE_MULTIPLATFORM) "  [CMP]" else ""
-        return (moduleRoot?.let { "${it.name}  ($relative)" } ?: relative) + tag
-    }
-
-    private fun inferModuleRootFrom(stringsXml: VirtualFile): VirtualFile? =
-        ModuleRootUtil.findModuleRoot(stringsXml)
 
     private fun wireListeners() {
         keyField.document.addDocumentListener(LocaleUi.changeListener { refreshAll() })

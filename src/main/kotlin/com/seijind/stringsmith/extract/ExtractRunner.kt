@@ -11,7 +11,6 @@ import com.seijind.stringsmith.settings.StringSmithSettings
 
 object ExtractRunner {
 
-    /** Common context computed once for both the full and the quick flow. */
     private data class Prepared(
         val target: ExtractTarget,
         val allTargets: List<VirtualFile>,

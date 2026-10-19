@@ -34,12 +34,12 @@ enum class BatchRowStatus { NEW, REUSE, DUPLICATE, COLLISION, INVALID }
 
 data class BatchRow(
     val target: ExtractTarget,
-    var include: Boolean,
-    var key: String,
+    val include: Boolean,
+    val key: String,
     val value: String,
     val sourceLine: Int,
-    var existingKey: String?,
-    var status: BatchRowStatus
+    val existingKey: String?,
+    val status: BatchRowStatus
 )
 
 data class BatchLocaleSelection(val file: VirtualFile, val include: Boolean)
@@ -51,12 +51,10 @@ data class BatchDialogResult(
 )
 
 class BatchDialog(
-    project: Project,
+    private val project: Project,
     private val initialRows: List<BatchRow>,
     private val initialTarget: VirtualFile
 ) : DialogWrapper(project, true) {
-
-    private val proj: Project = project
 
     private val rows: MutableList<BatchRow> = initialRows.toMutableList()
     private val tableModel = RowModel()
@@ -64,7 +62,7 @@ class BatchDialog(
     private var keyBeforeEdit: Pair<Int, String>? = null
     private val table: JBTable = JBTable(tableModel).apply {
         setShowGrid(true)
-        rowHeight = 22
+        rowHeight = JBUI.scale(22)
         columnModel.getColumn(0).preferredWidth = 50
         columnModel.getColumn(1).preferredWidth = 50
         columnModel.getColumn(2).preferredWidth = 280
@@ -88,10 +86,10 @@ class BatchDialog(
         }
         columnModel.getColumn(4).preferredWidth = 110
         columnModel.getColumn(4).cellRenderer = StatusCellRenderer()
-        preferredScrollableViewportSize = java.awt.Dimension(700, rowHeight * 18)
+        preferredScrollableViewportSize = java.awt.Dimension(JBUI.scale(700), rowHeight * 18)
     }
 
-    private val moduleLabel: JBLabel = JBLabel(describeTarget(initialTarget)).apply {
+    private val moduleLabel: JBLabel = JBLabel(DisplayPath.describeTarget(project, initialTarget)).apply {
         icon = AllIcons.Nodes.Module
         iconTextGap = 6
     }
@@ -108,7 +106,7 @@ class BatchDialog(
         refreshAllStatuses()
         init()
         refreshSummary()
-        // Live status/summary while typing a key — the table model only commits on Enter/focus loss.
+        // Live status/summary while typing a key; the table model only commits on Enter/focus loss.
         keyEditorField.document.addDocumentListener(object : DocumentListener {
             override fun insertUpdate(e: DocumentEvent) = onKeyEdited()
             override fun removeUpdate(e: DocumentEvent) = onKeyEdited()
@@ -211,12 +209,6 @@ class BatchDialog(
         localeRows = variants.map { LocaleRow(it, JCheckBox("", defaultInclude)) }
     }
 
-
-    private fun describeTarget(file: VirtualFile): String {
-        val moduleRoot = ModuleRootUtil.findModuleRoot(file)
-        val relative = DisplayPath.projectRelative(proj, file)
-        return moduleRoot?.let { "${it.name}  ($relative)" } ?: relative
-    }
 
     private fun refreshAllStatuses() {
         rows.forEachIndexed { i, r ->

@@ -8,7 +8,7 @@ package com.seijind.stringsmith.extract
  */
 object BatchStatus {
 
-    /** The row fields the precedence rules read — decoupled from PSI so tests can build rows directly. */
+    /** The row fields the precedence rules read, decoupled from PSI so tests can build rows directly. */
     data class RowFacts(val include: Boolean, val key: String, val value: String)
 
     /** Status precedence: Invalid > Reuse > Collision > Duplicate > New. */
@@ -27,7 +27,7 @@ object BatchStatus {
         return BatchRowStatus.NEW
     }
 
-    /** Another included row reuses this key for a different value — writing both would clobber one. */
+    /** Another included row reuses this key for a different value; writing both would clobber one. */
     private fun collidesWithOtherRow(rows: List<RowFacts>, selfIndex: Int, key: String, value: String): Boolean =
         rows.withIndex().any { (i, other) ->
             i != selfIndex && other.include && other.key == key && other.value != value

@@ -4,7 +4,7 @@ import com.seijind.stringsmith.extract.BatchStatus.RowFacts
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-/** Verifies the batch status precedence (Invalid > Reuse > Collision > Duplicate > New), pure — no IDE fixture. */
+/** Verifies the batch status precedence (Invalid > Reuse > Collision > Duplicate > New), pure, no IDE fixture. */
 class BatchStatusTest {
 
     private fun row(key: String, value: String, include: Boolean = true) = RowFacts(include, key, value)
@@ -82,7 +82,7 @@ class BatchStatusTest {
 
     @Test
     fun reuseBeatsCollision() {
-        // Key both matches its existing key AND is present in xml — reuse wins (it's the same entry).
+        // Key both matches its existing key AND is present in xml: reuse wins (it's the same entry).
         assertEquals(
             BatchRowStatus.REUSE,
             status(listOf(row("greeting", "Hello")), existingKey = "greeting", keyExistsInXml = true)
@@ -91,7 +91,7 @@ class BatchStatusTest {
 
     @Test
     fun collisionBeatsDuplicate() {
-        // Same value as another row (duplicate) but key also collides in xml — collision wins.
+        // Same value as another row (duplicate) but key also collides in xml: collision wins.
         val rows = listOf(row("greeting", "Hello"), row("salutation", "Hello"))
         assertEquals(BatchRowStatus.COLLISION, status(rows, selfIndex = 0, keyExistsInXml = true))
     }

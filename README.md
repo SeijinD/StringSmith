@@ -76,7 +76,7 @@ IntelliJ IDEA / Android Studio plugin for managing Android `strings.xml` resourc
 
 ### Settings
 
-Configurable prefix, naming convention, replacement style per context, locale propagation defaults, format-arg detection, inspection toggles, exclusion patterns, and custom composable wrapper names. A live key preview reflects your settings as you type a sample string. Compose Multiplatform projects can set a generated `Res` package override under **Kotlin Multiplatform**.
+Configurable prefix, naming convention, replacement style per context, locale propagation defaults, format-arg detection, logging-string filtering, exclusion patterns, and custom composable wrapper names. A live key preview reflects your settings as you type a sample string. Compose Multiplatform projects can set a generated `Res` package override under **Kotlin Multiplatform**.
 
 Custom wrappers: if your project wraps content in a helper whose trailing lambda is a `@Composable` scope (e.g. `screenViewComposable { … }`), add its name under **Settings → Tools → StringSmith → Custom Composable Wrappers** so strings inside it use `stringResource`.
 
@@ -108,7 +108,7 @@ Copy an existing string resource to a new key across `res/values/strings.xml` an
 
 ### Inspections
 
-Duplicate and unused `strings.xml` entries are flagged inline.
+Duplicate and unused `strings.xml` entries are flagged inline. Turn each StringSmith inspection on or off under **Settings → Editor → Inspections → StringSmith**; the hardcoded-string highlight is off by default.
 
 ![Inspections](docs/inspect.png)
 

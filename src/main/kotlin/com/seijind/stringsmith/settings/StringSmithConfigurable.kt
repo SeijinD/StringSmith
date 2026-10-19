@@ -125,34 +125,13 @@ class StringSmithConfigurable : Configurable {
 
             group("Inspections") {
                 row {
-                    checkBox("Highlight hardcoded strings in editor")
-                        .bindSelected({ settings.inspectionEnabled }, { settings.inspectionEnabled = it })
-                        .comment("Adds a warning under each extractable hardcoded literal with an Extract quick-fix.")
-                        .applyToComponent { toolTipText = "Off by default; opt in for passive discovery of unextracted strings" }
+                    comment("Turn the StringSmith inspections on or off in <b>Settings | Editor | Inspections | StringSmith</b>. Hardcoded strings are off by default.")
                 }
                 row {
                     checkBox("Ignore logging strings")
                         .bindSelected({ settings.ignoreLoggingStrings }, { settings.ignoreLoggingStrings = it })
                         .comment("Don't flag literals passed to <code>Log.*</code>, <code>Timber.*</code>, <code>println</code>, <code>require</code>/<code>check</code>. Annotation arguments and <code>const</code> values are always skipped.")
                         .applyToComponent { toolTipText = "Logging and assertion messages are usually not user-facing text" }
-                }
-                row {
-                    checkBox("Flag duplicate values in strings.xml")
-                        .bindSelected({ settings.duplicateValueInspectionEnabled }, { settings.duplicateValueInspectionEnabled = it })
-                        .comment("Reports two or more <code>&lt;string&gt;</code> entries with the same text under different keys.")
-                        .applyToComponent { toolTipText = "Encourages key reuse across modules and locales" }
-                }
-                row {
-                    checkBox("Flag unused string resources")
-                        .bindSelected({ settings.unusedStringInspectionEnabled }, { settings.unusedStringInspectionEnabled = it })
-                        .comment("Reports keys in <code>strings.xml</code> with no <code>R.string.key</code>, <code>Res.string.key</code> (Compose Multiplatform), or <code>@string/key</code> reference in the project.")
-                        .applyToComponent { toolTipText = "Text-based search; dynamic key construction (e.g. \"key_\$type\") may report false positives" }
-                }
-                row {
-                    checkBox("Flag format-string mismatches across locales")
-                        .bindSelected({ settings.formatMismatchInspectionEnabled }, { settings.formatMismatchInspectionEnabled = it })
-                        .comment("Reports a locale <code>&lt;string&gt;</code> whose <code>%s</code>/<code>%d</code> format arguments don't match the default value — a runtime <code>IllegalFormatException</code> waiting to happen. Covers Compose Multiplatform, which Android Lint doesn't check.")
-                        .applyToComponent { toolTipText = "Compares each locale's format specifiers against values/strings.xml" }
                 }
             }
 
@@ -179,7 +158,7 @@ class StringSmithConfigurable : Configurable {
                 }
             }
 
-            // Advanced, project-specific tuning — collapsed by default to keep the page short.
+            // Advanced, project-specific tuning, collapsed by default to keep the page short.
             collapsibleGroup("Compose & Multiplatform") {
                 row {
                     textArea()
@@ -198,7 +177,7 @@ class StringSmithConfigurable : Configurable {
                         .bindText({ settings.cmpResPackageOverride }, { settings.cmpResPackageOverride = it })
                         .align(AlignX.FILL)
                         .applyToComponent {
-                            toolTipText = "e.g. com.example.app.generated.resources — leave blank to auto-detect"
+                            toolTipText = "e.g. com.example.app.generated.resources (leave blank to auto-detect)"
                         }
                         .comment(
                             "Generated <code>Res</code> class package for Compose Multiplatform " +

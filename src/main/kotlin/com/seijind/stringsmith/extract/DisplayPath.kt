@@ -5,6 +5,13 @@ import com.intellij.openapi.vfs.VirtualFile
 
 object DisplayPath {
 
+    /** A target `strings.xml` as shown in the dialogs: `module  (relative/path)`, tagged `[CMP]` for Compose Multiplatform. */
+    fun describeTarget(project: Project, file: VirtualFile): String {
+        val relative = projectRelative(project, file)
+        val tag = if (ResourceSystem.of(file) == ResourceSystem.COMPOSE_MULTIPLATFORM) "  [CMP]" else ""
+        return (ModuleRootUtil.findModuleRoot(file)?.let { "${it.name}  ($relative)" } ?: relative) + tag
+    }
+
     /** [file]'s path made relative to the project root (forward slashes), or the full path if outside it. */
     fun projectRelative(project: Project, file: VirtualFile): String {
         val base = project.basePath?.replace('\\', '/')?.trimEnd('/')

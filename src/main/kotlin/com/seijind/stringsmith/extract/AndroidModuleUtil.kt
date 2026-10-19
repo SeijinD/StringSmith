@@ -1,6 +1,5 @@
 package com.seijind.stringsmith.extract
 
-import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.vfs.VirtualFile
 import org.jetbrains.kotlin.psi.KtFile
 
@@ -20,7 +19,6 @@ object AndroidModuleUtil {
 
     private fun readManifestText(moduleRoot: VirtualFile): String? {
         val manifest = moduleRoot.findFileByRelativePath("src/main/AndroidManifest.xml") ?: return null
-        return FileDocumentManager.getInstance().getDocument(manifest)?.text
-            ?: String(manifest.contentsToByteArray(), Charsets.UTF_8)
+        return ModuleRootUtil.readText(manifest)
     }
 }

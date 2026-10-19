@@ -20,8 +20,6 @@ class HardcodedStringInspection : LocalInspectionTool() {
 
     override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor {
         val settings = StringSmithSettings.getInstance()
-        if (!settings.inspectionEnabled) return PsiElementVisitor.EMPTY_VISITOR
-
         return object : PsiElementVisitor() {
             override fun visitElement(element: PsiElement) {
                 when (element) {
@@ -35,8 +33,7 @@ class HardcodedStringInspection : LocalInspectionTool() {
                 // Cheap reject before the context-classification walks in fromKotlin: a literal with no
                 // interpolation whose (trimmed) text is below the minimum can't pass validate anyway.
                 if (isDefinitelyTooShort(expr)) return
-                val file = expr.containingFile ?: return
-                val target = ExtractContext.fromKotlin(expr, file) ?: return
+                val target = ExtractContext.fromKotlin(expr, expr.containingFile) ?: return
                 reportIfExtractable(target, expr, settings)
             }
 

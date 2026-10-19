@@ -9,12 +9,10 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.xml.XmlTag
 import com.seijind.stringsmith.StringSmithBundle
-import com.seijind.stringsmith.settings.StringSmithSettings
 
 class DuplicateStringValueInspection : LocalInspectionTool() {
 
     override fun checkFile(file: PsiFile, manager: InspectionManager, isOnTheFly: Boolean): Array<ProblemDescriptor>? {
-        if (!StringSmithSettings.getInstance().duplicateValueInspectionEnabled) return null
         if (!StringsXmlFileFilter.isStringsXml(file)) return null
 
         val tags = PsiTreeUtil.findChildrenOfType(file, XmlTag::class.java)

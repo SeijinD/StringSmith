@@ -6,9 +6,6 @@ import com.intellij.psi.PsiFile
 
 object EditRunner {
 
-    fun isEditable(file: PsiFile, editor: Editor): Boolean =
-        KeyRefRunner.isAvailable(file, editor)
-
     fun run(project: Project, editor: Editor, file: PsiFile) =
         KeyRefRunner.run(project, file, editor, "error.duplicate.notOnKey", "edit.dialog.title") { source ->
             val dialog = EditDialog(project, source)

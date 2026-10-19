@@ -40,14 +40,10 @@ object KtImportUtil {
         ensureImport(ktFile, "$resPackage.$key")
     }
 
-    const val ANDROID_COMPOSE_IMPORT = "androidx.compose.ui.res.stringResource"
-    const val CMP_COMPOSE_IMPORT = "org.jetbrains.compose.resources.stringResource"
+    private const val ANDROID_COMPOSE_IMPORT = "androidx.compose.ui.res.stringResource"
+    private const val CMP_COMPOSE_IMPORT = "org.jetbrains.compose.resources.stringResource"
 
-    /**
-     * The fully-qualified imports an extracted reference needs — single source of truth shared by the
-     * single and batch writers so they can't drift. [keys] are the CMP `Res.string.<key>` imports (one
-     * per distinct key). Pure: no PSI, so it is unit-testable on its own.
-     */
+    /** Fully-qualified imports an extracted reference needs; [keys] become one CMP `Res.string.<key>` import each. */
     fun resourceImportsFor(
         system: ResourceSystem,
         hasComposable: Boolean,

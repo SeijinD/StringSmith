@@ -81,10 +81,9 @@ object StringsXmlUtil {
         if (all.isEmpty()) return null
         if (near != null) {
             // Prefer the default file sharing the longest path prefix with `near` (same module/tree).
-            val nearest = all.maxByOrNull { it.path.commonPrefixWith(near.path).length }
-            if (nearest != null) return nearest
+            return all.maxBy { it.path.commonPrefixWith(near.path).length }
         }
-        return all.firstOrNull()
+        return all.first()
     }
 
     fun findAllDefaultStringsXml(project: Project): List<VirtualFile> =
@@ -118,7 +117,7 @@ object StringsXmlUtil {
         return entries
     }
 
-    /** All declared keys in [file] (declaration order), parsed once and cached via [readEntries]. */
+    /** All declared keys in [file], in declaration order. */
     fun readKeys(file: VirtualFile): Set<String> =
         readEntries(file).mapTo(LinkedHashSet()) { it.key }
 
@@ -173,9 +172,7 @@ object StringsXmlUtil {
      */
     fun appendEntries(file: VirtualFile, drafts: List<StringEntryDraft>, sortAlpha: Boolean = false): Boolean {
         if (drafts.isEmpty()) return true
-        val doc = FileDocumentManager.getInstance().getDocument(file) ?: return false
-        replaceMinimalDiff(doc, StringsXmlText.appendEntries(doc.text, drafts, sortAlpha))
-        return true
+        return applyDocument(file) { StringsXmlText.appendEntries(it, drafts, sortAlpha) }
     }
 
     /** Replaces the value of [key] in [file]. Returns false if the file has no editable document. */
@@ -192,7 +189,7 @@ object StringsXmlUtil {
 
     /**
      * Rewrites [file]'s document via [transform]. Returns false if the file has no editable document.
-     * The document is left unsaved on purpose — the platform persists it on its own; forcing
+     * The document is left unsaved on purpose: the platform persists it on its own; forcing
      * `saveDocument` here would do disk I/O on the EDT under the write lock.
      */
     private fun applyDocument(file: VirtualFile, transform: (String) -> String): Boolean {

@@ -38,6 +38,10 @@
 - Compose Multiplatform: the generated `Res` package is resolved before the write command, so extracting, duplicating or renaming no longer re-parses every Kotlin file of the project while holding the write lock.
 - Ctrl+Click between Compose Multiplatform locales looks up the sibling `values*/strings.xml` files directly instead of a project-wide index lookup, and works while indexing.
 
+### Changed
+- Dropped the unused optional dependency on the Android plugin. Nothing used it; the plugin works the same in IntelliJ IDEA and Android Studio, and the Plugin Verifier no longer warns that `org.jetbrains.android` cannot be resolved.
+- StringSmith inspections are now turned on and off only in **Settings → Editor → Inspections → StringSmith**. The duplicate checkboxes under **Settings → Tools → StringSmith → Inspections** are gone; before, the hardcoded-string inspection looked enabled in the inspection profile but did nothing until its StringSmith checkbox was also ticked. It stays off by default. If you had enabled it in StringSmith settings, enable it once in the inspection profile.
+
 ## [0.6.1] - 2026-06-25
 
 ### Changed

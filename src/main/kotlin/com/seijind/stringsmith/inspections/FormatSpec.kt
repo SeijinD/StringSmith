@@ -17,11 +17,11 @@ sealed interface FormatMismatch {
 
 /**
  * Parses Java/Android format strings (`%s`, `%d`, `%1$s`, …) and compares a translation against the
- * default value, mirroring the cross-locale checks Android Lint runs for `R.string` — but also covering
+ * default value, mirroring the cross-locale checks Android Lint runs for `R.string`, but also covering
  * Compose Multiplatform `Res.string`, which Lint never sees.
  *
  * Pragmatic, not a full `java.util.Formatter`: `%%` is an escaped literal percent, `%n` a no-argument
- * line separator, and the space / `<` flags are not recognised — so ordinary text such as `"50% off"`
+ * line separator, and the space / `<` flags are not recognised, so ordinary text such as `"50% off"`
  * is never misread as a specifier.
  */
 object FormatSpec {

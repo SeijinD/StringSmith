@@ -14,7 +14,6 @@ import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.xml.XmlTag
 import com.seijind.stringsmith.StringSmithBundle
 import com.seijind.stringsmith.extract.KeyReferences
-import com.seijind.stringsmith.settings.StringSmithSettings
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.experimental.or
 
@@ -25,7 +24,6 @@ class UnusedStringResourceInspection : LocalInspectionTool() {
     private val refCache = ConcurrentHashMap<String, Boolean>()
 
     override fun checkFile(file: PsiFile, manager: InspectionManager, isOnTheFly: Boolean): Array<ProblemDescriptor>? {
-        if (!StringSmithSettings.getInstance().unusedStringInspectionEnabled) return null
         if (!StringsXmlFileFilter.isStringsXml(file)) return null
 
         val tags = PsiTreeUtil.findChildrenOfType(file, XmlTag::class.java)

@@ -2,6 +2,7 @@ package com.seijind.stringsmith.extract
 
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.vfs.VirtualFile
+import java.io.IOException
 
 /** Shared module-root discovery used by both the Android `R` and the CMP `Res` package resolvers. */
 object ModuleRootUtil {
@@ -19,7 +20,16 @@ object ModuleRootUtil {
 
     fun readGradleText(moduleRoot: VirtualFile): String? {
         val gradle = moduleRoot.findChild("build.gradle.kts") ?: moduleRoot.findChild("build.gradle") ?: return null
-        return FileDocumentManager.getInstance().getDocument(gradle)?.text
-            ?: String(gradle.contentsToByteArray(), Charsets.UTF_8)
+        return readText(gradle)
+    }
+
+    /** The open document's text, else the file on disk; null if it cannot be read. */
+    fun readText(file: VirtualFile): String? {
+        FileDocumentManager.getInstance().getDocument(file)?.let { return it.text }
+        return try {
+            String(file.contentsToByteArray(), Charsets.UTF_8)
+        } catch (e: IOException) {
+            null
+        }
     }
 }

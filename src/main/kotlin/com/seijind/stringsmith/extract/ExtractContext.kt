@@ -57,13 +57,13 @@ object ExtractContext {
 
     private fun detectFrom(element: PsiElement, file: PsiFile): ExtractTarget? {
         val kt = PsiTreeUtil.getParentOfType(element, KtStringTemplateExpression::class.java, false)
-        if (kt != null) return buildKotlinTarget(kt, file)
+        if (kt != null) return fromKotlin(kt, file)
         val xml = PsiTreeUtil.getParentOfType(element, XmlAttributeValue::class.java, false)
-        if (xml != null) return buildXmlTarget(xml, file)
+        if (xml != null) return fromXml(xml, file)
         return null
     }
 
-    private fun buildXmlTarget(attr: XmlAttributeValue, file: PsiFile): ExtractTarget? {
+    fun fromXml(attr: XmlAttributeValue, file: PsiFile): ExtractTarget? {
         if (!isAndroidResourceXml(file)) return null
         val attribute = attr.parent as? XmlAttribute ?: return null
         if (!isExtractableTextAttribute(attribute)) return null
@@ -76,7 +76,7 @@ object ExtractContext {
 
     // Only user-facing text attributes are extractable. Enum/dimension/reference attributes
     // (layout_width="match_parent", textSize="16sp", orientation="vertical", …) must never be
-    // offered an @string/ replacement — it would break the layout. tools: is design-time only.
+    // offered an @string/ replacement: it would break the layout. tools: is design-time only.
     private fun isExtractableTextAttribute(attribute: XmlAttribute): Boolean {
         val name = attribute.name
         if (name.startsWith("tools:")) return false
@@ -106,7 +106,7 @@ object ExtractContext {
         return vf.parent?.parent?.name == "res"
     }
 
-    private fun buildKotlinTarget(expr: KtStringTemplateExpression, file: PsiFile): ExtractTarget? {
+    fun fromKotlin(expr: KtStringTemplateExpression, file: PsiFile): ExtractTarget? {
         val kind = classifyKotlin(expr)
         val hasExpressions = expr.entries.any { it is KtStringTemplateEntryWithExpression }
         if (!hasExpressions) {
@@ -242,12 +242,9 @@ object ExtractContext {
         "Service"
     )
 
-    fun fromKotlin(expr: KtStringTemplateExpression, file: PsiFile): ExtractTarget? =
-        buildKotlinTarget(expr, file)
-
     /**
      * Contexts where a Kotlin string literal is technical rather than user-facing UI text, so the
-     * hardcoded-string inspection should stay quiet. Consulted ONLY by the inspection — manual extract
+     * hardcoded-string inspection should stay quiet. Consulted ONLY by the inspection; manual extract
      * (the action / Alt+Enter intention) still works on these, so nothing is blocked, just un-flagged.
      *
      * Annotation arguments (e.g. `@SerialName("user")`, `@Query("SELECT …")`) and `const` initializers
@@ -288,5 +285,4 @@ object ExtractContext {
         return fn.annotationEntries.any { it.shortName?.asString() == "Preview" }
     }
 
-    fun fromXml(attr: XmlAttributeValue, file: PsiFile): ExtractTarget? = buildXmlTarget(attr, file)
 }

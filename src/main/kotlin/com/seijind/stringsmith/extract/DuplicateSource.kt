@@ -50,7 +50,7 @@ object DuplicateContext {
 
     /**
      * Cheap syntactic test for whether the caret sits on a `R.string.key` / `Res.string.key` reference
-     * or a `<string name=…>` entry. Used by intention `isAvailable`, which fires on every Alt+Enter — so
+     * or a `<string name=…>` entry. Used by intention `isAvailable`, which fires on every Alt+Enter, so
      * unlike [detect] it must NOT scan the project or parse files. The owning default file and locale
      * values are resolved later, in [detect], from the action's `invoke`.
      */
@@ -71,13 +71,16 @@ object DuplicateContext {
         return tag.name == "string" && tag.getAttributeValue("name") != null
     }
 
-    private fun isCodeRef(element: PsiElement): Boolean {
+    private fun isCodeRef(element: PsiElement): Boolean = codeRefAt(element) != null
+
+    /** The innermost enclosing `R.string.x` / `Res.string.x` expression and its parsed reference. */
+    private fun codeRefAt(element: PsiElement): Pair<KtDotQualifiedExpression, Pair<ResourceSystem, String>>? {
         var qualified = PsiTreeUtil.getParentOfType(element, KtDotQualifiedExpression::class.java, false)
         while (qualified != null) {
-            if (DuplicateRefParser.parse(qualified.text) != null) return true
+            DuplicateRefParser.parse(qualified.text)?.let { return qualified to it }
             qualified = PsiTreeUtil.getParentOfType(qualified, KtDotQualifiedExpression::class.java, true)
         }
-        return false
+        return null
     }
 
     fun detect(project: Project, file: PsiFile, editor: Editor): DuplicateSource? {
@@ -96,13 +99,7 @@ object DuplicateContext {
 
     private fun detectFromCode(project: Project, file: PsiFile, element: PsiElement): DuplicateSource? {
         val ktFile = file as? KtFile ?: return null
-        // Walk up to the outermost dot-qualified expression that is a R.string / Res.string reference.
-        var qualified = PsiTreeUtil.getParentOfType(element, KtDotQualifiedExpression::class.java, false) ?: return null
-        var match = DuplicateRefParser.parse(qualified.text)
-        while (match == null) {
-            qualified = PsiTreeUtil.getParentOfType(qualified, KtDotQualifiedExpression::class.java, true) ?: return null
-            match = DuplicateRefParser.parse(qualified.text)
-        }
+        val (qualified, match) = codeRefAt(element) ?: return null
         val (system, key) = match
         val keySelector = qualified.selectorExpression ?: return null
         val nearTo = file.virtualFile

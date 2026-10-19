@@ -37,12 +37,8 @@ class StringSmithSettings : PersistentStateComponent<StringSmithSettings.State> 
         var keyPrefix: String = "",
         var autoIncludeLocales: Boolean = true,
         var excludePreviewComposables: Boolean = true,
-        var inspectionEnabled: Boolean = false,
         var ignoreLoggingStrings: Boolean = true,
         var detectFormatArgs: Boolean = true,
-        var duplicateValueInspectionEnabled: Boolean = true,
-        var unusedStringInspectionEnabled: Boolean = true,
-        var formatMismatchInspectionEnabled: Boolean = true,
         var namingConvention: NamingConvention = NamingConvention.SNAKE_CASE,
         var maxKeyLength: Int = 40,
         var minStringLength: Int = 2,
@@ -83,10 +79,6 @@ class StringSmithSettings : PersistentStateComponent<StringSmithSettings.State> 
         get() = state.excludePreviewComposables
         set(value) { state.excludePreviewComposables = value }
 
-    var inspectionEnabled: Boolean
-        get() = state.inspectionEnabled
-        set(value) { state.inspectionEnabled = value }
-
     var ignoreLoggingStrings: Boolean
         get() = state.ignoreLoggingStrings
         set(value) { state.ignoreLoggingStrings = value }
@@ -94,18 +86,6 @@ class StringSmithSettings : PersistentStateComponent<StringSmithSettings.State> 
     var detectFormatArgs: Boolean
         get() = state.detectFormatArgs
         set(value) { state.detectFormatArgs = value }
-
-    var duplicateValueInspectionEnabled: Boolean
-        get() = state.duplicateValueInspectionEnabled
-        set(value) { state.duplicateValueInspectionEnabled = value }
-
-    var unusedStringInspectionEnabled: Boolean
-        get() = state.unusedStringInspectionEnabled
-        set(value) { state.unusedStringInspectionEnabled = value }
-
-    var formatMismatchInspectionEnabled: Boolean
-        get() = state.formatMismatchInspectionEnabled
-        set(value) { state.formatMismatchInspectionEnabled = value }
 
     var namingConvention: NamingConvention
         get() = state.namingConvention

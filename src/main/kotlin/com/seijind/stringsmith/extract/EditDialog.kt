@@ -11,7 +11,6 @@ import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
 import com.seijind.stringsmith.StringSmithBundle
-import java.awt.BorderLayout
 import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.JTextField
@@ -35,7 +34,7 @@ class EditDialog(
     private val keyField: JTextField = JBTextField(source.key).apply { columns = 50 }
     private val valueField: JTextField = JBTextField(source.defaultValue).apply { columns = 50 }
     private val previewLabel = JBLabel().apply {
-        font = java.awt.Font(java.awt.Font.MONOSPACED, java.awt.Font.BOLD, font.size)
+        font = LocaleUi.previewFont(font)
     }
     private val keyErrorLabel = JBLabel().apply { foreground = JBColor.RED }
     private val valueErrorLabel = JBLabel().apply { foreground = JBColor.RED }

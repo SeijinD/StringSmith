@@ -20,7 +20,7 @@ class DuplicateDialog(
 
     private val keyField: JTextField = JBTextField("${source.key}_copy").apply { columns = 40 }
     private val previewLabel = JBLabel().apply {
-        font = java.awt.Font(java.awt.Font.MONOSPACED, java.awt.Font.BOLD, font.size)
+        font = LocaleUi.previewFont(font)
     }
     private val updateRefCheckbox = JCheckBox(
         StringSmithBundle.message("duplicate.checkbox.updateRef"),
