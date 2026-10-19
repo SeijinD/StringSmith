@@ -1,7 +1,9 @@
 package com.seijind.stringsmith.settings
 
+import com.intellij.ide.DataManager
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.options.ConfigurationException
+import com.intellij.openapi.options.ex.Settings
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.Messages
@@ -18,6 +20,7 @@ import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.bindText
 import com.intellij.ui.dsl.builder.LabelPosition
 import com.intellij.ui.dsl.builder.panel
+import java.awt.Component
 import javax.swing.JComponent
 import javax.swing.JTextArea
 
@@ -127,12 +130,12 @@ class StringSmithConfigurable : Configurable {
 
             group("Inspections") {
                 row {
-                    comment("Turn the StringSmith inspections on or off in <b>Settings | Editor | Inspections | StringSmith</b>. Hardcoded strings are off by default.")
-                }
+                    link("Configure StringSmith inspections…") { event -> openInspectionSettings(event.source as? Component) }
+                }.rowComment("Turn each inspection on or off and set its severity in the inspection profile. Hardcoded UI strings are reported by default; hardcoded strings in non-UI code are off.")
                 row {
                     checkBox("Ignore logging strings")
                         .bindSelected({ settings.ignoreLoggingStrings }, { settings.ignoreLoggingStrings = it })
-                        .comment("Don't flag literals passed to <code>Log.*</code>, <code>Timber.*</code>, <code>println</code>, <code>require</code>/<code>check</code>. Annotation arguments and <code>const</code> values are always skipped.")
+                        .comment("Don't flag literals passed to <code>Log.*</code>, <code>Timber.*</code>, <code>Napier.*</code>, <code>logger.*</code> or <code>println</code>. Exception messages, <code>require</code>/<code>check</code>, annotation arguments and <code>const</code> values are always skipped.")
                         .applyToComponent { toolTipText = "Logging and assertion messages are usually not user-facing text" }
                 }
             }
@@ -230,6 +233,13 @@ class StringSmithConfigurable : Configurable {
         return builder
     }
 
+    // Switches the open Settings dialog to the Inspections page, filtered to StringSmith.
+    private fun openInspectionSettings(source: Component?) {
+        val component = source ?: return
+        val allSettings = Settings.KEY.getData(DataManager.getInstance().getDataContext(component)) ?: return
+        allSettings.find(INSPECTIONS_CONFIGURABLE_ID)?.let { allSettings.select(it, "StringSmith") }
+    }
+
     private fun regexError(): String? {
         val text = excludePatternsArea?.text ?: return null
         val invalid = text.lines()
@@ -280,5 +290,6 @@ class StringSmithConfigurable : Configurable {
 
     private companion object {
         const val DEFAULT_SAMPLE = "Welcome to the app"
+        const val INSPECTIONS_CONFIGURABLE_ID = "Errors"
     }
 }
