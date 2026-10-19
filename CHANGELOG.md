@@ -4,6 +4,9 @@
 
 ## [Unreleased]
 
+### Fixed
+- **IntelliJ Platform 2026.3 compatibility.** Resolved the Plugin Verifier findings against IntelliJ IDEA 2026.3 (263): the usages popup no longer calls the override-only `Navigatable.navigate()` directly, and the message bundle no longer uses the deprecated `DynamicBundle(String)` constructor. No behavior change.
+
 ## [0.6.1] - 2026-06-25
 
 ### Changed

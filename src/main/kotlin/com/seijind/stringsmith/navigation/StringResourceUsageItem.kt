@@ -1,7 +1,6 @@
 package com.seijind.stringsmith.navigation
 
 import com.intellij.navigation.ItemPresentation
-import com.intellij.pom.Navigatable
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.impl.FakePsiElement
@@ -25,13 +24,7 @@ internal class StringResourceUsageItem(
 
     override fun isValid(): Boolean = origin.isValid
 
-    override fun navigate(requestFocus: Boolean) {
-        (origin as? Navigatable)?.navigate(requestFocus)
-    }
-
-    override fun canNavigate(): Boolean = (origin as? Navigatable)?.canNavigate() ?: false
-
-    override fun canNavigateToSource(): Boolean = (origin as? Navigatable)?.canNavigateToSource() ?: false
+    override fun getNavigationElement(): PsiElement = origin
 
     override fun getName(): String = snippet
 
