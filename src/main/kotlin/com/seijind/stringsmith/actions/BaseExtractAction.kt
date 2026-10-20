@@ -1,5 +1,6 @@
 package com.seijind.stringsmith.actions
 
+import com.intellij.openapi.actionSystem.ActionPlaces
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -22,7 +23,7 @@ abstract class BaseExtractAction : AnAction() {
         // error; the right-click menu only lists what applies at the caret.
         e.presentation.isEnabledAndVisible =
             project != null && editor != null && file != null && isAvailableFor(file) &&
-                (!e.isFromContextMenu || isApplicableAt(file, editor))
+                (e.place != ActionPlaces.EDITOR_POPUP || isApplicableAt(file, editor))
     }
 
     final override fun actionPerformed(e: AnActionEvent) {
