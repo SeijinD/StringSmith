@@ -55,7 +55,7 @@ intellijPlatform {
     }
 }
 
-val runAndroidStudio by intellijPlatformTesting.runIde.registering {
+val runAndroidStudio = intellijPlatformTesting.runIde.register("runAndroidStudio") {
     val os = System.getProperty("os.name").lowercase()
     val default = when {
         os.contains("win") -> "C:\\Program Files\\Android\\Android Studio"
