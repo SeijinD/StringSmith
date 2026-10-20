@@ -14,7 +14,8 @@
         <p><b>Extract</b></p>
         <ul>
             <li>Context-aware replacement: <code>stringResource</code> in Composables, <code>getString</code> in
-                Activity/Fragment/Service, <code>R.string</code> in other Kotlin, <code>@string/</code> in XML layouts</li>
+                Activity/Fragment/Service, <code>R.string</code> in other Kotlin, <code>@string/</code> in XML layouts,
+                the manifest <code>android:label</code> and app shortcut labels</li>
             <li>Kotlin Multiplatform / Compose Multiplatform: <code>stringResource(Res.string.key)</code> with
                 auto-imported generated <code>Res</code> (package auto-detected, overridable in settings)</li>
             <li>Auto-import for Compose <code>stringResource</code> with sorted imports</li>
@@ -60,17 +61,19 @@
 
         <p><b>Inspect</b></p>
         <ul>
-            <li>Hardcoded UI text highlight in Compose, UI calls, XML layouts and the manifest, without noise from keys, routes, tests or generated code</li>
+            <li>Hardcoded UI text, on by default: Compose, UI calls such as <code>Toast.makeText</code>, XML layouts and
+                the manifest, without noise from keys, routes, tests or generated code. An opt-in second inspection
+                covers hardcoded strings in non-UI code</li>
             <li>Duplicate value in <code>strings.xml</code> (same text, different keys)</li>
-            <li>Unused string resource (no reference anywhere)</li>
+            <li>Unused string resource (no reference anywhere, including Compose Multiplatform after a build)</li>
             <li>Format-string mismatch across locales: a locale whose <code>%s</code>/<code>%d</code>
                 arguments don't match the default entry (can crash at runtime); covers Compose Multiplatform,
                 which Android Lint doesn't check</li>
         </ul>
 
         <p><b>Settings:</b> key prefix and naming convention, replacement style per context, locale defaults,
-            format-arg detection, logging-string filtering, exclusion patterns, custom Composable wrapper names, and a live
-            key preview.</p>
+            format-arg detection, logging-string filtering, exclusion patterns, custom Composable wrapper names, a live
+            key preview, and a link to the StringSmith inspection profile.</p>
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
