@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-20
+
 ### Changed
 - **Hardcoded strings are reported by two inspections.** **Hardcoded UI string** is now on by default (weak warning) and reports only text the user sees: Compose UI, UI calls such as `Toast.makeText`, `setText` or `showSnackbar`, layout, menu and shortcut XML, and the manifest label. Keys, routes, tags, comparisons, tests, generated code, Gradle scripts, `buildSrc` / `build-logic` and benchmark modules are not reported, and strings in Activities are no longer reported just because they are in an Activity. **Hardcoded string in non-UI code** (off by default) covers everything else for audits.
 - **Inspections are controlled only from the inspection profile** (**Settings → Editor → Inspections → StringSmith**). The duplicate checkboxes in StringSmith settings are gone; if you had changed any inspection there, set it again in the inspection profile.
@@ -220,7 +222,10 @@
 - `parseEntries` regex tolerates extra `<string>` attributes such as `translatable="false"`.
 - `ensureImport` uses a text-based `KtPsiFactory.createFile("import …")` instead of the deprecated `createImportDirective(ImportPath)`.
 
-[Unreleased]: https://github.com/SeijinD/stringsmith/compare/0.5.1...HEAD
+[Unreleased]: https://github.com/SeijinD/stringsmith/compare/0.7.0...HEAD
+[0.7.0]: https://github.com/SeijinD/stringsmith/compare/0.6.1...0.7.0
+[0.6.1]: https://github.com/SeijinD/stringsmith/compare/0.6.0...0.6.1
+[0.6.0]: https://github.com/SeijinD/stringsmith/compare/0.5.1...0.6.0
 [0.5.1]: https://github.com/SeijinD/stringsmith/compare/0.5.0...0.5.1
 [0.5.0]: https://github.com/SeijinD/stringsmith/compare/0.4.0...0.5.0
 [0.4.0]: https://github.com/SeijinD/stringsmith/compare/0.3.0...0.4.0
